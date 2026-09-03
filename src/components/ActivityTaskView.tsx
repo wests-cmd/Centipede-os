@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { KingdomAdapter } from '../api/kingdomAdapter';
-import { TaskItem } from '../types';
-import { Activity, Plus, XCircle, RefreshCw, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import { SystemEvent, TaskItem } from '../types';
+import { Activity, Plus, XCircle, RefreshCw, Radio, Terminal, AlertCircle } from 'lucide-react';
 
 interface ActivityTaskViewProps {
   adapter: KingdomAdapter;
@@ -13,20 +13,32 @@ export const ActivityTaskView: React.FC<ActivityTaskViewProps> = ({ adapter }) =
   const [filter, setFilter] = useState<string>('all');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
+  const [events, setEvents] = useState<SystemEvent[]>([]);
 
   const fetchTasks = async () => {
     try {
       const list = await adapter.list_tasks(filter === 'all' ? undefined : filter);
       setTasks(list);
-    } catch (err) {
-      // Handled
+    } catch (err: any) {
+      // Handled cleanly
     }
   };
 
   useEffect(() => {
     fetchTasks();
     const interval = setInterval(fetchTasks, 2500);
-    return () => clearInterval(interval);
+
+    const unsubEvents = adapter.subscribeEvents((evt) => {
+      setEvents((prev) => [evt, ...prev.slice(0, 19)]);
+      if (evt.type === 'task.created' || evt.type === 'task.completed' || evt.type === 'task.failed' || evt.type === 'task.cancelled') {
+        fetchTasks();
+      }
+    });
+
+    return () => {
+      clearInterval(interval);
+      unsubEvents();
+    };
   }, [filter]);
 
   const handleSubmitTask = async (e: React.FormEvent) => {
@@ -36,11 +48,11 @@ export const ActivityTaskView: React.FC<ActivityTaskViewProps> = ({ adapter }) =
     try {
       const created = await adapter.submit_task(prompt, { client: 'centipede_os_activity_view' });
       setPrompt('');
-      setMessage(`Task created successfully with ID: ${created.id}`);
+      setMessage(`Task created successfully! ID: ${created.id}`);
       fetchTasks();
       setTimeout(() => setMessage(''), 4000);
     } catch (err: any) {
-      setMessage(`Failed to submit task: ${err.message}`);
+      setMessage(`Task Submission Error: ${err.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -53,7 +65,7 @@ export const ActivityTaskView: React.FC<ActivityTaskViewProps> = ({ adapter }) =
       fetchTasks();
       setTimeout(() => setMessage(''), 3000);
     } catch (err: any) {
-      setMessage(`Failed to cancel task: ${err.message}`);
+      setMessage(`Cancel Task Error: ${err.message}`);
     }
   };
 
@@ -65,7 +77,7 @@ export const ActivityTaskView: React.FC<ActivityTaskViewProps> = ({ adapter }) =
           <Activity className="w-7 h-7 text-emerald-400" />
           <div>
             <h2 className="text-2xl font-bold text-white">Activity & Task Manager</h2>
-            <p className="text-slate-400 text-sm">Submit prompts and monitor Kingdom runtime tasks</p>
+            <p className="text-slate-400 text-sm">Hardened end-to-end task execution pipeline and live event stream</p>
           </div>
         </div>
 
@@ -78,8 +90,9 @@ export const ActivityTaskView: React.FC<ActivityTaskViewProps> = ({ adapter }) =
       </div>
 
       {message && (
-        <div className="bg-blue-950/60 border border-blue-500/40 text-blue-300 px-4 py-3 rounded-xl text-sm">
-          {message}
+        <div className="bg-blue-950/60 border border-blue-500/40 text-blue-300 px-4 py-3 rounded-xl text-sm flex items-center space-x-2">
+          <AlertCircle className="w-4 h-4 text-blue-400 flex-shrink-0" />
+          <span>{message}</span>
         </div>
       )}
 
@@ -89,7 +102,7 @@ export const ActivityTaskView: React.FC<ActivityTaskViewProps> = ({ adapter }) =
           type="text"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Enter a task prompt for Kingdom swarm processing..."
+          placeholder="Enter prompt task for Kingdom processing..."
           className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500"
         />
         <button
@@ -102,65 +115,102 @@ export const ActivityTaskView: React.FC<ActivityTaskViewProps> = ({ adapter }) =
         </button>
       </form>
 
-      {/* Filter Chips */}
-      <div className="flex flex-wrap gap-2">
-        {['all', 'queued', 'running', 'completed', 'failed', 'cancelled'].map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3 py-1 rounded-xl text-xs font-semibold capitalize transition-colors ${
-              filter === f
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
-            }`}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
-
-      {/* Task List */}
-      <div className="space-y-3">
-        {tasks.length === 0 ? (
-          <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-8 text-center text-slate-400 text-sm italic">
-            No tasks found matching filter "{filter}".
-          </div>
-        ) : (
-          tasks.map((t) => (
-            <div
-              key={t.id}
-              className="bg-slate-800/60 border border-slate-700 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
-            >
-              <div className="space-y-1">
-                <div className="flex items-center space-x-3">
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                    t.status === 'completed'
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                      : t.status === 'running'
-                      ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40 animate-pulse'
-                      : t.status === 'queued'
-                      ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40'
-                      : 'bg-slate-700 text-slate-400'
-                  }`}>
-                    {t.status}
-                  </span>
-                  <span className="text-xs text-slate-500 font-mono">ID: {t.id}</span>
-                </div>
-                <div className="text-white font-medium text-sm">{t.prompt}</div>
-              </div>
-
-              {(t.status === 'queued' || t.status === 'running') && (
+      {/* Grid Layout: Tasks & Live Event Stream */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column: Task List (2 cols) */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-wrap gap-2">
+              {['all', 'queued', 'running', 'completed', 'failed', 'cancelled'].map((f) => (
                 <button
-                  onClick={() => handleCancelTask(t.id)}
-                  className="flex items-center space-x-1 text-red-400 hover:text-red-300 bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors"
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`px-3 py-1 rounded-xl text-xs font-semibold capitalize transition-colors ${
+                    filter === f
+                      ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                  }`}
                 >
-                  <XCircle className="w-4 h-4" />
-                  <span>Cancel Task</span>
+                  {f}
                 </button>
-              )}
+              ))}
             </div>
-          ))
-        )}
+          </div>
+
+          <div className="space-y-3">
+            {tasks.length === 0 ? (
+              <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-8 text-center text-slate-400 text-sm italic">
+                No tasks found matching filter "{filter}".
+              </div>
+            ) : (
+              tasks.map((t) => (
+                <div
+                  key={t.id}
+                  className="bg-slate-800/60 border border-slate-700 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+                >
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center space-x-3">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        t.status === 'completed'
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                          : t.status === 'running'
+                          ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40 animate-pulse'
+                          : t.status === 'queued'
+                          ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40'
+                          : t.status === 'failed'
+                          ? 'bg-red-500/20 text-red-400 border border-red-500/40'
+                          : 'bg-slate-700 text-slate-400'
+                      }`}>
+                        {t.status}
+                      </span>
+                      <span className="text-xs text-slate-500 font-mono truncate">ID: {t.id}</span>
+                    </div>
+                    <div className="text-white font-medium text-sm truncate">{t.prompt}</div>
+                    {t.error && <div className="text-xs text-red-400 font-mono mt-1">{t.error}</div>}
+                  </div>
+
+                  {(t.status === 'queued' || t.status === 'running') && (
+                    <button
+                      onClick={() => handleCancelTask(t.id)}
+                      className="flex items-center space-x-1 text-red-400 hover:text-red-300 bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors flex-shrink-0"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      <span>Cancel Task</span>
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Live Event Dispatcher Feed */}
+        <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-4 flex flex-col h-[500px]">
+          <div className="flex items-center space-x-2 pb-3 border-b border-slate-700 mb-3">
+            <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
+            <h3 className="font-bold text-white text-sm">Kingdom Live Event Stream</h3>
+          </div>
+
+          <div className="flex-1 overflow-y-auto font-mono text-xs space-y-2 pr-1">
+            {events.length === 0 ? (
+              <p className="text-slate-500 italic text-center py-10">Listening for Kingdom WebSocket events...</p>
+            ) : (
+              events.map((evt, idx) => (
+                <div key={idx} className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="text-emerald-400 font-bold uppercase">{evt.type || evt.event || 'system_event'}</span>
+                    <span className="text-slate-600">
+                      {evt.timestamp ? new Date(evt.timestamp * 1000).toLocaleTimeString() : new Date().toLocaleTimeString()}
+                    </span>
+                  </div>
+                  <pre className="text-slate-300 text-[10px] overflow-x-auto whitespace-pre-wrap">
+                    {JSON.stringify(evt.data || evt, null, 2)}
+                  </pre>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

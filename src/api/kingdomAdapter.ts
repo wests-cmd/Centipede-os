@@ -11,21 +11,36 @@ import {
   SecurityStatus,
   SystemEvent,
   TaskItem,
+  VersionCompatibility,
+  VersionCompatibilityStatus,
 } from '../types';
 
 export class KingdomAdapter {
   private baseUrl: string;
   private wsUrl: string;
-  private connectionState: ConnectionState = 'offline';
+  private connectionState: ConnectionState = 'DISCONNECTED';
   private heartbeatTimer: any = null;
   private ws: WebSocket | null = null;
   private consecutiveFailures = 0;
   private maxConsecutiveFailures = 2;
-  private backoffDelay = 2000;
+  private currentBackoffDelay = 2000;
+  private isReconnecting = false;
+
+  private minSupportedVersion = '40.0.0';
+  private maxTestedVersion = '40.1.9';
+
+  private compatibilityInfo: VersionCompatibility = {
+    detectedVersion: null,
+    minSupportedVersion: '40.0.0',
+    maxTestedVersion: '40.1.9',
+    status: 'UNKNOWN',
+    message: 'Kingdom version not yet checked.',
+  };
 
   private statusListeners: Set<(status: RuntimeStatus | null) => void> = new Set();
   private connectionListeners: Set<(state: ConnectionState) => void> = new Set();
   private eventListeners: Set<(event: SystemEvent) => void> = new Set();
+  private compatibilityListeners: Set<(info: VersionCompatibility) => void> = new Set();
 
   private lastKnownStatus: RuntimeStatus | null = null;
 
@@ -48,6 +63,10 @@ export class KingdomAdapter {
     return this.connectionState;
   }
 
+  public getCompatibilityInfo(): VersionCompatibility {
+    return { ...this.compatibilityInfo };
+  }
+
   public subscribeConnection(listener: (state: ConnectionState) => void): () => void {
     this.connectionListeners.add(listener);
     listener(this.connectionState);
@@ -65,6 +84,12 @@ export class KingdomAdapter {
     return () => this.eventListeners.delete(listener);
   }
 
+  public subscribeCompatibility(listener: (info: VersionCompatibility) => void): () => void {
+    this.compatibilityListeners.add(listener);
+    listener(this.compatibilityInfo);
+    return () => this.compatibilityListeners.delete(listener);
+  }
+
   private notifyConnection(state: ConnectionState): void {
     this.connectionState = state;
     this.connectionListeners.forEach((l) => l(state));
@@ -79,6 +104,66 @@ export class KingdomAdapter {
     this.eventListeners.forEach((l) => l(event));
   }
 
+  private notifyCompatibility(info: VersionCompatibility): void {
+    this.compatibilityInfo = info;
+    this.compatibilityListeners.forEach((l) => l(info));
+  }
+
+  public checkVersionCompatibility(rawVersion: string): VersionCompatibility {
+    if (!rawVersion) {
+      const info: VersionCompatibility = {
+        detectedVersion: null,
+        minSupportedVersion: this.minSupportedVersion,
+        maxTestedVersion: this.maxTestedVersion,
+        status: 'UNKNOWN',
+        message: 'No version header received from Kingdom server.',
+      };
+      this.notifyCompatibility(info);
+      return info;
+    }
+
+    const clean = rawVersion.trim().replace(/^v/i, '');
+    const parts = clean.split('.').map((p) => parseInt(p, 10) || 0);
+    const major = parts[0] || 0;
+
+    let status: VersionCompatibilityStatus = 'COMPATIBLE';
+    let message = `Kingdom v${clean} is fully compatible.`;
+
+    if (major < 40) {
+      status = 'INCOMPATIBLE_TOO_OLD';
+      message = `Kingdom v${clean} is older than minimum supported version v${this.minSupportedVersion}.`;
+    } else if (major > 40) {
+      status = 'INCOMPATIBLE_TOO_NEW';
+      message = `Kingdom v${clean} exceeds maximum supported major version v${this.maxTestedVersion}.`;
+    }
+
+    const info: VersionCompatibility = {
+      detectedVersion: clean,
+      minSupportedVersion: this.minSupportedVersion,
+      maxTestedVersion: this.maxTestedVersion,
+      status,
+      message,
+    };
+
+    this.notifyCompatibility(info);
+
+    if (status !== 'COMPATIBLE') {
+      this.notifyConnection('VERSION_INCOMPATIBLE');
+    } else if (this.connectionState === 'VERSION_INCOMPATIBLE') {
+      this.notifyConnection('CONNECTED');
+    }
+
+    return info;
+  }
+
+  private maskSensitiveError(message: string): string {
+    if (!message) return 'An error occurred during Kingdom API communication.';
+    let safeMsg = message
+      .replace(/Traceback \(most recent call last\):[\s\S]*/g, 'Internal Kingdom Execution Exception.')
+      .replace(/(bearer|token|secret|password|key)\s*[:=]\s*[^\s,]+/gi, '$1=[REDACTED]');
+    return safeMsg.substring(0, 300);
+  }
+
   private async fetchJson<T>(path: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     try {
@@ -90,32 +175,45 @@ export class KingdomAdapter {
         ...options,
       });
 
+      if (res.status === 401 || res.status === 403) {
+        this.notifyConnection('AUTHENTICATION_FAILED');
+        throw new Error('Authentication or capability authorization failed on Kingdom endpoint.');
+      }
+
       if (!res.ok) {
         const errorText = await res.text();
-        throw new Error(`HTTP ${res.status}: ${errorText || res.statusText}`);
+        const safeText = this.maskSensitiveError(errorText);
+        throw new Error(`HTTP ${res.status}: ${safeText || res.statusText}`);
       }
 
       this.recordSuccess();
       return (await res.json()) as T;
     } catch (err: any) {
+      if (err.message?.includes('Authentication')) {
+        throw err;
+      }
       this.recordFailure();
-      throw err;
+      throw new Error(this.maskSensitiveError(err.message));
     }
   }
 
   private recordSuccess(): void {
     this.consecutiveFailures = 0;
-    this.backoffDelay = 2000;
-    if (this.connectionState !== 'online') {
-      this.notifyConnection('online');
-      this.initWebSocket();
+    this.currentBackoffDelay = 2000;
+    this.isReconnecting = false;
+
+    if (this.compatibilityInfo.status === 'COMPATIBLE' || this.compatibilityInfo.status === 'UNKNOWN') {
+      if (this.connectionState !== 'CONNECTED') {
+        this.notifyConnection('CONNECTED');
+        this.initWebSocket();
+      }
     }
   }
 
   private recordFailure(): void {
     this.consecutiveFailures++;
-    if (this.consecutiveFailures >= this.maxConsecutiveFailures && this.connectionState !== 'offline') {
-      this.notifyConnection('offline');
+    if (this.consecutiveFailures >= this.maxConsecutiveFailures && this.connectionState !== 'DISCONNECTED') {
+      this.notifyConnection('DISCONNECTED');
       this.notifyStatus(null);
       this.closeWebSocket();
     }
@@ -124,9 +222,13 @@ export class KingdomAdapter {
   public startHeartbeat(intervalMs = 3000): void {
     this.stopHeartbeat();
     const poll = async () => {
+      if (this.isReconnecting) return;
       try {
         const status = await this.get_status();
         this.notifyStatus(status);
+        if (status.version) {
+          this.checkVersionCompatibility(status.version);
+        }
       } catch (e) {
         // Handled in recordFailure()
       }
@@ -143,14 +245,28 @@ export class KingdomAdapter {
   }
 
   public async reconnect(): Promise<boolean> {
-    this.notifyConnection('connecting');
+    if (this.isReconnecting) return false;
+    this.isReconnecting = true;
+    this.notifyConnection('CONNECTING');
+
     try {
       const status = await this.get_status();
       this.notifyStatus(status);
+      if (status.version) {
+        const compat = this.checkVersionCompatibility(status.version);
+        if (compat.status !== 'COMPATIBLE') {
+          this.isReconnecting = false;
+          return false;
+        }
+      }
       this.recordSuccess();
       return true;
     } catch (e) {
       this.recordFailure();
+      setTimeout(() => {
+        this.currentBackoffDelay = Math.min(this.currentBackoffDelay * 2, 16000);
+        this.isReconnecting = false;
+      }, this.currentBackoffDelay);
       return false;
     }
   }
@@ -169,7 +285,11 @@ export class KingdomAdapter {
           this.notifyEvent(parsed);
           if (parsed.type === 'runtime.snapshot' || parsed.type === 'heartbeat') {
             if (parsed.data) {
-              this.notifyStatus(parsed.data as RuntimeStatus);
+              const statusData = parsed.data as RuntimeStatus;
+              this.notifyStatus(statusData);
+              if (statusData.version) {
+                this.checkVersionCompatibility(statusData.version);
+              }
             }
           }
         } catch (err) {
@@ -178,14 +298,17 @@ export class KingdomAdapter {
       };
 
       this.ws.onerror = () => {
-        // WebSocket error will trigger onclose
+        // Socket error handled in onclose
       };
 
       this.ws.onclose = () => {
         this.ws = null;
+        if (this.connectionState === 'CONNECTED') {
+          this.notifyConnection('DISCONNECTED');
+        }
       };
     } catch (e) {
-      // WS unavailable or invalid URL
+      // WS unavailable
     }
   }
 
@@ -198,27 +321,22 @@ export class KingdomAdapter {
 
   // --- Required 18 Adapter Functions ---
 
-  // 1. get_status()
   public async get_status(): Promise<RuntimeStatus> {
     return this.fetchJson<RuntimeStatus>('/status');
   }
 
-  // 2. start_runtime()
   public async start_runtime(): Promise<{ status: string; timestamp?: number }> {
     return this.fetchJson<{ status: string }>('/start', { method: 'POST' });
   }
 
-  // 3. stop_runtime()
   public async stop_runtime(): Promise<{ status: string; timestamp?: number }> {
     return this.fetchJson<{ status: string }>('/stop', { method: 'POST' });
   }
 
-  // 4. get_mode()
   public async get_mode(): Promise<{ mode: string }> {
     return this.fetchJson<{ mode: string }>('/mode');
   }
 
-  // Set mode (additional helper)
   public async set_mode(mode: string): Promise<any> {
     return this.fetchJson<any>('/mode', {
       method: 'PUT',
@@ -226,7 +344,6 @@ export class KingdomAdapter {
     });
   }
 
-  // 5. submit_task()
   public async submit_task(prompt: string, metadata: Record<string, any> = {}): Promise<TaskItem> {
     return this.fetchJson<TaskItem>('/tasks', {
       method: 'POST',
@@ -234,65 +351,53 @@ export class KingdomAdapter {
     });
   }
 
-  // 6. get_task()
   public async get_task(task_id: string): Promise<TaskItem> {
     return this.fetchJson<TaskItem>(`/tasks/${encodeURIComponent(task_id)}`);
   }
 
-  // List tasks (additional helper)
   public async list_tasks(status?: string): Promise<TaskItem[]> {
     const query = status ? `?status=${encodeURIComponent(status)}` : '';
     return this.fetchJson<TaskItem[]>(`/tasks${query}`);
   }
 
-  // 7. cancel_task()
   public async cancel_task(task_id: string): Promise<TaskItem> {
     return this.fetchJson<TaskItem>(`/tasks/${encodeURIComponent(task_id)}/cancel`, {
       method: 'POST',
     });
   }
 
-  // 8. get_events()
   public async get_events(limit = 50): Promise<SystemEvent[]> {
     return this.fetchJson<SystemEvent[]>(`/events?limit=${limit}`);
   }
 
-  // 9. get_knights()
   public async get_knights(): Promise<KnightsResponse> {
     return this.fetchJson<KnightsResponse>('/knights');
   }
 
-  // 10. get_models()
   public async get_models(): Promise<ModelHealth> {
     return this.fetchJson<ModelHealth>('/models');
   }
 
-  // 11. get_memory()
   public async get_memory(limit = 100): Promise<MemoryEntry[]> {
     return this.fetchJson<MemoryEntry[]>(`/memory?limit=${limit}`);
   }
 
-  // 12. search_memory()
   public async search_memory(query: string, limit = 5): Promise<any[]> {
     return this.fetchJson<any[]>(`/memory/search?query=${encodeURIComponent(query)}&limit=${limit}`);
   }
 
-  // 13. get_maps()
   public async get_maps(): Promise<string[]> {
     return this.fetchJson<string[]>('/maps');
   }
 
-  // 14. get_security_status()
   public async get_security_status(): Promise<SecurityStatus> {
     return this.fetchJson<SecurityStatus>('/security/status');
   }
 
-  // 15. get_permissions()
   public async get_permissions(): Promise<SecurityPermissionsResponse> {
     return this.fetchJson<SecurityPermissionsResponse>('/security/permissions');
   }
 
-  // 16. create_approval()
   public async create_approval(
     capability: string,
     operation: string,
@@ -314,13 +419,11 @@ export class KingdomAdapter {
     });
   }
 
-  // List approvals helper
   public async list_approvals(status?: string): Promise<ApprovalRequest[]> {
     const q = status ? `?status=${encodeURIComponent(status)}` : '';
     return this.fetchJson<ApprovalRequest[]>(`/security/approvals${q}`);
   }
 
-  // 17. approve()
   public async approve(approval_id: string, approver = 'admin', reason = 'Human approved in Centipede OS'): Promise<ApprovalRequest> {
     return this.fetchJson<ApprovalRequest>(`/security/approvals/${encodeURIComponent(approval_id)}/approve`, {
       method: 'POST',
@@ -328,7 +431,6 @@ export class KingdomAdapter {
     });
   }
 
-  // 18. deny()
   public async deny(approval_id: string, denier = 'admin', reason = 'Denied in Centipede OS'): Promise<ApprovalRequest> {
     return this.fetchJson<ApprovalRequest>(`/security/approvals/${encodeURIComponent(approval_id)}/deny`, {
       method: 'POST',
@@ -336,7 +438,6 @@ export class KingdomAdapter {
     });
   }
 
-  // 19. get_audit()
   public async get_audit(limit = 100, actor?: string, decision?: string, capability?: string): Promise<AuditLogEntry[]> {
     const params = new URLSearchParams();
     params.set('limit', limit.toString());
