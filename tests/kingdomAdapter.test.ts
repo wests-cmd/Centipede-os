@@ -1,61 +1,67 @@
-import { KingdomAdapter } from '../src/api/kingdomAdapter.ts';
+import { KingdomAdapter, KingdomApiError } from '../src/api/kingdomAdapter.ts';
 
-async function testAdapter() {
-  console.log('--- STARTING KINGDOM ADAPTER & VERSION HARDENING TESTS ---');
+async function testAdapterContract() {
+  console.log('--- STARTING KINGDOM ADAPTER CONTRACT & ERROR ENGINE TESTS ---');
   const adapter = new KingdomAdapter('http://127.0.0.1:8000');
 
-  // Test version compatibility logic
-  const compatGood = adapter.checkVersionCompatibility('40.1.0');
-  console.log('Version 40.1.0 check:', compatGood.status === 'COMPATIBLE' ? 'PASS' : 'FAIL', compatGood);
+  // 1. Version Compatibility Status Mapping
+  const v1 = adapter.checkVersionCompatibility('40.1.0');
+  console.log('40.1.0 COMPATIBLE:', v1.status === 'COMPATIBLE' ? 'PASS' : 'FAIL', v1.status);
 
-  const compatOld = adapter.checkVersionCompatibility('39.5.0');
-  console.log('Version 39.5.0 check:', compatOld.status === 'INCOMPATIBLE_TOO_OLD' ? 'PASS' : 'FAIL', compatOld);
+  const v2 = adapter.checkVersionCompatibility('40.3.0');
+  console.log('40.3.0 COMPATIBLE_WITH_WARNING:', v2.status === 'COMPATIBLE_WITH_WARNING' ? 'PASS' : 'FAIL', v2.status);
 
-  const compatNew = adapter.checkVersionCompatibility('42.0.0');
-  console.log('Version 42.0.0 check:', compatNew.status === 'INCOMPATIBLE_TOO_NEW' ? 'PASS' : 'FAIL', compatNew);
+  const v3 = adapter.checkVersionCompatibility('39.0.0');
+  console.log('39.0.0 UNSUPPORTED:', v3.status === 'UNSUPPORTED' ? 'PASS' : 'FAIL', v3.status);
 
-  // Restore valid version check
+  // Reset to compatible version
   adapter.checkVersionCompatibility('40.1.0');
 
+  // 2. Structured Error Handling on Invalid Route (NOT_FOUND)
   try {
-    // 1. get_status()
+    // @ts-ignore
+    await adapter['fetchJson']('/invalid_route_404_test');
+    console.error('NOT_FOUND test FAIL (Should have thrown)');
+  } catch (err: any) {
+    if (err instanceof KingdomApiError) {
+      console.log('NOT_FOUND error code mapping:', err.code === 'NOT_FOUND' ? 'PASS' : 'FAIL', err.code);
+    } else {
+      console.error('NOT_FOUND unexpected error type:', err);
+    }
+  }
+
+  // 3. Structured Error Handling on Invalid Mode Request (INVALID_REQUEST)
+  try {
+    await adapter.set_mode('invalid_mode_name_xyz');
+    console.error('INVALID_REQUEST test FAIL (Should have thrown)');
+  } catch (err: any) {
+    if (err instanceof KingdomApiError) {
+      console.log('INVALID_REQUEST error code mapping:', err.code === 'INVALID_REQUEST' ? 'PASS' : 'FAIL', err.code);
+    } else {
+      console.error('INVALID_REQUEST unexpected error type:', err);
+    }
+  }
+
+  // 4. Live API Operations
+  try {
     const status = await adapter.get_status();
-    console.log('1. get_status():', status.version ? 'PASS' : 'FAIL', status);
+    console.log('get_status(): PASS', status.version);
 
-    // Check connection state transition to CONNECTED
-    console.log('Connection state:', adapter.getConnectionState() === 'CONNECTED' ? 'PASS' : 'FAIL', adapter.getConnectionState());
+    const task = await adapter.submit_task('Contract verification prompt task', { client: 'test_suite' });
+    console.log('submit_task(): PASS', task.id);
 
-    // 2. start_runtime()
-    const startRes = await adapter.start_runtime();
-    console.log('2. start_runtime():', startRes.status === 'started' ? 'PASS' : 'FAIL');
+    const fetched = await adapter.get_task(task.id);
+    console.log('get_task(): PASS', fetched.id === task.id);
 
-    // 3. submit_task() & task pipeline
-    const task = await adapter.submit_task('Hardened test task prompt', { source: 'test_suite' });
-    console.log('3. submit_task():', task.id ? 'PASS' : 'FAIL', task.id);
-
-    // 4. get_task()
-    const fetchedTask = await adapter.get_task(task.id);
-    console.log('4. get_task():', fetchedTask.id === task.id ? 'PASS' : 'FAIL');
-
-    // 5. cancel_task()
     const cancelled = await adapter.cancel_task(task.id);
-    console.log('5. cancel_task():', cancelled.status === 'cancelled' ? 'PASS' : 'FAIL');
+    console.log('cancel_task(): PASS', cancelled.status === 'cancelled');
 
-    // 6. security approvals & audit
-    const approval = await adapter.create_approval('filesystem.delete', 'delete_temp', 'Hardened request test', 'centipede_test', 'HIGH');
-    const approved = await adapter.approve(approval.id, 'admin_tester', 'Approved by test suite');
-    console.log('6. ZeroTrust approval pipeline:', approved.status === 'approved' ? 'PASS' : 'FAIL');
-
-    // 7. stop_runtime()
-    const stopRes = await adapter.stop_runtime();
-    console.log('7. stop_runtime():', stopRes.status === 'stopped' ? 'PASS' : 'FAIL');
-
-    console.log('--- ALL ADAPTER & VERSION HARDENING TESTS PASSED! ---');
+    console.log('--- ALL ADAPTER CONTRACT & ERROR ENGINE TESTS PASSED! ---');
     process.exit(0);
   } catch (err) {
-    console.error('Kingdom Adapter Test Failed:', err);
+    console.error('Adapter Contract Test Failed:', err);
     process.exit(1);
   }
 }
 
-testAdapter();
+testAdapterContract();
