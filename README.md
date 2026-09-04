@@ -1,12 +1,12 @@
 # Centipede OS
 
-**Centipede OS** is a modern web-based desktop operating system shell and application framework designed to operate seamlessly on top of the **Kingdom** runtime engine (`wests-cmd/kingdom`).
+**Centipede OS** is a modern web-based desktop operating system shell and application framework built on top of the **Kingdom** runtime engine (`wests-cmd/kingdom`).
 
 ---
 
-## Architecture & Integration
+## API Contract & Architecture
 
-Centipede OS connects to Kingdom through a clean, decoupled adapter layer (`src/api/kingdomAdapter.ts`). Centipede OS does **not** import Kingdom internal Python code directly, treating Kingdom as an external HTTP/WebSocket service contract.
+Centipede OS connects to Kingdom strictly through a frozen, versioned adapter layer (`src/api/kingdomAdapter.ts`). Centipede OS does **not** import Kingdom internal Python code directly, treating Kingdom as an external service contract (`KINGDOM_CENTIPEDE_API_CONTRACT.md`).
 
 ```
 Centipede OS Shell & Applications
@@ -17,6 +17,8 @@ Centipede OS Shell & Applications
         ↓  (REST API / WebSockets)
   Kingdom Engine (wests-cmd/kingdom v40.1)
 ```
+
+For full technical specifications, endpoint schemas, error codes, and version compatibility rules, see [KINGDOM_CENTIPEDE_API_CONTRACT.md](./KINGDOM_CENTIPEDE_API_CONTRACT.md).
 
 ---
 
@@ -43,8 +45,8 @@ bun run build
 ## Running Test Suites
 
 ```bash
-# Run Kingdom Adapter Unit Tests
-bun tests/kingdomAdapter.test.ts
+# Run Contract Verification Suite
+bun tests/contract.test.ts
 
 # Run Playwright End-to-End Test Suite
 npx playwright test
@@ -54,9 +56,7 @@ npx playwright test
 
 ## Feature Status Classification
 
-- **IMPLEMENTED**: Desktop Shell, KingdomAdapter (18 methods), Connection State Engine (6 states), Version Compatibility Checker (v40.0.0–v40.1.9), Task Pipeline, ZeroTrust Security Approvals, Live WebSocket Event Stream, Universal Search, File Manager Foundation, Terminal Entry Point, Settings.
+- **IMPLEMENTED**: Formal API Contract Specification (`v1.0.0`), Desktop Shell, KingdomAdapter (18 endpoints), Connection State Engine (6 states), Categorized Error Model (12 codes), Version Compatibility Checker (`v40.0.0`–`v40.1.9`), Task Lifecycle, ZeroTrust Security Approvals, Live WebSocket Event Stream, Universal Search, File Manager Foundation, Terminal Entry Point, Settings.
 - **PARTIAL**: AI Model Health Status Inspector.
 - **SCAFFOLDING**: Centipede AI Intent Parser & Pipeline Visualizer.
 - **PLANNED**: Multi-Node Swarm Topology Visualizer, Local Storage Bridge.
-
-For full technical specifications, see [KINGDOM_INTEGRATION.md](./KINGDOM_INTEGRATION.md).

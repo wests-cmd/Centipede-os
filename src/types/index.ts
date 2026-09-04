@@ -8,9 +8,23 @@ export type ConnectionState =
 
 export type VersionCompatibilityStatus =
   | 'COMPATIBLE'
-  | 'INCOMPATIBLE_TOO_OLD'
-  | 'INCOMPATIBLE_TOO_NEW'
+  | 'COMPATIBLE_WITH_WARNING'
+  | 'UNSUPPORTED'
   | 'UNKNOWN';
+
+export type KingdomErrorCode =
+  | 'INVALID_REQUEST'
+  | 'AUTHENTICATION_FAILED'
+  | 'AUTHORIZATION_DENIED'
+  | 'NOT_FOUND'
+  | 'TIMEOUT'
+  | 'KINGDOM_OFFLINE'
+  | 'ENDPOINT_UNAVAILABLE'
+  | 'VERSION_INCOMPATIBLE'
+  | 'TASK_FAILED'
+  | 'TASK_CANCELLED'
+  | 'SERVER_ERROR'
+  | 'UNKNOWN_ERROR';
 
 export interface VersionCompatibility {
   detectedVersion: string | null;

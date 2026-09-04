@@ -4,6 +4,7 @@ import {
   ConnectionState,
   KnightItem,
   KnightsResponse,
+  KingdomErrorCode,
   MemoryEntry,
   ModelHealth,
   RuntimeStatus,
@@ -14,6 +15,22 @@ import {
   VersionCompatibility,
   VersionCompatibilityStatus,
 } from '../types';
+
+export class KingdomApiError extends Error {
+  public code: KingdomErrorCode;
+  public httpStatus?: number;
+  public userMessage: string;
+  public diagnosticDetails?: string;
+
+  constructor(code: KingdomErrorCode, userMessage: string, httpStatus?: number, diagnosticDetails?: string) {
+    super(userMessage);
+    this.name = 'KingdomApiError';
+    this.code = code;
+    this.httpStatus = httpStatus;
+    this.userMessage = userMessage;
+    this.diagnosticDetails = diagnosticDetails;
+  }
+}
 
 export class KingdomAdapter {
   private baseUrl: string;
@@ -125,16 +142,17 @@ export class KingdomAdapter {
     const clean = rawVersion.trim().replace(/^v/i, '');
     const parts = clean.split('.').map((p) => parseInt(p, 10) || 0);
     const major = parts[0] || 0;
+    const minor = parts[1] || 0;
 
     let status: VersionCompatibilityStatus = 'COMPATIBLE';
     let message = `Kingdom v${clean} is fully compatible.`;
 
-    if (major < 40) {
-      status = 'INCOMPATIBLE_TOO_OLD';
-      message = `Kingdom v${clean} is older than minimum supported version v${this.minSupportedVersion}.`;
-    } else if (major > 40) {
-      status = 'INCOMPATIBLE_TOO_NEW';
-      message = `Kingdom v${clean} exceeds maximum supported major version v${this.maxTestedVersion}.`;
+    if (major < 40 || major > 40) {
+      status = 'UNSUPPORTED';
+      message = `Kingdom major version v${clean} is unsupported (Requires v${this.minSupportedVersion}–v${this.maxTestedVersion}).`;
+    } else if (minor > 1) {
+      status = 'COMPATIBLE_WITH_WARNING';
+      message = `Kingdom v${clean} exceeds tested minor range (Tested up to v${this.maxTestedVersion}).`;
     }
 
     const info: VersionCompatibility = {
@@ -147,7 +165,7 @@ export class KingdomAdapter {
 
     this.notifyCompatibility(info);
 
-    if (status !== 'COMPATIBLE') {
+    if (status === 'UNSUPPORTED') {
       this.notifyConnection('VERSION_INCOMPATIBLE');
     } else if (this.connectionState === 'VERSION_INCOMPATIBLE') {
       this.notifyConnection('CONNECTED');
@@ -166,34 +184,65 @@ export class KingdomAdapter {
 
   private async fetchJson<T>(path: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${path}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     try {
       const res = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
           ...(options.headers || {}),
         },
+        signal: controller.signal,
         ...options,
       });
 
-      if (res.status === 401 || res.status === 403) {
+      clearTimeout(timeoutId);
+
+      if (res.status === 400 || res.status === 422) {
+        const errText = await res.text();
+        throw new KingdomApiError('INVALID_REQUEST', `Invalid Request: ${this.maskSensitiveError(errText)}`, res.status, errText);
+      }
+
+      if (res.status === 401) {
         this.notifyConnection('AUTHENTICATION_FAILED');
-        throw new Error('Authentication or capability authorization failed on Kingdom endpoint.');
+        throw new KingdomApiError('AUTHENTICATION_FAILED', 'Authentication failed on Kingdom server.', 401);
+      }
+
+      if (res.status === 403) {
+        throw new KingdomApiError('AUTHORIZATION_DENIED', 'Capability authorization denied by ZeroTrust policy.', 403);
+      }
+
+      if (res.status === 404) {
+        throw new KingdomApiError('NOT_FOUND', `Requested endpoint or resource not found (${path}).`, 404);
+      }
+
+      if (res.status === 503) {
+        throw new KingdomApiError('ENDPOINT_UNAVAILABLE', 'Kingdom backend or model service is temporarily unavailable.', 503);
       }
 
       if (!res.ok) {
         const errorText = await res.text();
         const safeText = this.maskSensitiveError(errorText);
-        throw new Error(`HTTP ${res.status}: ${safeText || res.statusText}`);
+        throw new KingdomApiError('SERVER_ERROR', `HTTP ${res.status}: ${safeText || res.statusText}`, res.status, errorText);
       }
 
       this.recordSuccess();
       return (await res.json()) as T;
     } catch (err: any) {
-      if (err.message?.includes('Authentication')) {
+      clearTimeout(timeoutId);
+
+      if (err instanceof KingdomApiError) {
         throw err;
       }
+
       this.recordFailure();
-      throw new Error(this.maskSensitiveError(err.message));
+
+      if (err.name === 'AbortError') {
+        throw new KingdomApiError('TIMEOUT', 'Request to Kingdom backend timed out after 10000ms.');
+      }
+
+      throw new KingdomApiError('KINGDOM_OFFLINE', `Kingdom backend is offline or unreachable: ${this.maskSensitiveError(err.message)}`);
     }
   }
 
@@ -202,7 +251,7 @@ export class KingdomAdapter {
     this.currentBackoffDelay = 2000;
     this.isReconnecting = false;
 
-    if (this.compatibilityInfo.status === 'COMPATIBLE' || this.compatibilityInfo.status === 'UNKNOWN') {
+    if (this.compatibilityInfo.status === 'COMPATIBLE' || this.compatibilityInfo.status === 'COMPATIBLE_WITH_WARNING' || this.compatibilityInfo.status === 'UNKNOWN') {
       if (this.connectionState !== 'CONNECTED') {
         this.notifyConnection('CONNECTED');
         this.initWebSocket();
@@ -254,7 +303,7 @@ export class KingdomAdapter {
       this.notifyStatus(status);
       if (status.version) {
         const compat = this.checkVersionCompatibility(status.version);
-        if (compat.status !== 'COMPATIBLE') {
+        if (compat.status === 'UNSUPPORTED') {
           this.isReconnecting = false;
           return false;
         }
