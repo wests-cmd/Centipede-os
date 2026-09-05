@@ -37,10 +37,12 @@ export class KingdomAdapter {
   private wsUrl: string;
   private connectionState: ConnectionState = 'DISCONNECTED';
   private heartbeatTimer: any = null;
+  private reconnectTimer: any = null;
   private ws: WebSocket | null = null;
   private consecutiveFailures = 0;
   private maxConsecutiveFailures = 2;
   private currentBackoffDelay = 2000;
+  private maxBackoffDelay = 16000;
   private isReconnecting = false;
 
   private minSupportedVersion = '40.0.0';
@@ -67,6 +69,7 @@ export class KingdomAdapter {
   }
 
   public setBaseUrl(url: string): void {
+    this.disconnect();
     this.baseUrl = url.replace(/\/$/, '');
     this.wsUrl = this.baseUrl.replace(/^http/, 'ws') + '/ws';
     this.reconnect();
@@ -298,6 +301,11 @@ export class KingdomAdapter {
     this.isReconnecting = true;
     this.notifyConnection('CONNECTING');
 
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+
     try {
       const status = await this.get_status();
       this.notifyStatus(status);
@@ -312,12 +320,24 @@ export class KingdomAdapter {
       return true;
     } catch (e) {
       this.recordFailure();
-      setTimeout(() => {
-        this.currentBackoffDelay = Math.min(this.currentBackoffDelay * 2, 16000);
+      this.reconnectTimer = setTimeout(() => {
+        this.currentBackoffDelay = Math.min(this.currentBackoffDelay * 2, this.maxBackoffDelay);
         this.isReconnecting = false;
+        this.reconnect();
       }, this.currentBackoffDelay);
       return false;
     }
+  }
+
+  public disconnect(): void {
+    this.stopHeartbeat();
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.closeWebSocket();
+    this.isReconnecting = false;
+    this.notifyConnection('DISCONNECTED');
   }
 
   private initWebSocket(): void {
@@ -368,7 +388,7 @@ export class KingdomAdapter {
     }
   }
 
-  // --- Required 18 Adapter Functions ---
+  // --- Complete Kingdom API Methods ---
 
   public async get_status(): Promise<RuntimeStatus> {
     return this.fetchJson<RuntimeStatus>('/status');
@@ -427,24 +447,76 @@ export class KingdomAdapter {
     return this.fetchJson<ModelHealth>('/models');
   }
 
+  public async generate_model(prompt: string, model?: string, provider?: string): Promise<any> {
+    return this.fetchJson<any>('/models/generate', {
+      method: 'POST',
+      body: JSON.stringify({ prompt, model, provider }),
+    });
+  }
+
   public async get_memory(limit = 100): Promise<MemoryEntry[]> {
     return this.fetchJson<MemoryEntry[]>(`/memory?limit=${limit}`);
+  }
+
+  public async add_memory(content: string, metadata: Record<string, any> = {}, weight = 1.0): Promise<MemoryEntry> {
+    return this.fetchJson<MemoryEntry>('/memory', {
+      method: 'POST',
+      body: JSON.stringify({ content, metadata, weight }),
+    });
   }
 
   public async search_memory(query: string, limit = 5): Promise<any[]> {
     return this.fetchJson<any[]>(`/memory/search?query=${encodeURIComponent(query)}&limit=${limit}`);
   }
 
+  public async get_memory_graph(): Promise<any> {
+    return this.fetchJson<any>('/memory/graph');
+  }
+
+  public async create_memory_snapshot(): Promise<{ path: string }> {
+    return this.fetchJson<{ path: string }>('/memory/snapshot', { method: 'POST' });
+  }
+
   public async get_maps(): Promise<string[]> {
     return this.fetchJson<string[]>('/maps');
+  }
+
+  public async get_map(name: string): Promise<any> {
+    return this.fetchJson<any>(`/maps/${encodeURIComponent(name)}`);
+  }
+
+  public async save_map(name: string, graph: Record<string, any>): Promise<{ path: string }> {
+    return this.fetchJson<{ path: string }>(`/maps/${encodeURIComponent(name)}`, {
+      method: 'POST',
+      body: JSON.stringify({ graph }),
+    });
   }
 
   public async get_security_status(): Promise<SecurityStatus> {
     return this.fetchJson<SecurityStatus>('/security/status');
   }
 
+  public async get_security_policies(): Promise<any> {
+    return this.fetchJson<any>('/security/policies');
+  }
+
   public async get_permissions(): Promise<SecurityPermissionsResponse> {
     return this.fetchJson<SecurityPermissionsResponse>('/security/permissions');
+  }
+
+  public async authorize_capability(
+    actor_id: string,
+    capability: string,
+    operation: string,
+    prompt?: string,
+    token?: string,
+    approval_id?: string,
+    parameters: Record<string, any> = {}
+  ): Promise<any> {
+    return this.fetchJson<any>('/security/authorize', {
+      method: 'POST',
+      body: JSON.stringify({ actor_id, capability, operation, prompt, token, approval_id, parameters }),
+    });
   }
 
   public async create_approval(

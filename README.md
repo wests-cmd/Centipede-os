@@ -1,6 +1,6 @@
 # Centipede OS
 
-**Centipede OS** is a modern web-based desktop operating system shell and application framework built on top of the **Kingdom** runtime engine (`wests-cmd/kingdom`).
+**Centipede OS** is a modern web-based desktop operating system shell and application environment built on top of the **Kingdom** runtime engine (`wests-cmd/kingdom`).
 
 ---
 
@@ -11,14 +11,27 @@ Centipede OS connects to Kingdom strictly through a frozen, versioned adapter la
 ```
 Centipede OS Shell & Applications
         ↓
-  Centipede AI / OS Services
+  Centipede AI Core Foundation (src/ai/)
         ↓
   KingdomAdapter (src/api/kingdomAdapter.ts)
         ↓  (REST API / WebSockets)
   Kingdom Engine (wests-cmd/kingdom v40.1)
 ```
 
-For full technical specifications, endpoint schemas, error codes, and version compatibility rules, see [KINGDOM_CENTIPEDE_API_CONTRACT.md](./KINGDOM_CENTIPEDE_API_CONTRACT.md).
+---
+
+## Centipede AI Core Foundation (`src/ai/`)
+
+Centipede AI implements a governed, non-bypassable intelligence pipeline:
+
+```
+User Input → Intent Parser → Context Manager → Planner → Permission Gate → KingdomAdapter → Result Processor
+```
+
+**Key Safety Principles**:
+1. **The Model is NOT the Security Boundary**: Model outputs saying "I approve this action" carry **zero authority**. Authorization is enforced strictly by Kingdom ZeroTrust and human approval workflows.
+2. **Zero Unrestricted Shell Access**: AI cannot execute direct shell commands or bypass capability risk gates.
+3. **Zero Guessing**: Ambiguous inputs yield an `UNKNOWN` intent requesting user clarification rather than executing inferred actions.
 
 ---
 
@@ -45,18 +58,21 @@ bun run build
 ## Running Test Suites
 
 ```bash
-# Run Contract Verification Suite
-bun tests/contract.test.ts
+# Run Unit Test Suite (Offline assertions for Adapter & AI Core)
+bun test
 
-# Run Playwright End-to-End Test Suite
-npx playwright test
+# Run Contract Verification Suite (Against live Kingdom server)
+bun run test:contract
+
+# Run Playwright End-to-End Browser Test Suite
+bun run test:e2e
 ```
 
 ---
 
 ## Feature Status Classification
 
-- **IMPLEMENTED**: Formal API Contract Specification (`v1.0.0`), Desktop Shell, KingdomAdapter (18 endpoints), Connection State Engine (6 states), Categorized Error Model (12 codes), Version Compatibility Checker (`v40.0.0`–`v40.1.9`), Task Lifecycle, ZeroTrust Security Approvals, Live WebSocket Event Stream, Universal Search, File Manager Foundation, Terminal Entry Point, Settings.
+- **IMPLEMENTED**: Centipede AI Core Foundation (`src/ai/`: IntentParser, CapabilityResolver, Planner, PermissionGate, ActionExecutor, ResultProcessor, ConversationManager, CentipedeAIPipeline), Formal API Contract (`v1.0.0`), Desktop Shell, KingdomAdapter (18 endpoints), Connection State Engine (6 states), Categorized Error Model (12 codes), Version Compatibility Checker (`v40.0.0`–`v40.1.9`), Task Lifecycle, ZeroTrust Security Approvals, Live WebSocket Event Stream, Universal Search, File Manager Foundation, Terminal Entry Point, Settings.
 - **PARTIAL**: AI Model Health Status Inspector.
-- **SCAFFOLDING**: Centipede AI Intent Parser & Pipeline Visualizer.
+- **SCAFFOLDING**: None (AI pipeline fully implemented and backed by ZeroTrust Permission Gate).
 - **PLANNED**: Multi-Node Swarm Topology Visualizer, Local Storage Bridge.
