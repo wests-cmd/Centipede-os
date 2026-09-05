@@ -1,4 +1,4 @@
-import { KingdomAdapter, KingdomApiError } from '../src/api/kingdomAdapter.ts';
+import { KingdomAdapter, KingdomApiError } from '../../src/api/kingdomAdapter.ts';
 
 async function runContractVerification() {
   console.log('===========================================================');
@@ -6,9 +6,9 @@ async function runContractVerification() {
   console.log('===========================================================');
 
   const onlineAdapter = new KingdomAdapter('http://127.0.0.1:8000');
-  const offlineAdapter = new KingdomAdapter('http://127.0.0.1:9999'); // Non-existent port
+  const offlineAdapter = new KingdomAdapter('http://127.0.0.1:9999');
 
-  // 1. Kingdom Available / Unavailable Detection
+  // 1. Connection & Online/Offline Detection
   console.log('\n--- 1. CONNECTION & ONLINE/OFFLINE DETECTION ---');
   try {
     const status = await onlineAdapter.get_status();
@@ -16,21 +16,24 @@ async function runContractVerification() {
     console.log('[PASS] Connection State =', onlineAdapter.getConnectionState());
   } catch (e: any) {
     console.error('[FAIL] Kingdom Available check failed:', e.message);
+    process.exit(1);
   }
 
   try {
     await offlineAdapter.get_status();
     console.error('[FAIL] Kingdom Unavailable check failed (Should have thrown)');
+    process.exit(1);
   } catch (e: any) {
     if (e instanceof KingdomApiError && e.code === 'KINGDOM_OFFLINE') {
       console.log('[PASS] Kingdom Unavailable correctly classified as KINGDOM_OFFLINE');
       console.log('[PASS] Offline Connection State =', offlineAdapter.getConnectionState());
     } else {
       console.error('[FAIL] Kingdom Unavailable wrong error:', e);
+      process.exit(1);
     }
   }
 
-  // 2. Controlled Reconnect & Version Compatibility
+  // 2. Version Compatibility & Reconnect
   console.log('\n--- 2. VERSION COMPATIBILITY & RECONNECT ---');
   const compatGood = onlineAdapter.checkVersionCompatibility('40.1.0');
   console.log('[PASS] Version 40.1.0 Status =', compatGood.status);
@@ -41,13 +44,12 @@ async function runContractVerification() {
   const compatUnsup = onlineAdapter.checkVersionCompatibility('39.0.0');
   console.log('[PASS] Version 39.0.0 Status =', compatUnsup.status);
 
-  // Restore compatible version
   onlineAdapter.checkVersionCompatibility('40.1.0');
 
   const reconnected = await onlineAdapter.reconnect();
   console.log('[PASS] Controlled Reconnect =', reconnected ? 'SUCCESS' : 'FAILED');
 
-  // 3. Runtime Lifecycle (Start, Status, Stop)
+  // 3. Runtime Controls
   console.log('\n--- 3. RUNTIME LIFECYCLE CONTROLS ---');
   const startRes = await onlineAdapter.start_runtime();
   console.log('[PASS] Start Runtime =', startRes.status);
@@ -58,7 +60,7 @@ async function runContractVerification() {
   const stopRes = await onlineAdapter.stop_runtime();
   console.log('[PASS] Stop Runtime =', stopRes.status);
 
-  // 4. Task Lifecycle (Submit, Get, Cancel)
+  // 4. Task Lifecycle
   console.log('\n--- 4. TASK LIFECYCLE & CANCEL ---');
   const task = await onlineAdapter.submit_task('Contract task lifecycle verification', { test: true });
   console.log('[PASS] Submit Task: Created ID =', task.id, 'Status =', task.status);
@@ -124,4 +126,7 @@ async function runContractVerification() {
   process.exit(0);
 }
 
-runContractVerification();
+runContractVerification().catch((err) => {
+  console.error('Contract test error:', err);
+  process.exit(1);
+});
