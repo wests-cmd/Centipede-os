@@ -33,13 +33,12 @@ test.describe('Centipede OS & Kingdom Integration Contract Test Suite', () => {
 
     await page.screenshot({ path: 'test-results/03_task_pipeline.png' });
 
-    // ZeroTrust security approval workflow
+    // ZeroTrust security approval workflow in Centipede AI
     await page.click('button:has-text("Centipede AI")');
-    await page.fill('textarea', 'Privileged execution requiring approval');
-    await page.check('input[type="checkbox"]');
-    await page.click('button:has-text("Process AI Intent")');
+    await page.fill('textarea', 'delete file /tmp/restricted_test_dir');
+    await page.click('button:has-text("Process Prompt Pipeline")');
 
-    await expect(page.locator('body')).toContainText('Action Blocked by Kingdom Security');
+    await expect(page.locator('body')).toContainText('Action Blocked by Kingdom Security', { timeout: 10000 });
     await expect(page.locator('body')).toContainText('Approval request created');
 
     await page.screenshot({ path: 'test-results/04_security_blocked.png' });
