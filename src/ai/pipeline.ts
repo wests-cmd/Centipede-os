@@ -44,7 +44,7 @@ export class CentipedeAIPipeline {
     // 1. UNDERSTANDING
     currentMsg = { ...currentMsg, status: 'UNDERSTANDING' };
     this.notify(currentMsg);
-    await new Promise((r) => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 50));
 
     // 2. INTENT_IDENTIFIED
     const intent: Intent = intentParser.parse(input);
@@ -77,17 +77,17 @@ export class CentipedeAIPipeline {
     // 3. PLANNING
     currentMsg = { ...currentMsg, status: 'PLANNING' };
     this.notify(currentMsg);
-    await new Promise((r) => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 50));
 
     const plan: Plan = planner.createPlan(intent);
     currentMsg = { ...currentMsg, plan };
     this.notify(currentMsg);
 
-    // 4. PERMISSION_CHECK
+    // 4. PERMISSION_CHECK (Must await permissionGate.evaluate resolution!)
     currentMsg = { ...currentMsg, status: 'PERMISSION_CHECK' };
     this.notify(currentMsg);
 
-    const actionReq: ActionRequest = permissionGate.evaluate(plan);
+    const actionReq: ActionRequest = await permissionGate.evaluate(plan);
 
     if (actionReq.authorizationState === 'APPROVAL_REQUIRED') {
       currentMsg = { ...currentMsg, status: 'APPROVAL_REQUIRED' };
