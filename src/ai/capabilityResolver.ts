@@ -147,6 +147,30 @@ export class CapabilityResolver {
           requiresApproval: true,
         };
 
+      case 'UPDATE_KINGDOM':
+        return {
+          capability: 'kingdom.update',
+          operation: 'apply_update',
+          riskLevel: 'CRITICAL',
+          requiresApproval: true,
+        };
+
+      case 'RESTART_KINGDOM':
+        return {
+          capability: 'kingdom.restart',
+          operation: 'restart_kingdom',
+          riskLevel: 'HIGH',
+          requiresApproval: true,
+        };
+
+      case 'ROLLBACK_KINGDOM':
+        return {
+          capability: 'kingdom.rollback',
+          operation: 'rollback_kingdom',
+          riskLevel: 'CRITICAL',
+          requiresApproval: true,
+        };
+
       case 'RESTRICTED_DELETE':
         return {
           capability: 'filesystem.delete',

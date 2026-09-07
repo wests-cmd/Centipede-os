@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { KingdomAdapter } from '../api/kingdomAdapter';
-import { ConnectionState, KnightItem, ModelHealth, RuntimeStatus, VersionCompatibility } from '../types';
+import { ApprovalRequest, ConnectionState, KnightItem, ModelHealth, RuntimeStatus, VersionCompatibility } from '../types';
+import { KingdomUpdateCenter } from './KingdomUpdateCenter';
 import { AlertCircle, AlertTriangle, Cpu, Play, Power, RefreshCw, Server, ShieldAlert, Zap } from 'lucide-react';
 
 interface KingdomStatusPanelProps {
   adapter: KingdomAdapter;
   status: RuntimeStatus | null;
   connectionState: ConnectionState;
+  onRequestCreated?: (request: ApprovalRequest) => void;
 }
 
 export const KingdomStatusPanel: React.FC<KingdomStatusPanelProps> = ({
   adapter,
   status,
   connectionState,
+  onRequestCreated,
 }) => {
   const [knights, setKnights] = useState<KnightItem[]>([]);
   const [models, setModels] = useState<ModelHealth | null>(null);
@@ -20,6 +23,8 @@ export const KingdomStatusPanel: React.FC<KingdomStatusPanelProps> = ({
   const [loadingAction, setLoadingAction] = useState<boolean>(false);
   const [message, setMessage] = useState<string>('');
   const [compatInfo, setCompatInfo] = useState<VersionCompatibility>(adapter.getCompatibilityInfo());
+
+  const runtimeInfo = adapter.getKingdomRuntimeInfo();
 
   const refreshDetails = async () => {
     setCompatInfo(adapter.getCompatibilityInfo());
@@ -200,7 +205,13 @@ export const KingdomStatusPanel: React.FC<KingdomStatusPanelProps> = ({
 
         <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
           <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Kingdom Version</div>
-          <div className="text-2xl font-bold text-blue-400 mt-2">v{status?.version || '40.1'}</div>
+          <div className="text-2xl font-bold text-blue-400 mt-2">
+            {connectionState === 'CONNECTED' && runtimeInfo.connectedKingdomVersion
+              ? `v${runtimeInfo.connectedKingdomVersion}`
+              : runtimeInfo.lastKnownKingdomVersion
+              ? `v${runtimeInfo.lastKnownKingdomVersion} (Offline)`
+              : 'Offline'}
+          </div>
           <div className="text-xs text-slate-400 mt-2">Contract Status: {compatInfo.status}</div>
         </div>
 
@@ -234,6 +245,9 @@ export const KingdomStatusPanel: React.FC<KingdomStatusPanelProps> = ({
           <div className="text-xs text-slate-400 mt-2">Tracked in runtime engine</div>
         </div>
       </div>
+
+      {/* Kingdom Update Center Component */}
+      <KingdomUpdateCenter adapter={adapter} runtimeInfo={runtimeInfo} onRequestCreated={onRequestCreated} />
 
       {/* Swarm Knights List */}
       <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6">

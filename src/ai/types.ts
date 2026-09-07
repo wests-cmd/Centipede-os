@@ -19,6 +19,9 @@ export type IntentType =
   | 'CREATE_APPROVAL'
   | 'RESTRICTED_DELETE'
   | 'RESTRICTED_EXECUTE'
+  | 'UPDATE_KINGDOM'
+  | 'RESTART_KINGDOM'
+  | 'ROLLBACK_KINGDOM'
   | 'UNKNOWN';
 
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';

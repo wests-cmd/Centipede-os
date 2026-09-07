@@ -10,7 +10,12 @@ import { FileManager } from './components/FileManager';
 import { Terminal } from './components/Terminal';
 import { CentipedeAI } from './components/CentipedeAI';
 import { SettingsPanel } from './components/SettingsPanel';
+import { MemoryApp } from './components/MemoryApp';
+import { SkillsApp } from './components/SkillsApp';
+import { MapsApp } from './components/MapsApp';
+import { Window } from './components/Window';
 import { ApprovalRequest, ConnectionState, RuntimeStatus } from './types';
+import { Brain, Cpu, Map, Server, Shield, Activity, Folder, Terminal as TermIcon, Sliders, Bot, Search } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [activeAppId, setActiveAppId] = useState<string>('launcher');
@@ -53,31 +58,70 @@ export const App: React.FC = () => {
         );
       case 'status':
         return (
-          <KingdomStatusPanel
-            adapter={kingdomAdapter}
-            status={status}
-            connectionState={connectionState}
-          />
+          <Window id="win_status" title="Kingdom Runtime Status" icon={Server} isOpen={true} onClose={() => setActiveAppId('launcher')}>
+            <KingdomStatusPanel adapter={kingdomAdapter} status={status} connectionState={connectionState} />
+          </Window>
         );
       case 'ai':
         return (
-          <CentipedeAI
-            adapter={kingdomAdapter}
-            onNavigateSecurity={() => setActiveAppId('security')}
-          />
+          <Window id="win_ai" title="Centipede AI Pipeline" icon={Bot} isOpen={true} onClose={() => setActiveAppId('launcher')}>
+            <CentipedeAI adapter={kingdomAdapter} onNavigateSecurity={() => setActiveAppId('security')} />
+          </Window>
+        );
+      case 'memory':
+        return (
+          <Window id="win_memory" title="Memory Explorer" icon={Brain} isOpen={true} onClose={() => setActiveAppId('launcher')}>
+            <MemoryApp />
+          </Window>
+        );
+      case 'skills':
+        return (
+          <Window id="win_skills" title="Skill Manager" icon={Cpu} isOpen={true} onClose={() => setActiveAppId('launcher')}>
+            <SkillsApp />
+          </Window>
+        );
+      case 'maps':
+        return (
+          <Window id="win_maps" title="AI Swarm Maps" icon={Map} isOpen={true} onClose={() => setActiveAppId('launcher')}>
+            <MapsApp adapter={kingdomAdapter} />
+          </Window>
         );
       case 'tasks':
-        return <ActivityTaskView adapter={kingdomAdapter} />;
+        return (
+          <Window id="win_tasks" title="Activity & Tasks" icon={Activity} isOpen={true} onClose={() => setActiveAppId('launcher')}>
+            <ActivityTaskView adapter={kingdomAdapter} />
+          </Window>
+        );
       case 'security':
-        return <PermissionsApprovalView adapter={kingdomAdapter} />;
+        return (
+          <Window id="win_sec" title="Permissions & Approvals" icon={Shield} isOpen={true} onClose={() => setActiveAppId('launcher')}>
+            <PermissionsApprovalView adapter={kingdomAdapter} />
+          </Window>
+        );
       case 'search':
-        return <UniversalSearch adapter={kingdomAdapter} onNavigateApp={(id) => setActiveAppId(id)} />;
+        return (
+          <Window id="win_search" title="Universal Search" icon={Search} isOpen={true} onClose={() => setActiveAppId('launcher')}>
+            <UniversalSearch adapter={kingdomAdapter} onNavigateApp={(id) => setActiveAppId(id)} />
+          </Window>
+        );
       case 'files':
-        return <FileManager />;
+        return (
+          <Window id="win_files" title="File Explorer" icon={Folder} isOpen={true} onClose={() => setActiveAppId('launcher')}>
+            <FileManager />
+          </Window>
+        );
       case 'terminal':
-        return <Terminal adapter={kingdomAdapter} />;
+        return (
+          <Window id="win_term" title="Terminal CLI" icon={TermIcon} isOpen={true} onClose={() => setActiveAppId('launcher')}>
+            <Terminal adapter={kingdomAdapter} />
+          </Window>
+        );
       case 'settings':
-        return <SettingsPanel adapter={kingdomAdapter} />;
+        return (
+          <Window id="win_set" title="System Settings" icon={Sliders} isOpen={true} onClose={() => setActiveAppId('launcher')}>
+            <SettingsPanel adapter={kingdomAdapter} />
+          </Window>
+        );
       default:
         return (
           <AppLauncher

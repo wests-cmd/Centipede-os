@@ -5,6 +5,7 @@ import {
   KnightItem,
   KnightsResponse,
   KingdomErrorCode,
+  KingdomRuntimeInfo,
   MemoryEntry,
   ModelHealth,
   RuntimeStatus,
@@ -62,6 +63,7 @@ export class KingdomAdapter {
   private compatibilityListeners: Set<(info: VersionCompatibility) => void> = new Set();
 
   private lastKnownStatus: RuntimeStatus | null = null;
+  private lastKnownKingdomVersion: string | null = null;
 
   constructor(baseUrl: string = 'http://localhost:8000') {
     this.baseUrl = baseUrl.replace(/\/$/, '');
@@ -85,6 +87,20 @@ export class KingdomAdapter {
 
   public getCompatibilityInfo(): VersionCompatibility {
     return { ...this.compatibilityInfo };
+  }
+
+  public getKingdomRuntimeInfo(): KingdomRuntimeInfo {
+    const isOnline = this.connectionState === 'CONNECTED';
+    return {
+      centipedeVersion: '1.0.0',
+      expectedKingdomContractVersion: '40.1.0',
+      connectedKingdomVersion: isOnline && this.lastKnownStatus ? this.lastKnownStatus.version : null,
+      lastKnownKingdomVersion: this.lastKnownKingdomVersion,
+      connectionState: this.connectionState,
+      compatibility: { ...this.compatibilityInfo },
+      running: this.lastKnownStatus?.running || false,
+      mode: this.lastKnownStatus?.mode || 'OFFLINE',
+    };
   }
 
   public subscribeConnection(listener: (state: ConnectionState) => void): () => void {
@@ -117,6 +133,9 @@ export class KingdomAdapter {
 
   private notifyStatus(status: RuntimeStatus | null): void {
     this.lastKnownStatus = status;
+    if (status?.version) {
+      this.lastKnownKingdomVersion = status.version;
+    }
     this.statusListeners.forEach((l) => l(status));
   }
 
