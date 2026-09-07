@@ -1,5 +1,5 @@
-import { test, expect } from 'bun:test';
-import { KingdomAdapter, KingdomApiError } from '../../src/api/kingdomAdapter.ts';
+import { test, expect } from 'vitest';
+import { KingdomAdapter, KingdomApiError } from '../../src/api/kingdomAdapter';
 
 test('KingdomAdapter Unit Tests & Version Verification', async () => {
   const adapter = new KingdomAdapter('http://127.0.0.1:8000');

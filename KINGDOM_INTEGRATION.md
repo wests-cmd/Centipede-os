@@ -11,7 +11,13 @@ This document defines the integration contract, communication protocols, securit
 ```
 Centipede OS (Desktop Shell & Views)
         ↓
-  Centipede AI / OS Services
+  Centipede AI Core Foundation (src/ai/)
+        ↓
+  Verified Tool System (src/tools/)
+        ↓
+  Memory + Learning + Skills System (src/learning/)
+        ↓
+  Universal Search System (src/search/)
         ↓
   KingdomAdapter (src/api/kingdomAdapter.ts)
         ↓  (HTTP REST / WebSockets)
@@ -68,6 +74,10 @@ The adapter implements the currently supported Kingdom integration surface docum
 ## Feature Status Classification
 
 ### IMPLEMENTED
+- **Memory & Learning System (`src/learning/`)**: Scope-based MemoryStore with Trust Level Hierarchy (`SYSTEM_AUTHORITY` > `USER_CONFIRMED` > `MODEL_INFERENCE`), LearningEngine with evidence signal thresholding ($N=3$) and hard security metric evaluation (>0 security violations = evaluation fail), versioned SkillManager with skill immutability, capability expansion diff engine, and rollback engine.
+- **Universal Search System (`src/search/`)**: Multi-source aggregator (`SearchAggregator`) searching across Applications, Files, Kingdom Tasks, Vector Memory, AI Maps, and Web. Features path traversal defenses (`..`, `/etc`, `/proc`, `/sys`, `/root` blocked), untrusted external web data tagging (`isUntrustedData: true`), result provenance, and Search-Action execution separation.
+- **Verified Tool System (`src/tools/`)**: Locked ToolRegistry, ToolExecutor, 20 verified tool definitions, parameter input schema validation, execution timeout controls (10s), idempotency keys, and tool composition chain depth limits (`maxChainDepth = 5`).
+- **Centipede AI Core Pipeline (`src/ai/`)**: Governed pipeline (User Input → IntentParser → ContextManager → Planner → PermissionGate → ActionExecutor → ResultProcessor). ZeroTrust permission gate enforces non-bypassable approvals; model text outputs carry zero authority.
 - **Formal API Contract (`KINGDOM_CENTIPEDE_API_CONTRACT.md`)**: Frozen, documented, versioned interface contract (`v1.0.0`) for Kingdom v40.1.
 - **Kingdom Integration Adapter (`KingdomAdapter`)**: Full typed TS client covering all Kingdom REST & WS endpoints.
 - **Connection State Machine**: 6 distinct states (`CONNECTING`, `CONNECTED`, `DISCONNECTED`, `AUTHENTICATION_FAILED`, `VERSION_INCOMPATIBLE`, `ERROR`).
@@ -77,13 +87,13 @@ The adapter implements the currently supported Kingdom integration surface docum
 - **ZeroTrust Security Governance**: Non-bypassable approval workflow for privileged capabilities (`filesystem.delete`, `process.execute`, etc.).
 - **Live Event Dispatcher**: Real-time event consumption via `/ws` WebSocket stream.
 - **Desktop Shell & System Views**: Desktop Shell, App Launcher, Kingdom Status Panel, Activity & Task Manager, ZeroTrust Permissions & Approvals View, Universal Search, File Manager Foundation, Terminal Entry Point, Settings Panel.
-- **Automated Contract Test Suite**: Unit tests (`bun test`), contract integration suite (`npm run test:contract`), and Playwright E2E suite (`npm run test:e2e`).
+- **Automated Contract Test Suite**: Unit tests (`vitest`), contract integration suite (`npm run test:contract`), and Playwright E2E suite (`npm run test:e2e`).
 
 ### PARTIAL
 - **AI Model Health Inspection**: Connects to `/models` and parses health JSON; AI generation fallback currently mock/scaffolded when Ollama provider is disabled.
 
 ### SCAFFOLDING
-- **Centipede AI Intent Parser**: Simulated step-by-step pipeline (User → Intent → Plan → Permission Check → Kingdom → Result) for prompt intent decomposition before dispatching tasks to Kingdom.
+- None (All core subsystems, AI pipeline, Tool system, Search system, Memory, and Learning systems are fully implemented and backed by ZeroTrust Permission Gate).
 
 ### PLANNED
 - **Multi-Node Cluster Synchronizer**: Advanced node registry topology graph visualizer.

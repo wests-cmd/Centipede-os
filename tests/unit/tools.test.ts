@@ -1,4 +1,4 @@
-import { test, expect } from 'bun:test';
+import { test, expect } from 'vitest';
 import { toolRegistry, toolExecutor } from '../../src/tools';
 import { ToolInvocationRequest } from '../../src/tools/types';
 
