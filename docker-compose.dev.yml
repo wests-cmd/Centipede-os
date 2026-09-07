@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  centipede-ui-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: centipede-os-ui-dev
+    environment:
+      - PORT=3000
+      - KINGDOM_API_URL=http://localhost:8000
+      - OLLAMA_API_URL=http://localhost:11434
+      - NODE_ENV=development
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
