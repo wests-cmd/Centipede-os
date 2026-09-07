@@ -2,11 +2,47 @@ import { Intent, IntentType, UserInput } from './types';
 
 export class IntentParser {
   public parse(input: UserInput): Intent {
-    const text = input.text.trim().toLowerCase();
+    const text = (input?.text || '').trim().toLowerCase();
     const id = `intent_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const timestamp = Date.now();
 
     // 1. Privileged Operations (Check first)
+    if (text.includes('update kingdom') || text.includes('upgrade kingdom') || text.includes('apply update')) {
+      return {
+        id,
+        type: 'UPDATE_KINGDOM',
+        confidence: 0.95,
+        parameters: { target: input.text },
+        originalInput: input.text,
+        timestamp,
+        explanation: 'User requested updating Kingdom runtime version.',
+      };
+    }
+
+    if (text.includes('restart kingdom') || text.includes('reboot kingdom')) {
+      return {
+        id,
+        type: 'RESTART_KINGDOM',
+        confidence: 0.95,
+        parameters: {},
+        originalInput: input.text,
+        timestamp,
+        explanation: 'User requested restarting Kingdom runtime process.',
+      };
+    }
+
+    if (text.includes('rollback kingdom') || text.includes('revert kingdom')) {
+      return {
+        id,
+        type: 'ROLLBACK_KINGDOM',
+        confidence: 0.95,
+        parameters: {},
+        originalInput: input.text,
+        timestamp,
+        explanation: 'User requested rolling back Kingdom runtime to previous checkpoint.',
+      };
+    }
+
     if (text.includes('delete') || text.includes('remove file') || text.includes('purge')) {
       return {
         id,
@@ -58,7 +94,7 @@ export class IntentParser {
 
     // 3. Specific Task Actions (Cancel / Create before general list)
     if (text.includes('cancel task') || text.includes('abort task')) {
-      const match = input.text.match(/(?:task|id)\s+([a-f0-9-]+)/i);
+      const match = (input.text || '').match(/(?:task|id)\s+([a-f0-9-]+)/i);
       const taskId = match ? match[1] : '';
       return {
         id,
@@ -72,7 +108,7 @@ export class IntentParser {
     }
 
     if (text.includes('create task') || text.includes('submit task') || text.includes('run task') || text.includes('execute prompt')) {
-      const prompt = input.text.replace(/^(?:create|submit|run|execute)\s+(?:a\s+)?(?:task|prompt)?\s*/i, '').trim() || input.text;
+      const prompt = (input.text || '').replace(/^(?:create|submit|run|execute)\s+(?:a\s+)?(?:task|prompt)?\s*/i, '').trim() || input.text;
       return {
         id,
         type: 'CREATE_TASK',

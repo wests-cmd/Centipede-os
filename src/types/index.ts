@@ -34,6 +34,19 @@ export interface VersionCompatibility {
   message: string;
 }
 
+export interface KingdomRuntimeInfo {
+  centipedeVersion: string; // Centipede OS App Version (e.g., "1.0.0")
+  expectedKingdomContractVersion: string; // Contract expected version (e.g., "40.1.0")
+  connectedKingdomVersion: string | null; // Live Kingdom version from /status (e.g., "40.1")
+  lastKnownKingdomVersion: string | null; // Last recorded version if currently offline
+  connectionState: ConnectionState;
+  compatibility: VersionCompatibility;
+  running: boolean;
+  mode: string;
+  uptimeSeconds?: number;
+  nodeCount?: number;
+}
+
 export interface TaskCounters {
   queued: number;
   running: number;
