@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "bun test tests/unit/adapter.test.ts tests/unit/aiCore.test.ts",
+    "test": "bun test tests/unit/adapter.test.ts tests/unit/aiCore.test.ts tests/unit/tools.test.ts",
     "test:contract": "bun tests/integration/contract.integration.ts",
     "test:e2e": "npx playwright test"
   },
