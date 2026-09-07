@@ -147,7 +147,7 @@ test('8. Test D & E — Parameter Validation Rejects Missing / Invalid Parameter
 
   const result = await actionExecutor.execute(cancelAction, cancelIntent);
   expect(result.status).toBe('BLOCKED');
-  expect(result.error).toContain('Missing required taskId parameter');
+  expect(result.error).toContain('Missing or empty required parameter "taskId"');
 });
 
 test('9. Full End-to-End CentipedeAIPipeline Execution with Awaited PermissionGate', async () => {
