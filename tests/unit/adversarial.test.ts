@@ -8,7 +8,8 @@ import { memoryStore } from '../../src/learning/memoryStore';
 import { skillManager } from '../../src/learning/skillManager';
 import { webSearchProvider } from '../../src/search/providers/webSearchProvider';
 import { KingdomAdapter } from '../../src/api/kingdomAdapter';
-import { ActionRequest, Intent, SkillDefinition } from '../../src/types';
+import { ActionRequest, Intent } from '../../src/ai/types';
+import { SkillDefinition } from '../../src/learning/types';
 
 describe('Part 29 — Security Adversarial Test Suite', () => {
   let mockAdapter: KingdomAdapter;
