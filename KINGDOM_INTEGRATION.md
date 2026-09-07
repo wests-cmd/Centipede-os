@@ -74,6 +74,9 @@ The adapter implements the currently supported Kingdom integration surface docum
 ## Feature Status Classification
 
 ### IMPLEMENTED
+- **Step 7 Runtime Platform Foundation (`src/platform/`, `src/config/`, `Dockerfile`, `docker-compose.yml`)**: Platform capability detection, configuration validation, non-root multi-stage Docker containerization, health checks, and isolated service networking.
+- **Versioned REST API & Mobile Pairing (`src/server/`, `src/security/deviceTrust.ts`)**: Versioned endpoints (`/api/v1/*`), QR device pairing, PIN validation, session tokens, and device revocation.
+- **Untrusted Content Ingestion Pipeline (`src/ingest/pipeline.ts`)**: Untrusted data classification, provenance tracking, and prompt injection security scanning.
 - **Memory & Learning System (`src/learning/`)**: Scope-based MemoryStore with Trust Level Hierarchy (`SYSTEM_AUTHORITY` > `USER_CONFIRMED` > `MODEL_INFERENCE`), LearningEngine with evidence signal thresholding ($N=3$) and hard security metric evaluation (>0 security violations = evaluation fail), versioned SkillManager with skill immutability, capability expansion diff engine, and rollback engine.
 - **Universal Search System (`src/search/`)**: Multi-source aggregator (`SearchAggregator`) searching across Applications, Files, Kingdom Tasks, Vector Memory, AI Maps, and Web. Features path traversal defenses (`..`, `/etc`, `/proc`, `/sys`, `/root` blocked), untrusted external web data tagging (`isUntrustedData: true`), result provenance, and Search-Action execution separation.
 - **Verified Tool System (`src/tools/`)**: Locked ToolRegistry, ToolExecutor, 20 verified tool definitions, parameter input schema validation, execution timeout controls (10s), idempotency keys, and tool composition chain depth limits (`maxChainDepth = 5`).
