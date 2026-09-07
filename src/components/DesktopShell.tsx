@@ -13,6 +13,7 @@ import {
   Sliders,
   Terminal,
   Server,
+  Smartphone,
   Monitor,
   ShieldAlert,
   Home,
@@ -104,6 +105,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
 
   const sidebarApps = [
     { id: 'ai', name: 'Centipede AI', icon: Bot },
+    { id: 'mobile', name: 'Mobile Companion', icon: Smartphone },
     { id: 'status', name: 'Kingdom Engine', icon: Server },
     { id: 'memory', name: 'Memory Explorer', icon: Brain },
     { id: 'skills', name: 'Skill Manager', icon: Cpu },

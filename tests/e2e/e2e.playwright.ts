@@ -6,7 +6,7 @@ test.describe('Centipede OS & Kingdom Integration Contract Test Suite', () => {
     await page.goto('http://localhost:3000');
     await expect(page.locator('header')).toContainText('Centipede OS');
 
-    await page.click('button:has-text("Files")');
+    await page.click('button:has-text("File Explorer")');
     await expect(page.locator('body')).toContainText('KINGDOM_INTEGRATION.md');
 
     await page.screenshot({ path: 'test-results/01_offline_boot.png' });
@@ -17,7 +17,7 @@ test.describe('Centipede OS & Kingdom Integration Contract Test Suite', () => {
     await page.goto('http://localhost:3000');
 
     // Kingdom status
-    await page.click('button:has-text("Kingdom Status")');
+    await page.click('button:has-text("Kingdom Engine")');
     await expect(page.locator('h2')).toContainText('Kingdom Runtime Status');
     await expect(page.locator('body')).toContainText('CONNECTED');
     await expect(page.locator('body')).toContainText('v40.1');
@@ -25,7 +25,7 @@ test.describe('Centipede OS & Kingdom Integration Contract Test Suite', () => {
     await page.screenshot({ path: 'test-results/02_status_panel.png' });
 
     // Task lifecycle
-    await page.click('button:has-text("Tasks")');
+    await page.click('button:has-text("Activity & Tasks")');
     await page.fill('input[placeholder*="Enter prompt task"]', 'Contract verification task prompt');
     await page.click('button:has-text("Submit Task")');
     await expect(page.locator('body')).toContainText('Task created successfully');
@@ -44,7 +44,7 @@ test.describe('Centipede OS & Kingdom Integration Contract Test Suite', () => {
     await page.screenshot({ path: 'test-results/04_security_blocked.png' });
 
     // Security view approve
-    await page.click('button:has-text("Security")');
+    await page.click('button:has-text("Security & Approvals")');
     await expect(page.locator('body')).toContainText('Pending Security Approvals');
     await expect(page.locator('body')).toContainText('filesystem.delete');
     await page.click('button:has-text("Approve")');

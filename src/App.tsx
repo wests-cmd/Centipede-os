@@ -5,6 +5,7 @@ import { AppLauncher } from './components/AppLauncher';
 import { KingdomStatusPanel } from './components/KingdomStatusPanel';
 import { ActivityTaskView } from './components/ActivityTaskView';
 import { PermissionsApprovalView } from './components/PermissionsApprovalView';
+import { MobileCompanionApp } from './components/MobileCompanionApp';
 import { UniversalSearch } from './components/UniversalSearch';
 import { FileManager } from './components/FileManager';
 import { Terminal } from './components/Terminal';
@@ -15,7 +16,7 @@ import { SkillsApp } from './components/SkillsApp';
 import { MapsApp } from './components/MapsApp';
 import { Window } from './components/Window';
 import { ApprovalRequest, ConnectionState, RuntimeStatus } from './types';
-import { Brain, Cpu, Map, Server, Shield, Activity, Folder, Terminal as TermIcon, Sliders, Bot, Search } from 'lucide-react';
+import { Brain, Cpu, Map, Server, Shield, Activity, Folder, Terminal as TermIcon, Sliders, Bot, Search, Smartphone } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [activeAppId, setActiveAppId] = useState<string>('launcher');
@@ -55,6 +56,12 @@ export const App: React.FC = () => {
             activeAppId={activeAppId}
             pendingApprovalsCount={pendingApprovalsCount}
           />
+        );
+      case 'mobile':
+        return (
+          <Window id="win_mobile" title="Mobile Companion" icon={Smartphone} isOpen={true} onClose={() => setActiveAppId('launcher')}>
+            <MobileCompanionApp />
+          </Window>
         );
       case 'status':
         return (

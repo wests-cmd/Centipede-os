@@ -74,6 +74,7 @@ The adapter implements the currently supported Kingdom integration surface docum
 ## Feature Status Classification
 
 ### IMPLEMENTED
+- **Step 8 Mobile Companion App & Anti-Tampering Engine (`src/components/MobileCompanionApp.tsx`, `src/security/approvalTamperGuard.ts`, `src/ingest/knowledgeManager.ts`)**: QR PIN companion pairing UI, parameter hash anti-tampering verification, and knowledge provenance tracking.
 - **Step 7 Runtime Platform Foundation (`src/platform/`, `src/config/`, `Dockerfile`, `docker-compose.yml`)**: Platform capability detection, configuration validation, non-root multi-stage Docker containerization, health checks, and isolated service networking.
 - **Versioned REST API & Mobile Pairing (`src/server/`, `src/security/deviceTrust.ts`)**: Versioned endpoints (`/api/v1/*`), QR device pairing, PIN validation, session tokens, and device revocation.
 - **Untrusted Content Ingestion Pipeline (`src/ingest/pipeline.ts`)**: Untrusted data classification, provenance tracking, and prompt injection security scanning.
