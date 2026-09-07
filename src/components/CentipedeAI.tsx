@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { KingdomAdapter } from '../api/kingdomAdapter';
 import { centipedeAIPipeline, conversationManager } from '../ai';
 import { Message, UserInput } from '../ai/types';
-import { Bot, CheckCircle2, ShieldAlert, ArrowRight, Play, AlertCircle, Lock, Cpu, Sparkles } from 'lucide-react';
+import { Bot, CheckCircle2, ShieldAlert, ArrowRight, Play, Lock, Cpu, Sparkles } from 'lucide-react';
 
 interface CentipedeAIProps {
   adapter: KingdomAdapter;
@@ -38,6 +38,14 @@ export const CentipedeAI: React.FC<CentipedeAIProps> = ({ adapter, onNavigateSec
 
     await centipedeAIPipeline.process(input);
   };
+
+  const isProcessing =
+    activeMessage !== null &&
+    (activeMessage.status === 'UNDERSTANDING' ||
+      activeMessage.status === 'INTENT_IDENTIFIED' ||
+      activeMessage.status === 'PLANNING' ||
+      activeMessage.status === 'PERMISSION_CHECK' ||
+      activeMessage.status === 'EXECUTING');
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
@@ -96,7 +104,7 @@ export const CentipedeAI: React.FC<CentipedeAIProps> = ({ adapter, onNavigateSec
             value={promptInput}
             onChange={(e) => setPromptInput(e.target.value)}
             rows={2}
-            placeholder="e.g. Get Kingdom runtime status, or submit task to run swarm..."
+            placeholder="e.g. Get Kingdom runtime status, or delete file /tmp/restricted..."
             className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-100 text-sm focus:outline-none focus:border-purple-500"
           />
         </div>
@@ -104,11 +112,11 @@ export const CentipedeAI: React.FC<CentipedeAIProps> = ({ adapter, onNavigateSec
         <div className="flex justify-end">
           <button
             type="submit"
-            disabled={!promptInput.trim() || (activeMessage !== null && activeMessage.status !== 'COMPATIBLE' && activeMessage.status !== 'COMPATIBLE' && activeMessage.status !== 'COMPLETED' && activeMessage.status !== 'FAILED' && activeMessage.status !== 'APPROVAL_REQUIRED' && activeMessage.status !== 'DENIED')}
+            disabled={!promptInput.trim() || isProcessing}
             className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors shadow-lg shadow-purple-600/30 disabled:opacity-50"
           >
             <Play className="w-4 h-4" />
-            <span>Process Prompt Pipeline</span>
+            <span>{isProcessing ? 'Processing Pipeline...' : 'Process Prompt Pipeline'}</span>
           </button>
         </div>
       </form>
@@ -126,7 +134,7 @@ export const CentipedeAI: React.FC<CentipedeAIProps> = ({ adapter, onNavigateSec
                 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
                 : activeMessage.status === 'APPROVAL_REQUIRED'
                 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40 animate-pulse'
-                : activeMessage.status === 'DENIED'
+                : activeMessage.status === 'DENIED' || activeMessage.status === 'FAILED'
                 ? 'bg-red-500/20 text-red-400 border border-red-500/40'
                 : 'bg-blue-500/20 text-blue-400 border border-blue-500/40 animate-pulse'
             }`}>
@@ -177,11 +185,21 @@ export const CentipedeAI: React.FC<CentipedeAIProps> = ({ adapter, onNavigateSec
             </div>
           )}
 
-          {activeMessage.status === 'COMPLETED' && (
-            <div className="p-4 bg-emerald-950/60 border border-emerald-500/50 rounded-xl text-xs space-y-2">
-              <div className="flex items-center space-x-2 text-emerald-400 font-bold text-sm">
-                <CheckCircle2 className="w-5 h-5" />
-                <span>Result Formatted for User</span>
+          {(activeMessage.status === 'COMPLETED' || activeMessage.status === 'FAILED' || activeMessage.status === 'DENIED') && (
+            <div className={`p-4 rounded-xl text-xs space-y-2 ${
+              activeMessage.status === 'COMPLETED'
+                ? 'bg-emerald-950/60 border border-emerald-500/50'
+                : 'bg-red-950/60 border border-red-500/50'
+            }`}>
+              <div className="flex items-center space-x-2 font-bold text-sm">
+                {activeMessage.status === 'COMPLETED' ? (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                ) : (
+                  <ShieldAlert className="w-5 h-5 text-red-400" />
+                )}
+                <span className={activeMessage.status === 'COMPLETED' ? 'text-emerald-400' : 'text-red-400'}>
+                  {activeMessage.status === 'COMPLETED' ? 'Result Formatted for User' : 'Pipeline Execution Halted'}
+                </span>
               </div>
               <div className="text-white text-sm font-medium">{activeMessage.text}</div>
               {activeMessage.actionResult?.data && (

@@ -14,6 +14,8 @@ export class Planner {
         intentId: intent.id,
         steps: [],
         requiredCapabilities: [],
+        operation: 'none',
+        parameters: {},
         riskLevel: 'LOW',
         requiresApproval: false,
       };
@@ -25,15 +27,17 @@ export class Planner {
       description: `Validate intent parameters for ${intent.type}`,
       actionType: 'validate_intent',
       requiredCapability: resolvedCap.capability,
+      operation: resolvedCap.operation,
       parameters: intent.parameters,
     });
 
     // Step 2: ZeroTrust capability check
     steps.push({
       stepNumber: 2,
-      description: `Perform ZeroTrust permission check for capability: ${resolvedCap.capability}`,
+      description: `Consult Kingdom ZeroTrust authorization engine for capability: ${resolvedCap.capability}`,
       actionType: 'check_permission',
       requiredCapability: resolvedCap.capability,
+      operation: resolvedCap.operation,
       parameters: { riskLevel: resolvedCap.riskLevel },
     });
 
@@ -43,6 +47,7 @@ export class Planner {
       description: `Execute action via KingdomAdapter: ${resolvedCap.operation}`,
       actionType: 'execute_kingdom_action',
       requiredCapability: resolvedCap.capability,
+      operation: resolvedCap.operation,
       parameters: intent.parameters,
     });
 
@@ -51,6 +56,8 @@ export class Planner {
       intentId: intent.id,
       steps,
       requiredCapabilities: [resolvedCap.capability],
+      operation: resolvedCap.operation,
+      parameters: intent.parameters,
       riskLevel: resolvedCap.riskLevel,
       requiresApproval: resolvedCap.requiresApproval,
     };

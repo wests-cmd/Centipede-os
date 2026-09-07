@@ -47,6 +47,7 @@ export interface PlanStep {
   description: string;
   actionType: string;
   requiredCapability: string;
+  operation: string;
   parameters: Record<string, any>;
 }
 
@@ -55,6 +56,8 @@ export interface Plan {
   intentId: string;
   steps: PlanStep[];
   requiredCapabilities: string[];
+  operation: string;
+  parameters: Record<string, any>;
   riskLevel: RiskLevel;
   requiresApproval: boolean;
 }
@@ -64,6 +67,7 @@ export type AuthorizationState = 'AUTHORIZED' | 'APPROVAL_REQUIRED' | 'DENIED';
 export interface ActionRequest {
   id: string;
   capability: string;
+  operation: string;
   parameters: Record<string, any>;
   planId: string;
   intentId: string;

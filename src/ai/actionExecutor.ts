@@ -11,7 +11,7 @@ export class ActionExecutor {
   public async execute(action: ActionRequest, intent: Intent): Promise<ActionResult> {
     const timestamp = Date.now();
 
-    // Security Gate Enforcement
+    // 1. Security Gate Enforcement
     if (action.authorizationState === 'DENIED') {
       return {
         actionId: action.id,
@@ -25,10 +25,11 @@ export class ActionExecutor {
       try {
         const approvalReq = await this.adapter.create_approval(
           action.capability,
-          'execute_action',
+          action.operation || 'execute_action',
           `Centipede AI request requires approval (${action.capability}): ${intent.originalInput}`,
           'centipede_ai',
-          action.riskLevel
+          action.riskLevel,
+          action.parameters
         );
 
         return {
@@ -51,7 +52,42 @@ export class ActionExecutor {
       }
     }
 
-    // Dispatch Authorized Action via KingdomAdapter
+    // 2. Parameter Validation
+    if (intent.type === 'CANCEL_TASK') {
+      if (!action.parameters.taskId || typeof action.parameters.taskId !== 'string' || !action.parameters.taskId.trim()) {
+        return {
+          actionId: action.id,
+          status: 'BLOCKED',
+          error: 'Missing required taskId parameter for task cancellation.',
+          timestamp,
+        };
+      }
+    }
+
+    if (intent.type === 'CREATE_TASK') {
+      if (!action.parameters.prompt || typeof action.parameters.prompt !== 'string' || !action.parameters.prompt.trim()) {
+        return {
+          actionId: action.id,
+          status: 'BLOCKED',
+          error: 'Missing required prompt parameter for task creation.',
+          timestamp,
+        };
+      }
+    }
+
+    if (intent.type === 'SET_MODE') {
+      const mode = action.parameters.mode;
+      if (!mode || (mode !== 'adaptive' && mode !== 'lightweight')) {
+        return {
+          actionId: action.id,
+          status: 'BLOCKED',
+          error: `Invalid mode parameter "${mode}". Must be 'adaptive' or 'lightweight'.`,
+          timestamp,
+        };
+      }
+    }
+
+    // 3. Explicit Dispatch Matrix (Zero Arbitrary Fallback)
     try {
       let data: any = null;
 
@@ -65,27 +101,58 @@ export class ActionExecutor {
         case 'STOP_RUNTIME':
           data = await this.adapter.stop_runtime();
           break;
-        case 'GET_KNIGHTS':
-          data = await this.adapter.get_knights();
+        case 'GET_MODE':
+          data = await this.adapter.get_mode();
+          break;
+        case 'SET_MODE':
+          data = await this.adapter.set_mode(action.parameters.mode);
           break;
         case 'CREATE_TASK':
-          data = await this.adapter.submit_task(intent.parameters.prompt || intent.originalInput, { source: 'centipede_ai' });
+          data = await this.adapter.submit_task(action.parameters.prompt, { source: 'centipede_ai' });
           break;
         case 'LIST_TASKS':
           data = await this.adapter.list_tasks();
           break;
-        case 'CANCEL_TASK':
-          data = await this.adapter.cancel_task(intent.parameters.taskId);
+        case 'GET_TASK':
+          data = await this.adapter.get_task(action.parameters.taskId);
           break;
-        case 'GET_SECURITY_STATUS':
-          data = await this.adapter.get_security_status();
+        case 'CANCEL_TASK':
+          data = await this.adapter.cancel_task(action.parameters.taskId);
+          break;
+        case 'GET_KNIGHTS':
+          data = await this.adapter.get_knights();
+          break;
+        case 'GET_MODELS':
+          data = await this.adapter.get_models();
           break;
         case 'GET_MEMORY':
           data = await this.adapter.get_memory();
           break;
-        default:
-          data = await this.adapter.get_status();
+        case 'SEARCH_MEMORY':
+          data = await this.adapter.search_memory(action.parameters.query || intent.originalInput);
           break;
+        case 'GET_MAPS':
+          data = await this.adapter.get_maps();
+          break;
+        case 'GET_SECURITY_STATUS':
+          data = await this.adapter.get_security_status();
+          break;
+        case 'GET_PERMISSIONS':
+          data = await this.adapter.get_permissions();
+          break;
+        case 'LIST_APPROVALS':
+          data = await this.adapter.list_approvals();
+          break;
+
+        case 'UNKNOWN':
+        default:
+          // FAIL CLOSED: No default fallback action!
+          return {
+            actionId: action.id,
+            status: 'BLOCKED',
+            error: `Unsupported or unknown intent/capability "${intent.type}". No Kingdom action executed.`,
+            timestamp,
+          };
       }
 
       return {
