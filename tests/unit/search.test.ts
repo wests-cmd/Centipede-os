@@ -1,4 +1,4 @@
-import { test, expect } from 'bun:test';
+import { test, expect } from 'vitest';
 import { fileSearchProvider } from '../../src/search/providers/fileSearchProvider';
 import { webSearchProvider } from '../../src/search/providers/webSearchProvider';
 import { searchAggregator } from '../../src/search/aggregator';
