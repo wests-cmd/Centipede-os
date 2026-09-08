@@ -64,7 +64,7 @@ export class DeviceTrustManager {
   }
 
   public validateSessionToken(sessionToken: string): { valid: boolean; device?: TrustedDevice; error?: string } {
-    const device = Array.from(this.devices.values()).find((d) => d.sessionToken === sessionToken || (d.deviceId && d.trustState === 'REVOKED'));
+    const device = Array.from(this.devices.values()).find((d) => d.sessionToken === sessionToken);
     if (!device) {
       return { valid: false, error: 'Device not authenticated or session token invalid.' };
     }

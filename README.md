@@ -80,6 +80,7 @@ bun run test:e2e
 ## Feature Status Classification
 
 - **IMPLEMENTED**:
+  - Step 8 Mobile Companion App & Anti-Tampering Engine (`src/components/MobileCompanionApp.tsx`, `src/security/approvalTamperGuard.ts`, `src/ingest/knowledgeManager.ts`)
   - Step 7 Runtime Platform Foundation (`src/platform/`: PlatformDetector, `src/config/`: ConfigManager, `Dockerfile`, `docker-compose.yml`)
   - Versioned Authenticated API Server & Mobile Pairing (`src/server/`: ApiRouter, CentipedeServer, `src/security/`: DeviceTrustManager, QR pairing, PIN confirmation, session tokens, device revocation)
   - Content Ingestion Pipeline (`src/ingest/`: ContentIngestionPipeline, Untrusted Data Classification, Prompt Injection Security Checking)
