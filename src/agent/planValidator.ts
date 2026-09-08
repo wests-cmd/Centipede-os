@@ -13,7 +13,7 @@ export interface PlanDriftEvaluation {
 export class PlanValidator {
   public evaluatePlanDrift(originalIntent: string, proposedPlan: Plan): PlanDriftEvaluation {
     const lowerIntent = originalIntent.toLowerCase();
-    const planDescription = proposedPlan.description.toLowerCase();
+    const planDescription = (proposedPlan.description || proposedPlan.reasoning || '').toLowerCase();
 
     const addedExternalTransfers: string[] = [];
     const addedDestructiveOperations: string[] = [];

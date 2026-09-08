@@ -79,6 +79,7 @@ bun run test:e2e
 
 ## Feature Status Classification
 
+- **Subsystem Audit Status**: Documented in [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) and [SECURITY_ATTACK_MATRIX.md](./SECURITY_ATTACK_MATRIX.md).
 - **IMPLEMENTED**:
   - Step 12 & 13 Advanced Agent Control Plane & Trusted Skill Ecosystem (`src/agent/`: AgentIdentityManager, CapabilityGrantEngine JIT grants, PlanValidator plan drift engine, IncidentManager, `src/skills/`: TrustedSkillEngine, SkillManifest, Tool Poisoning Defenses)
   - Step 10 & 11 Production Reality Pass (`src/workspace/`: IntegrationRegistry, ToolExecutor capability routing, `src/workflow/`: WorkflowEngine, `src/workflow/persistence.ts` persistence store, immutable versioning, DRAFT proposal status, step budgets)

@@ -140,7 +140,7 @@ export class IntegrationRegistry {
 
     // Authoritative Routing: Look up tool ID by capability and route through ToolExecutor
     try {
-      const toolDef = toolRegistry.getToolsByCapability(capabilityId)[0];
+      const toolDef = toolRegistry.getToolByCapability(capabilityId);
       const targetToolId = toolDef ? toolDef.toolId : capabilityId;
 
       const toolRes = await toolExecutor.execute({
