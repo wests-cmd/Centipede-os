@@ -1,4 +1,5 @@
 import { IntegrationCapability, NormalizedIntegrationResult, WorkspaceIntegration } from './types';
+import { toolExecutor } from '../tools/executor';
 
 export class IntegrationRegistry {
   private integrations: Map<string, WorkspaceIntegration> = new Map();
@@ -8,12 +9,12 @@ export class IntegrationRegistry {
   }
 
   private initDefaultIntegrations(): void {
-    // 1. Filesystem Integration
+    // 1. Filesystem Integration (Local OS Sandbox)
     this.registerIntegration({
       integrationId: 'int_filesystem',
       name: 'Local Filesystem',
       category: 'LOCAL',
-      provider: 'System OS',
+      provider: 'System OS Sandbox',
       status: 'CONNECTED',
       sanitizedMetadata: { rootPath: '/app' },
       capabilities: [
@@ -23,14 +24,14 @@ export class IntegrationRegistry {
       ],
     });
 
-    // 2. Email Integration
+    // 2. Email Integration (IMAP/SMTP - Unauthenticated)
     this.registerIntegration({
       integrationId: 'int_email',
       name: 'Email Provider (IMAP/SMTP)',
       category: 'COMMUNICATION',
-      provider: 'Mail Integration',
-      status: 'CONNECTED',
-      accountName: 'user@centipede.os',
+      provider: 'Mail Provider',
+      status: 'NEEDS_AUTH', // Realistic status: Needs user authentication credentials!
+      accountName: 'Unconfigured Email Account',
       sanitizedMetadata: { server: 'mail.centipede.os' },
       capabilities: [
         { capabilityId: 'email.search', name: 'Search Email', description: 'Search inbox messages', riskLevel: 'LOW', operationType: 'READ', requiresHumanApproval: false },
@@ -40,14 +41,14 @@ export class IntegrationRegistry {
       ],
     });
 
-    // 3. Calendar Integration
+    // 3. Calendar Integration (CalDAV - Unauthenticated)
     this.registerIntegration({
       integrationId: 'int_calendar',
       name: 'Personal Calendar',
       category: 'PRODUCTIVITY',
-      provider: 'CalDAV / iCal',
-      status: 'CONNECTED',
-      accountName: 'user@centipede.os',
+      provider: 'CalDAV Provider',
+      status: 'NEEDS_AUTH', // Realistic status: Needs authentication!
+      accountName: 'Unconfigured Calendar',
       sanitizedMetadata: { calendarName: 'Personal Schedule' },
       capabilities: [
         { capabilityId: 'calendar.read', name: 'Read Calendar', description: 'Read schedule events', riskLevel: 'LOW', operationType: 'READ', requiresHumanApproval: false },
@@ -56,14 +57,14 @@ export class IntegrationRegistry {
       ],
     });
 
-    // 4. GitHub Integration
+    // 4. GitHub Integration (GitHub API - Unauthenticated)
     this.registerIntegration({
       integrationId: 'int_github',
       name: 'GitHub Development Workspace',
       category: 'DEVELOPMENT',
       provider: 'GitHub API v3',
-      status: 'CONNECTED',
-      accountName: 'centipede-developer',
+      status: 'NEEDS_AUTH', // Realistic status!
+      accountName: 'Unconfigured GitHub Account',
       sanitizedMetadata: { scopes: 'repo,issue' },
       capabilities: [
         { capabilityId: 'github.repo.read', name: 'Read Repositories', description: 'Read repository issues and code', riskLevel: 'LOW', operationType: 'READ', requiresHumanApproval: false },
@@ -86,11 +87,11 @@ export class IntegrationRegistry {
     return Array.from(this.integrations.values()).map((i) => JSON.parse(JSON.stringify(i)));
   }
 
-  public executeCapability(
+  public async executeCapability(
     integrationId: string,
     capabilityId: string,
     parameters: any
-  ): NormalizedIntegrationResult {
+  ): Promise<NormalizedIntegrationResult> {
     const integration = this.integrations.get(integrationId);
     if (!integration) {
       return {
@@ -100,6 +101,17 @@ export class IntegrationRegistry {
         data: null,
         error: `INTEGRATION_NOT_FOUND: Integration "${integrationId}" is not registered.`,
         provenance: { timestamp: Date.now(), source: integrationId, trustClassification: 'UNTRUSTED_EXTERNAL_DATA' },
+      };
+    }
+
+    if (integration.status === 'NEEDS_AUTH' || integration.status === 'DISCONNECTED') {
+      return {
+        integrationId,
+        capabilityId,
+        status: 'BLOCKED',
+        data: null,
+        error: `INTEGRATION_UNAVAILABLE: Integration "${integration.name}" is in status "${integration.status}". User authentication required before capability execution!`,
+        provenance: { timestamp: Date.now(), source: integration.name, trustClassification: 'UNTRUSTED_EXTERNAL_DATA' },
       };
     }
 
@@ -126,13 +138,35 @@ export class IntegrationRegistry {
       };
     }
 
-    return {
-      integrationId,
-      capabilityId,
-      status: 'SUCCESS',
-      data: { result: `Executed ${cap.name} successfully`, parameters },
-      provenance: { timestamp: Date.now(), source: integration.name, trustClassification: 'UNTRUSTED_EXTERNAL_DATA' },
-    };
+    // Authoritative Routing: Route through ToolExecutor
+    try {
+      const toolRes = await toolExecutor.execute({
+        id: `call_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        toolId: capabilityId,
+        capability: capabilityId,
+        parameters,
+        chainDepth: 1,
+        riskLevel: cap.riskLevel,
+      });
+
+      return {
+        integrationId,
+        capabilityId,
+        status: toolRes.status === 'SUCCESS' ? 'SUCCESS' : 'FAILED',
+        data: toolRes.data,
+        error: toolRes.error,
+        provenance: { timestamp: Date.now(), source: integration.name, trustClassification: 'UNTRUSTED_EXTERNAL_DATA' },
+      };
+    } catch (err: any) {
+      return {
+        integrationId,
+        capabilityId,
+        status: 'FAILED',
+        data: null,
+        error: `Tool Execution Failure: ${err.message}`,
+        provenance: { timestamp: Date.now(), source: integration.name, trustClassification: 'UNTRUSTED_EXTERNAL_DATA' },
+      };
+    }
   }
 }
 

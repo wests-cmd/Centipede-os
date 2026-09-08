@@ -15,9 +15,17 @@ export class UserKnowledgeStore {
     const item: MemoryItem = {
       memoryId,
       type: 'FACT',
+      category: 'FACT',
       content,
       trustLevel: 'USER_CONFIRMED',
+      confidence: 1.0,
+      version: '1.0.0',
       scope,
+      provenance: {
+        sourceType: 'USER_INPUT',
+        sourceId: 'user_knowledge_store',
+        timestamp: Date.now(),
+      },
       timestamp: Date.now(),
     };
     this.memories.set(memoryId, item);
@@ -31,9 +39,17 @@ export class UserKnowledgeStore {
     const updated: MemoryItem = {
       memoryId,
       type: 'FACT',
+      category: 'FACT',
       content: newContent,
       trustLevel: 'USER_CONFIRMED',
+      confidence: 1.0,
+      version: '1.0.0',
       scope: existing ? existing.scope : 'GLOBAL',
+      provenance: {
+        sourceType: 'USER_INPUT',
+        sourceId: 'user_knowledge_store_correction',
+        timestamp: Date.now(),
+      },
       timestamp: Date.now(),
     };
 

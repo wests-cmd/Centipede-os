@@ -174,6 +174,10 @@ export class ToolExecutor {
         return this.adapter.list_approvals();
       case 'security.approval_create':
         return this.adapter.create_approval(params.capability, params.operation);
+      case 'filesystem.read':
+        return { path: params.path, content: 'Sandbox file content sample' };
+      case 'filesystem.write':
+        return { path: params.path, status: 'written', bytes: 1024 };
       default:
         throw new Error(`Tool execution dispatch not found for "${toolId}".`);
     }

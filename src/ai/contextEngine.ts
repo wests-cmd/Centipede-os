@@ -36,7 +36,8 @@ export class ContextEngine {
     const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
 
     const items: ContextItem[] = rawMemories.map((mem) => {
-      const ageMs = now - mem.timestamp;
+      const timestamp = mem.provenance?.timestamp || mem.timestamp || now;
+      const ageMs = now - timestamp;
       const isStale = ageMs > thirtyDaysMs;
 
       // Calculate relevance score
@@ -56,7 +57,7 @@ export class ContextEngine {
         relevanceScore: Math.min(1.0, Math.max(0.0, score)),
         trustLevel: mem.trustLevel,
         isStale,
-        createdAt: mem.timestamp,
+        createdAt: timestamp,
       };
     });
 

@@ -80,7 +80,7 @@ bun run test:e2e
 ## Feature Status Classification
 
 - **IMPLEMENTED**:
-  - Step 10 & 11 Universal Workspace & Workflow Engine (`src/workspace/`: IntegrationRegistry, `src/workflow/`: WorkflowEngine, Step Verification, Loop Budget Caps, Dry-Run Previews)
+  - Step 10 & 11 Production Reality Pass (`src/workspace/`: IntegrationRegistry, ToolExecutor capability routing, `src/workflow/`: WorkflowEngine, `src/workflow/persistence.ts` persistence store, immutable versioning, DRAFT proposal status, step budgets)
   - Step 9 Persistent Knowledge & Context Engine (`src/ai/contextEngine.ts`, `src/learning/userKnowledgeStore.ts`, Dry-Run Simulator, Fact Corrections, Memory Forget Workflows)
   - Step 8 Mobile Companion App & Anti-Tampering Engine (`src/components/MobileCompanionApp.tsx`, `src/security/approvalTamperGuard.ts`, `src/ingest/knowledgeManager.ts`)
   - Step 7 Runtime Platform Foundation (`src/platform/`: PlatformDetector, `src/config/`: ConfigManager, `Dockerfile`, `docker-compose.yml`)
