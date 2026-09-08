@@ -11,20 +11,24 @@ export class UserKnowledgeStore {
   private memories: Map<string, MemoryItem> = new Map();
   private auditCorrections: UserFactCorrection[] = [];
 
-  public addConfirmedFact(memoryId: string, content: string, scope = 'GLOBAL'): MemoryItem {
+  public addConfirmedFact(memoryId: string, content: string, scope = 'SYSTEM_CONTEXT'): MemoryItem {
     const item: MemoryItem = {
       memoryId,
       type: 'FACT',
-      category: 'FACT',
       content,
       trustLevel: 'USER_CONFIRMED',
       confidence: 1.0,
-      version: '1.0.0',
-      scope,
+      version: 1,
+      scope: 'SYSTEM_CONTEXT',
       provenance: {
         sourceType: 'USER_INPUT',
         sourceId: 'user_knowledge_store',
         timestamp: Date.now(),
+      },
+      lifecycle: {
+        accessCount: 1,
+        lastAccessedAt: Date.now(),
+        isArchived: false,
       },
       timestamp: Date.now(),
     };
@@ -39,16 +43,20 @@ export class UserKnowledgeStore {
     const updated: MemoryItem = {
       memoryId,
       type: 'FACT',
-      category: 'FACT',
       content: newContent,
       trustLevel: 'USER_CONFIRMED',
       confidence: 1.0,
-      version: '1.0.0',
-      scope: existing ? existing.scope : 'GLOBAL',
+      version: existing ? existing.version + 1 : 1,
+      scope: existing ? existing.scope : 'SYSTEM_CONTEXT',
       provenance: {
         sourceType: 'USER_INPUT',
         sourceId: 'user_knowledge_store_correction',
         timestamp: Date.now(),
+      },
+      lifecycle: {
+        accessCount: (existing?.lifecycle?.accessCount || 0) + 1,
+        lastAccessedAt: Date.now(),
+        isArchived: false,
       },
       timestamp: Date.now(),
     };
