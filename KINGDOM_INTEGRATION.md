@@ -3,7 +3,6 @@
 This document defines the integration contract, communication protocols, security requirements, connection states, version compatibility rules, and error-handling policies between **Centipede OS** and the **Kingdom** runtime (`wests-cmd/kingdom`).
 
 > **Formal Specification**: For the frozen, versioned API contract specification, see [KINGDOM_CENTIPEDE_API_CONTRACT.md](./KINGDOM_CENTIPEDE_API_CONTRACT.md).
-> **Implementation Status & Security Matrix**: See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) and [SECURITY_ATTACK_MATRIX.md](./SECURITY_ATTACK_MATRIX.md).
 
 ---
 
