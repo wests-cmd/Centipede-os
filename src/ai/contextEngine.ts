@@ -68,22 +68,25 @@ export class ContextEngine {
 
   public simulatePlanDryRun(plan: Plan): DryRunResult {
     const steps = plan.steps || [];
+    const targetCap = plan.requiredCapabilities?.[0] || 'unknown';
+    const requiresApproval = plan.requiresApproval ?? false;
+
     const simulatedSteps = steps.map((s, idx) => ({
       stepNumber: idx + 1,
       description: s.description,
       actionType: s.actionType,
-      targetCapability: plan.targetCapability || 'unknown',
+      targetCapability: targetCap,
       riskLevel: plan.riskLevel,
-      requiresHumanApproval: plan.requiresHumanApproval,
-      simulatedOutcome: `[DRY-RUN SIMULATION ONLY]: Step ${idx + 1} would target capability "${plan.targetCapability || 'unknown'}" with zero side effects.`,
+      requiresHumanApproval: requiresApproval,
+      simulatedOutcome: `[DRY-RUN SIMULATION ONLY]: Step ${idx + 1} would target capability "${targetCap}" with zero side effects.`,
     }));
 
     return {
       planId: plan.id,
-      intentSummary: plan.description,
+      intentSummary: plan.reasoning || `Execution plan for ${targetCap}`,
       simulatedSteps,
       hasSideEffects: false, // Security Rule: Dry-run MUST NOT perform mutating side effects
-      securitySummary: `Dry-run evaluated for plan "${plan.id}". Required capability "${plan.targetCapability || 'unknown'}" requires ZeroTrust human approval = ${plan.requiresHumanApproval}.`,
+      securitySummary: `Dry-run evaluated for plan "${plan.id}". Required capability "${targetCap}" requires ZeroTrust human approval = ${requiresApproval}.`,
     };
   }
 
