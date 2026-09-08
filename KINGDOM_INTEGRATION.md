@@ -74,6 +74,7 @@ The adapter implements the currently supported Kingdom integration surface docum
 ## Feature Status Classification
 
 ### IMPLEMENTED
+- **Step 10 & 11 Universal Workspace & Workflow Engine (`src/workspace/`, `src/workflow/`)**: Workspace integration providers, secret isolation, workflow budget controls, loop cycle detection, post-action verification, and ZeroTrust routing.
 - **Step 9 Persistent Knowledge & Context Engine (`src/ai/contextEngine.ts`, `src/learning/userKnowledgeStore.ts`)**: Context ranking, staleness handling, decision provenance explanation, side-effect-free dry-run simulation, and user-confirmed fact corrections/forget workflows.
 - **Step 8 Mobile Companion App & Anti-Tampering Engine (`src/components/MobileCompanionApp.tsx`, `src/security/approvalTamperGuard.ts`, `src/ingest/knowledgeManager.ts`)**: QR PIN companion pairing UI, parameter hash anti-tampering verification, and knowledge provenance tracking.
 - **Step 7 Runtime Platform Foundation (`src/platform/`, `src/config/`, `Dockerfile`, `docker-compose.yml`)**: Platform capability detection, configuration validation, non-root multi-stage Docker containerization, health checks, and isolated service networking.
