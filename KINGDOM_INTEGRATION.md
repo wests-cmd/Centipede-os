@@ -74,6 +74,7 @@ The adapter implements the currently supported Kingdom integration surface docum
 ## Feature Status Classification
 
 ### IMPLEMENTED
+- **Step 12 & 13 Advanced Agent Control Plane & Trusted Skill Ecosystem (`src/agent/`, `src/skills/`)**: Agent Identity tracking, Just-In-Time (JIT) Capability Grants, Plan Drift Engine detecting material plan expansions, Tool Poisoning defenses, and Security Incident logging.
 - **Step 10 & 11 Production Reality Workspace & Workflow Engine (`src/workspace/`, `src/workflow/`)**: Authoritative capability routing via ToolExecutor, unauthenticated integration status enforcement (`NEEDS_AUTH`), durable workflow state persistence, immutable versioning, and default `DRAFT` status for generated workflows.
 - **Step 9 Persistent Knowledge & Context Engine (`src/ai/contextEngine.ts`, `src/learning/userKnowledgeStore.ts`)**: Context ranking, staleness handling, decision provenance explanation, side-effect-free dry-run simulation, and user-confirmed fact corrections/forget workflows.
 - **Step 8 Mobile Companion App & Anti-Tampering Engine (`src/components/MobileCompanionApp.tsx`, `src/security/approvalTamperGuard.ts`, `src/ingest/knowledgeManager.ts`)**: QR PIN companion pairing UI, parameter hash anti-tampering verification, and knowledge provenance tracking.

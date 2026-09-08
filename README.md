@@ -80,6 +80,7 @@ bun run test:e2e
 ## Feature Status Classification
 
 - **IMPLEMENTED**:
+  - Step 12 & 13 Advanced Agent Control Plane & Trusted Skill Ecosystem (`src/agent/`: AgentIdentityManager, CapabilityGrantEngine JIT grants, PlanValidator plan drift engine, IncidentManager, `src/skills/`: TrustedSkillEngine, SkillManifest, Tool Poisoning Defenses)
   - Step 10 & 11 Production Reality Pass (`src/workspace/`: IntegrationRegistry, ToolExecutor capability routing, `src/workflow/`: WorkflowEngine, `src/workflow/persistence.ts` persistence store, immutable versioning, DRAFT proposal status, step budgets)
   - Step 9 Persistent Knowledge & Context Engine (`src/ai/contextEngine.ts`, `src/learning/userKnowledgeStore.ts`, Dry-Run Simulator, Fact Corrections, Memory Forget Workflows)
   - Step 8 Mobile Companion App & Anti-Tampering Engine (`src/components/MobileCompanionApp.tsx`, `src/security/approvalTamperGuard.ts`, `src/ingest/knowledgeManager.ts`)

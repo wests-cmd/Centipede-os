@@ -7,6 +7,7 @@ import { ActivityTaskView } from './components/ActivityTaskView';
 import { PermissionsApprovalView } from './components/PermissionsApprovalView';
 import { MobileCompanionApp } from './components/MobileCompanionApp';
 import { WorkspaceApp } from './components/WorkspaceApp';
+import { AgentControlApp } from './components/AgentControlApp';
 import { UniversalSearch } from './components/UniversalSearch';
 import { FileManager } from './components/FileManager';
 import { Terminal } from './components/Terminal';
@@ -17,7 +18,7 @@ import { SkillsApp } from './components/SkillsApp';
 import { MapsApp } from './components/MapsApp';
 import { Window } from './components/Window';
 import { ApprovalRequest, ConnectionState, RuntimeStatus } from './types';
-import { Brain, Cpu, Map, Server, Shield, Activity, Folder, Terminal as TermIcon, Sliders, Bot, Search, Smartphone, Grid } from 'lucide-react';
+import { Brain, Cpu, Map, Server, Shield, Activity, Folder, Terminal as TermIcon, Sliders, Bot, Search, Smartphone, Grid, ShieldAlert } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [activeAppId, setActiveAppId] = useState<string>('launcher');
@@ -57,6 +58,12 @@ export const App: React.FC = () => {
             activeAppId={activeAppId}
             pendingApprovalsCount={pendingApprovalsCount}
           />
+        );
+      case 'agent_control':
+        return (
+          <Window id="win_agent_control" title="Agent Control Plane & Security" icon={ShieldAlert} isOpen={true} onClose={() => setActiveAppId('launcher')}>
+            <AgentControlApp />
+          </Window>
         );
       case 'workspace':
         return (

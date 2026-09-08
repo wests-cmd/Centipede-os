@@ -138,11 +138,14 @@ export class IntegrationRegistry {
       };
     }
 
-    // Authoritative Routing: Route through ToolExecutor
+    // Authoritative Routing: Look up tool ID by capability and route through ToolExecutor
     try {
+      const toolDef = toolRegistry.getToolsByCapability(capabilityId)[0];
+      const targetToolId = toolDef ? toolDef.toolId : capabilityId;
+
       const toolRes = await toolExecutor.execute({
         id: `call_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        toolId: capabilityId,
+        toolId: targetToolId,
         capability: capabilityId,
         parameters,
         chainDepth: 1,
