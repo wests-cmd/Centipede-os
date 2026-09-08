@@ -29,6 +29,8 @@ export interface MemoryProvenance {
   timestamp: number;
 }
 
+export type MemoryItem = MemoryEntry;
+
 export interface MemoryEntry {
   memoryId: string;
   type: MemoryCategory;
