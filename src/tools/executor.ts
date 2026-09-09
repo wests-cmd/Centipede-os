@@ -1,7 +1,8 @@
 import { KingdomAdapter, kingdomAdapter } from '../api/kingdomAdapter';
-import { capabilityGrantEngine } from '../agent/grants';
+import { capabilityGrantEngine, computeParameterHash, VerificationContext } from '../agent/grants';
+import { approvalTamperGuard } from '../security/approvalTamperGuard';
 import { toolRegistry } from './registry';
-import { ToolExecutionResult, ToolInvocationRequest, VerificationState } from './types';
+import { ExecutionAuthorizationContext, ToolExecutionResult, ToolInvocationRequest, VerificationState } from './types';
 
 export interface DeadLetterEntry {
   deadLetterId: string;
@@ -74,14 +75,9 @@ export class ToolExecutor {
   public async execute(req: ToolInvocationRequest): Promise<ToolExecutionResult> {
     const startTime = Date.now();
     const idempotencyKey = req.idempotencyKey || `idemp_${req.toolId}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const parameterHash = req.parameterHash || computeParameterHash(req.parameters || {});
 
-    // 1. Idempotency Check (Prevent duplicate execution)
-    const cachedResult = this.idempotencyCache.get(idempotencyKey);
-    if (cachedResult) {
-      return { ...cachedResult, executionTimeMs: Date.now() - startTime };
-    }
-
-    // 2. Tool Chain Composition Bounding
+    // 1. Tool Chain Composition Bounding
     if (req.chainDepth > this.maxChainDepth) {
       return {
         invocationId: req.id,
@@ -93,7 +89,7 @@ export class ToolExecutor {
       };
     }
 
-    // 3. Circuit Breaker Boundary
+    // 2. Circuit Breaker Boundary
     const cbStatus = this.circuitBreaker.checkState(req.toolId);
     if (cbStatus.isOpen) {
       return {
@@ -106,7 +102,7 @@ export class ToolExecutor {
       };
     }
 
-    // 4. Registry Lookup
+    // 3. Registry Lookup
     const tool = toolRegistry.getTool(req.toolId);
     if (!tool) {
       return {
@@ -119,7 +115,7 @@ export class ToolExecutor {
       };
     }
 
-    // 5. Input Parameter Schema Validation
+    // 4. Input Parameter Schema Validation
     for (const reqProp of tool.inputSchema.required) {
       const val = req.parameters ? req.parameters[reqProp] : undefined;
       if (val === undefined || val === null || (typeof val === 'string' && !val.trim())) {
@@ -134,31 +130,83 @@ export class ToolExecutor {
       }
     }
 
-    // 6. Mandatory Authoritative Risk & Capability Authorization Gate
-    // Authoritative risk is derived strictly from verified tool manifest, never caller request!
-    const effectiveRiskClass = tool.riskClass;
-    const requiresApproval = tool.requiresApproval || effectiveRiskClass === 'CRITICAL' || effectiveRiskClass === 'HIGH';
-    const isMutatingOrPrivileged = tool.category === 'MUTATING' || tool.category === 'PRIVILEGED' || tool.category === 'EXTERNAL_SIDE_EFFECT';
+    // 5. Explicit Tool Classification & Non-Bypassable Authorization Boundary
+    const isMutatingOrPrivileged =
+      tool.category === 'MUTATING' ||
+      tool.category === 'PRIVILEGED' ||
+      tool.category === 'EXTERNAL_SIDE_EFFECT' ||
+      tool.requiresApproval ||
+      tool.riskClass === 'HIGH' ||
+      tool.riskClass === 'CRITICAL';
 
-    // If request supplies a grantId, strictly verify JIT capability grant at execution boundary
-    if (req.grantId) {
-      const targetResource = req.resource || req.parameters.path || req.parameters.target || '*';
+    const requiresHumanApproval = tool.requiresApproval || tool.riskClass === 'CRITICAL' || tool.riskClass === 'HIGH';
+
+    // Canonical Execution Authorization Context Verification
+    if (isMutatingOrPrivileged) {
+      // Must have valid JIT grant or trigger approval workflow
+      if (!req.grantId) {
+        if (requiresHumanApproval) {
+          let approvalId = req.approvalId || `appr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+          try {
+            if (this.adapter.getConnectionState() === 'CONNECTED') {
+              const approvalReq = await this.adapter.create_approval(
+                tool.capabilities[0] || 'none',
+                tool.toolId,
+                `Tool execution requires approval (${tool.name}): ${JSON.stringify(req.parameters)}`,
+                req.agentId || 'centipede_ai_tools',
+                tool.riskClass,
+                req.parameters
+              );
+              approvalId = approvalReq.id;
+            }
+          } catch (err: any) {
+            // Fallback: local approval pending tracking
+          }
+
+          return {
+            invocationId: req.id,
+            toolId: tool.toolId,
+            status: 'PENDING',
+            data: {
+              approvalId,
+              toolId: tool.toolId,
+              message: `Approval request created: ${approvalId}. Action pending human approval in Kingdom.`,
+            },
+            executionTimeMs: Date.now() - startTime,
+            idempotencyKey,
+          };
+        } else {
+          return {
+            invocationId: req.id,
+            toolId: tool.toolId,
+            status: 'BLOCKED',
+            error: `AUTHORIZATION_GRANT_REQUIRED: Executing privileged/mutating tool "${tool.toolId}" requires a valid JIT capability grant.`,
+            executionTimeMs: Date.now() - startTime,
+            idempotencyKey,
+          };
+        }
+      }
+
+      // Validate JIT Capability Grant against complete context
+      const targetResource = req.resource || req.parameters?.path || req.parameters?.target || '*';
+      const verificationContext: VerificationContext = {
+        agentId: req.agentId,
+        userId: req.userId,
+        deviceId: req.deviceId,
+        sessionId: req.sessionId,
+        workflowId: req.workflowId,
+        runId: req.runId,
+        stepId: req.stepId,
+        operation: req.operation,
+      };
+
       const grantVerify = capabilityGrantEngine.verifyCapabilityGrant(
         req.grantId,
         req.capability || tool.capabilities[0],
         targetResource,
-        req.parameterHash,
-        true,
-        {
-          agentId: req.agentId,
-          userId: req.userId,
-          deviceId: req.deviceId,
-          sessionId: req.sessionId,
-          workflowId: req.workflowId,
-          runId: req.runId,
-          stepId: req.stepId,
-          operation: req.operation,
-        }
+        parameterHash,
+        true, // Atomic single-use consumption
+        verificationContext
       );
 
       if (!grantVerify.valid) {
@@ -171,42 +219,75 @@ export class ToolExecutor {
           idempotencyKey,
         };
       }
-    } else if (requiresApproval || isMutatingOrPrivileged) {
-      // If no valid JIT grant provided and operation requires approval / is privileged,
-      // create approval request or return PENDING human approval state.
-      let approvalId = req.approvalId || `appr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
-      try {
-        if (this.adapter.getConnectionState() === 'CONNECTED') {
-          const approvalReq = await this.adapter.create_approval(
-            tool.capabilities[0] || 'none',
-            tool.toolId,
-            `Tool execution requires approval (${tool.name}): ${JSON.stringify(req.parameters)}`,
-            req.agentId || 'centipede_ai_tools',
-            effectiveRiskClass,
-            req.parameters
-          );
-          approvalId = approvalReq.id;
+      // Validate Approval if approvalId provided on request or bound to grant
+      const approvalIdToVerify = req.approvalId || grantVerify.grant?.approvalId;
+      if (approvalIdToVerify) {
+        const approvalCheck = approvalTamperGuard.verifyAndAuthorizeExecution(approvalIdToVerify, {
+          id: req.id,
+          capability: req.capability || tool.capabilities[0],
+          operation: req.operation || 'execute',
+          parameters: req.parameters,
+          riskLevel: tool.riskClass,
+          authorizationState: 'AUTHORIZED',
+        });
+
+        if (!approvalCheck.valid) {
+          return {
+            invocationId: req.id,
+            toolId: tool.toolId,
+            status: 'BLOCKED',
+            error: `APPROVAL_VALIDATION_FAILED: ${approvalCheck.error}`,
+            executionTimeMs: Date.now() - startTime,
+            idempotencyKey,
+          };
         }
-      } catch (err: any) {
-        // Fallback: local approval pending tracking
       }
 
-      return {
-        invocationId: req.id,
-        toolId: tool.toolId,
-        status: 'PENDING',
-        data: {
-          approvalId,
-          toolId: tool.toolId,
-          message: `Approval request created: ${approvalId}. Action pending human approval in Kingdom.`,
-        },
-        executionTimeMs: Date.now() - startTime,
-        idempotencyKey,
-      };
+      // Final Execution Decision: Kingdom Authorization Gate
+      if (this.adapter.getConnectionState() === 'CONNECTED') {
+        try {
+          const kingdomAuth = await this.adapter.authorize_capability(
+            req.agentId || 'centipede_ai',
+            req.capability || tool.capabilities[0],
+            req.operation || 'execute',
+            undefined,
+            undefined,
+            approvalIdToVerify,
+            req.parameters
+          );
+
+          if (!kingdomAuth || (kingdomAuth.decision !== 'ALLOWED' && kingdomAuth.decision !== 'AUTHORIZED')) {
+            return {
+              invocationId: req.id,
+              toolId: tool.toolId,
+              status: 'BLOCKED',
+              error: `KINGDOM_AUTHORIZATION_DENIED: Kingdom execution authority rejected operation (${kingdomAuth?.decision || 'DENIED'}).`,
+              executionTimeMs: Date.now() - startTime,
+              idempotencyKey,
+            };
+          }
+        } catch (err: any) {
+          return {
+            invocationId: req.id,
+            toolId: tool.toolId,
+            status: 'BLOCKED',
+            error: `KINGDOM_AUTHORIZATION_FAILED: Kingdom authority check failed: ${err.message}`,
+            executionTimeMs: Date.now() - startTime,
+            idempotencyKey,
+          };
+        }
+      }
     }
 
-    // 7. Execution with Timeout & Verification Tracking
+    // 6. Idempotency Check (Secured AFTER Authorization Gate)
+    const compoundIdempotencyKey = `${idempotencyKey}_${tool.toolId}_${req.agentId || 'default'}_${parameterHash}`;
+    const cachedResult = this.idempotencyCache.get(compoundIdempotencyKey);
+    if (cachedResult) {
+      return { ...cachedResult, executionTimeMs: Date.now() - startTime, idempotencyKey };
+    }
+
+    // 7. Execution Dispatch with Timeout & Verification Tracking
     const timeoutMs = tool.timeoutMs || 10000;
 
     try {
@@ -220,7 +301,7 @@ export class ToolExecutor {
 
       this.circuitBreaker.recordSuccess(tool.toolId);
 
-      // Determine explicit verification classification
+      // Explicit verification state classification
       const verificationState: VerificationState = tool.toolId.startsWith('filesystem.') ? 'SIMULATED' : 'VERIFIED';
 
       const result: ToolExecutionResult = {
@@ -233,7 +314,7 @@ export class ToolExecutor {
         idempotencyKey,
       };
 
-      this.idempotencyCache.set(idempotencyKey, result);
+      this.idempotencyCache.set(compoundIdempotencyKey, result);
       return result;
     } catch (err: any) {
       this.circuitBreaker.recordFailure(tool.toolId);
