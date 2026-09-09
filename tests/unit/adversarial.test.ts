@@ -154,7 +154,9 @@ describe('Master Security Invariants 1–14 Test Suite', () => {
       grant.grantId,
       'filesystem.delete',
       '/tmp/app.log',
-      'hash_TAMPERED'
+      'hash_TAMPERED',
+      false,
+      { agentId: 'agent_1' }
     );
 
     expect(verifyResult.valid).toBe(false);
@@ -165,7 +167,7 @@ describe('Master Security Invariants 1–14 Test Suite', () => {
     const grant = capabilityGrantEngine.issueJustInTimeGrant('agent_1', 'process.execute', '*', 100);
     capabilityGrantEngine.revokeGrant(grant.grantId);
 
-    const result = capabilityGrantEngine.verifyCapabilityGrant(grant.grantId, 'process.execute', '/bin/ls');
+    const result = capabilityGrantEngine.verifyCapabilityGrant(grant.grantId, 'process.execute', '/bin/ls', undefined, true, { agentId: 'agent_1' });
     expect(result.valid).toBe(false);
     expect(result.error).toContain('GRANT_REVOKED');
   });
@@ -173,10 +175,10 @@ describe('Master Security Invariants 1–14 Test Suite', () => {
   it('Invariant 10 — Authorization Cannot Be Replayed (Atomic Single-Use)', () => {
     const grant = capabilityGrantEngine.issueJustInTimeGrant('agent_1', 'process.execute', '*', 60000);
 
-    const use1 = capabilityGrantEngine.verifyCapabilityGrant(grant.grantId, 'process.execute', '/bin/ls');
+    const use1 = capabilityGrantEngine.verifyCapabilityGrant(grant.grantId, 'process.execute', '/bin/ls', undefined, true, { agentId: 'agent_1' });
     expect(use1.valid).toBe(true);
 
-    const use2 = capabilityGrantEngine.verifyCapabilityGrant(grant.grantId, 'process.execute', '/bin/ls');
+    const use2 = capabilityGrantEngine.verifyCapabilityGrant(grant.grantId, 'process.execute', '/bin/ls', undefined, true, { agentId: 'agent_1' });
     expect(use2.valid).toBe(false);
     expect(use2.error).toContain('GRANT_ALREADY_CONSUMED');
   });

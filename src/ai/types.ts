@@ -77,6 +77,14 @@ export interface ActionRequest {
   riskLevel: RiskLevel;
   authorizationState: AuthorizationState;
   approvalId?: string;
+  grantId?: string;
+  agentId?: string;
+  sessionId?: string;
+  userId?: string;
+  deviceId?: string;
+  workflowId?: string;
+  runId?: string;
+  stepId?: string;
 }
 
 export interface ActionResult {
