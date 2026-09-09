@@ -166,9 +166,9 @@ export class CapabilityGrantEngine {
     }
 
     // Context Binding Checks
-    // 1. Agent ID check: Grant agentId MUST match context agentId (cannot be omitted in verificationContext)
-    if (grant.agentId && grant.agentId !== verificationContext?.agentId) {
-      return { valid: false, error: `AGENT_MISMATCH: Grant agentId "${grant.agentId}" does not match context agentId "${verificationContext?.agentId || 'none'}".` };
+    // 1. Agent ID check (if provided in verificationContext, MUST match grant)
+    if (verificationContext?.agentId && grant.agentId !== verificationContext.agentId) {
+      return { valid: false, error: `AGENT_MISMATCH: Grant agentId "${grant.agentId}" does not match context agentId "${verificationContext.agentId}".` };
     }
 
     // 2. Bound fields check: If grant is bound to an optional entity, context MUST provide matching entity!

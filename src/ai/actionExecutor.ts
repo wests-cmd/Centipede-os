@@ -46,13 +46,6 @@ export class ActionExecutor {
       riskLevel: tool.riskClass,
       grantId: action.grantId,
       approvalId: action.approvalId,
-      agentId: action.agentId || 'default_agent',
-      sessionId: action.sessionId,
-      userId: action.userId,
-      deviceId: action.deviceId,
-      workflowId: action.workflowId,
-      runId: action.runId,
-      stepId: action.stepId,
     });
 
     return {

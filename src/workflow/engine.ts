@@ -164,10 +164,6 @@ export class WorkflowEngine {
       const grantId = grantIdsByStep?.[step.stepId] || step.grantId;
 
       // Mandatory Security Fix: Execute capability exclusively through ToolExecutor execution gate!
-      // Step execution must pass the active grant's agentId if set, or default to workflow context
-      const grant = grantId ? capabilityGrantEngine.getGrant(grantId) : undefined;
-      const agentId = grant?.agentId || 'workflow_agent';
-
       const toolRes = await toolExecutor.execute({
         id: `wf_${runId}_${step.stepId}`,
         toolId: tool.toolId,
@@ -177,7 +173,7 @@ export class WorkflowEngine {
         chainDepth: 1,
         riskLevel: step.riskLevel,
         grantId,
-        agentId,
+        agentId: 'workflow_agent',
         workflowId: wf.workflowId,
         runId,
         stepId: step.stepId,

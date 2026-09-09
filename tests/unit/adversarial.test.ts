@@ -258,12 +258,12 @@ describe('Master Security Invariants 1–14 Test Suite', () => {
     const grant = capabilityGrantEngine.issueJustInTimeGrant('agent_1', 'filesystem.read', '/app/documents', 60000);
 
     // Prefix attack attempt (/app/documents_evil) MUST FAIL
-    const prefixCheck = capabilityGrantEngine.verifyCapabilityGrant(grant.grantId, 'filesystem.read', '/app/documents_evil', undefined, false, { agentId: 'agent_1' });
+    const prefixCheck = capabilityGrantEngine.verifyCapabilityGrant(grant.grantId, 'filesystem.read', '/app/documents_evil', undefined, false);
     expect(prefixCheck.valid).toBe(false);
     expect(prefixCheck.error).toContain('RESOURCE_SCOPE_EXCEEDED');
 
     // Path traversal attempt (/app/documents/../secrets) MUST FAIL
-    const traversalCheck = capabilityGrantEngine.verifyCapabilityGrant(grant.grantId, 'filesystem.read', '/app/documents/../secrets', undefined, false, { agentId: 'agent_1' });
+    const traversalCheck = capabilityGrantEngine.verifyCapabilityGrant(grant.grantId, 'filesystem.read', '/app/documents/../secrets', undefined, false);
     expect(traversalCheck.valid).toBe(false);
     expect(traversalCheck.error).toContain('RESOURCE_SCOPE_EXCEEDED');
   });
@@ -272,7 +272,7 @@ describe('Master Security Invariants 1–14 Test Suite', () => {
     const grant = capabilityGrantEngine.issueJustInTimeGrant('agent_1', 'filesystem.write', '/tmp/a.txt', 60000, undefined, 'hash_abc123');
 
     // Verification attempt with missing hash MUST FAIL
-    const check = capabilityGrantEngine.verifyCapabilityGrant(grant.grantId, 'filesystem.write', '/tmp/a.txt', undefined, false, { agentId: 'agent_1' });
+    const check = capabilityGrantEngine.verifyCapabilityGrant(grant.grantId, 'filesystem.write', '/tmp/a.txt', undefined, false);
     expect(check.valid).toBe(false);
     expect(check.error).toContain('PARAMETER_HASH_MISSING');
   });
@@ -303,8 +303,8 @@ describe('Master Security Invariants 1–14 Test Suite', () => {
     const grant = capabilityGrantEngine.issueJustInTimeGrant('agent_1', 'process.execute', '*', 60000);
 
     // Simulate two concurrent execution requests
-    const res1 = capabilityGrantEngine.verifyCapabilityGrant(grant.grantId, 'process.execute', '/bin/ls', undefined, true, { agentId: 'agent_1' });
-    const res2 = capabilityGrantEngine.verifyCapabilityGrant(grant.grantId, 'process.execute', '/bin/ls', undefined, true, { agentId: 'agent_1' });
+    const res1 = capabilityGrantEngine.verifyCapabilityGrant(grant.grantId, 'process.execute', '/bin/ls', undefined, true);
+    const res2 = capabilityGrantEngine.verifyCapabilityGrant(grant.grantId, 'process.execute', '/bin/ls', undefined, true);
 
     expect(res1.valid).toBe(true);
     expect(res2.valid).toBe(false);

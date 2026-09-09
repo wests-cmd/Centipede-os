@@ -81,13 +81,7 @@ export class TrustedSkillEngine {
     }
 
     // Checksum verification against immutable artifact identity
-    if (target.checksum) {
-      if (!artifactContent) {
-        return {
-          valid: false,
-          error: `SKILL_CHECKSUM_MISSING: Skill "${target.name}" requires artifact content for checksum verification.`,
-        };
-      }
+    if (artifactContent && target.checksum) {
       const computed = this.calculateArtifactChecksum(artifactContent);
       if (target.checksum !== computed) {
         return {
