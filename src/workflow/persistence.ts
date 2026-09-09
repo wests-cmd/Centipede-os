@@ -41,18 +41,18 @@ export class WorkflowPersistenceStore {
   }
 
   public recoverFromState(stateJson: string): void {
-    let dataToLoad: any;
     try {
       const parsed = JSON.parse(stateJson);
-      if (parsed && parsed.data && parsed.signature) {
-        const expectedSignature = this.computeIntegritySignature(JSON.stringify(parsed.data));
-        if (parsed.signature !== expectedSignature) {
-          throw new Error('PERSISTENCE_TAMPERING_DETECTED: State integrity signature check failed. Persisted data was modified!');
-        }
-        dataToLoad = parsed.data;
-      } else {
-        dataToLoad = parsed;
+      if (!parsed || !parsed.data || !parsed.signature) {
+        throw new Error('PERSISTENCE_TAMPERING_DETECTED: State integrity signature missing or invalid! Unsigned state rejected.');
       }
+
+      const expectedSignature = this.computeIntegritySignature(JSON.stringify(parsed.data));
+      if (parsed.signature !== expectedSignature) {
+        throw new Error('PERSISTENCE_TAMPERING_DETECTED: State integrity signature check failed. Persisted data was modified!');
+      }
+
+      const dataToLoad = parsed.data;
 
       if (Array.isArray(dataToLoad.workflows)) {
         dataToLoad.workflows.forEach((w: WorkflowDefinition) => {
@@ -66,7 +66,7 @@ export class WorkflowPersistenceStore {
       if (e.message.startsWith('PERSISTENCE_TAMPERING_DETECTED')) {
         throw e;
       }
-      // Invalid format or parse error
+      throw new Error(`PERSISTENCE_RECOVERY_FAILED: ${e.message}`);
     }
   }
 }

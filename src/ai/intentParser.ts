@@ -132,7 +132,19 @@ export class IntentParser {
       };
     }
 
-    // 4. Status / Health Query
+    // 4. Status / Health / Storage Query
+    if (text.includes('storage') || text.includes('disk') || text.includes('space') || text.includes('how much space')) {
+      return {
+        id,
+        type: 'QUERY_STORAGE',
+        confidence: 0.95,
+        parameters: {},
+        originalInput: input.text,
+        timestamp,
+        explanation: 'User requested Centipede OS storage usage and disk breakdown.',
+      };
+    }
+
     if (text.includes('status') || text.includes('health') || text.includes('how is kingdom')) {
       return {
         id,

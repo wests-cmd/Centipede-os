@@ -1,6 +1,45 @@
-import { OSPlatform, PlatformCapabilities, RuntimeInfo } from './types';
+import { OSPlatform, PlatformCapabilities, RuntimeInfo, StorageBreakdownMetrics, StoragePressureState } from './types';
 
 export class PlatformDetector {
+  private overrideStorageFreeGb: number | null = null;
+
+  public setStorageFreeOverrideGb(freeGb: number | null): void {
+    this.overrideStorageFreeGb = freeGb;
+  }
+
+  public calculateStorageMetrics(totalGb = 512, freeGb = 256): StorageBreakdownMetrics {
+    const effectiveFreeGb = this.overrideStorageFreeGb !== null ? this.overrideStorageFreeGb : freeGb;
+    const diskUsedGb = totalGb - effectiveFreeGb;
+    const freeSpacePercent = Math.round((effectiveFreeGb / totalGb) * 100);
+
+    let storagePressure: StoragePressureState = 'NORMAL';
+    if (freeSpacePercent < 5) {
+      storagePressure = 'EMERGENCY';
+    } else if (freeSpacePercent < 10) {
+      storagePressure = 'CRITICAL';
+    } else if (freeSpacePercent < 20) {
+      storagePressure = 'WARNING';
+    } else if (freeSpacePercent <= 30) {
+      storagePressure = 'INFORMATIONAL_WARNING';
+    }
+
+    return {
+      diskTotalGb: totalGb,
+      diskUsedGb,
+      diskFreeGb: effectiveFreeGb,
+      freeSpacePercent,
+      systemUsedGb: 31,
+      kingdomUsedGb: 4,
+      dockerUsedGb: 28,
+      vmUsedGb: 52,
+      modelsUsedGb: 21,
+      skillsUsedGb: 7,
+      logsUsedGb: 2,
+      userUsedGb: 22,
+      storagePressure,
+    };
+  }
+
   public async detectRuntimeInfo(): Promise<RuntimeInfo> {
     const isContainer = this.detectContainerEnvironment();
     const os = this.detectOS(isContainer);
@@ -16,6 +55,8 @@ export class PlatformDetector {
       dockerSocketMounted: false, // Security Directive: Docker socket mounting is prohibited!
     };
 
+    const storageBreakdown = this.calculateStorageMetrics(512, 256);
+
     return {
       centipedeVersion: '1.0.0',
       platform: {
@@ -28,8 +69,9 @@ export class PlatformDetector {
         totalMemoryMb: 16384,
         availableMemoryMb: 8192,
         storageTotalGb: 512,
-        storageAvailableGb: 256,
+        storageAvailableGb: storageBreakdown.diskFreeGb,
         gpuAvailable: false,
+        storageBreakdown,
       },
       environment: {
         isContainerized: isContainer,

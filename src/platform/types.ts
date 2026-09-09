@@ -1,5 +1,23 @@
 export type OSPlatform = 'WINDOWS' | 'LINUX' | 'MACOS' | 'CONTAINER_LINUX' | 'UNKNOWN';
 
+export type StoragePressureState = 'NORMAL' | 'INFORMATIONAL_WARNING' | 'WARNING' | 'CRITICAL' | 'EMERGENCY';
+
+export interface StorageBreakdownMetrics {
+  diskTotalGb: number;
+  diskUsedGb: number;
+  diskFreeGb: number;
+  freeSpacePercent: number;
+  systemUsedGb: number;
+  kingdomUsedGb: number;
+  dockerUsedGb: number;
+  vmUsedGb: number;
+  modelsUsedGb: number;
+  skillsUsedGb: number;
+  logsUsedGb: number;
+  userUsedGb: number;
+  storagePressure: StoragePressureState;
+}
+
 export interface HardwareInfo {
   cpuCores: number;
   totalMemoryMb: number;
@@ -8,6 +26,7 @@ export interface HardwareInfo {
   storageAvailableGb: number;
   gpuAvailable: boolean;
   gpuName?: string;
+  storageBreakdown?: StorageBreakdownMetrics;
 }
 
 export interface EnvironmentInfo {
