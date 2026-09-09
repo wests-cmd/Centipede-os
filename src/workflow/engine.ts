@@ -1,5 +1,6 @@
 import { WorkflowCheckpoint, WorkflowDefinition, WorkflowExecutionRun, WorkflowStep } from './types';
-import { integrationRegistry } from '../workspace/registry';
+import { toolExecutor, toolRegistry } from '../tools';
+import { capabilityGrantEngine } from '../agent/grants';
 import { workflowPersistenceStore } from './persistence';
 
 export class WorkflowEngine {
@@ -23,7 +24,7 @@ export class WorkflowEngine {
       updatedAt: Date.now(),
       steps: [
         { stepId: 'step_1', name: 'Find Invoices', capabilityId: 'filesystem.read', parameters: { path: '.' }, riskLevel: 'LOW', requiresHumanApproval: false, expectedOutcome: 'List of invoice files' },
-        { stepId: 'step_2', name: 'Archive Invoices', capabilityId: 'filesystem.write', parameters: { path: './archive' }, riskLevel: 'MEDIUM', requiresHumanApproval: false, expectedOutcome: 'Archived files' },
+        { stepId: 'step_2', name: 'Archive Invoices', capabilityId: 'filesystem.write', parameters: { path: './archive' }, dependsOnStepIds: ['step_1'], riskLevel: 'MEDIUM', requiresHumanApproval: false, expectedOutcome: 'Archived files' },
       ],
     };
     this.registerWorkflow(defaultWorkflow);
@@ -72,12 +73,13 @@ export class WorkflowEngine {
     return proposal;
   }
 
-  public async executeWorkflow(workflowId: string): Promise<WorkflowExecutionRun> {
-    const wf = this.workflows.get(workflowId);
+  public async executeWorkflow(workflowId: string, grantIdsByStep?: Record<string, string>): Promise<WorkflowExecutionRun> {
+    const wf = this.getWorkflow(workflowId);
     if (!wf) {
       throw new Error(`WORKFLOW_NOT_FOUND: Workflow "${workflowId}" is not registered.`);
     }
 
+    // Security Rule: Workflows in DRAFT, REVIEW_REQUIRED, BLOCKED, or REVOKED state MUST NOT execute!
     if (wf.trustState !== 'ACTIVE' && wf.trustState !== 'APPROVED') {
       throw new Error(`WORKFLOW_BLOCKED: Workflow "${wf.name}" is in trust state "${wf.trustState}" and cannot execute.`);
     }
@@ -110,8 +112,24 @@ export class WorkflowEngine {
       return run;
     }
 
+    const completedStepIds = new Set<string>();
+
     for (let idx = 0; idx < wf.steps.length; idx++) {
       const step = wf.steps[idx];
+
+      // Dependency validation
+      if (step.dependsOnStepIds && step.dependsOnStepIds.length > 0) {
+        for (const depId of step.dependsOnStepIds) {
+          if (!completedStepIds.has(depId)) {
+            run.status = 'BLOCKED';
+            run.error = `DEPENDENCY_FAILED: Step "${step.stepId}" depends on prerequisite step "${depId}" which did not successfully complete.`;
+            run.history.push({ stepId: step.stepId, capabilityId: step.capabilityId, status: 'BLOCKED', timestamp: Date.now() });
+            this.runs.set(runId, run);
+            workflowPersistenceStore.saveRun(run);
+            return run;
+          }
+        }
+      }
 
       // Multi-dimensional Budget Bounding
       run.consumedBudget.runtimeMs = Date.now() - run.startTime;
@@ -132,10 +150,40 @@ export class WorkflowEngine {
         return run;
       }
 
-      // Execute capability through IntegrationRegistry
-      const res = await integrationRegistry.executeCapability('int_filesystem', step.capabilityId, step.parameters);
+      // Resolve tool for step capability
+      const tool = toolRegistry.getToolByCapability(step.capabilityId);
+      if (!tool) {
+        run.status = 'FAILED';
+        run.error = `UNKNOWN_CAPABILITY: No verified tool registered for capability "${step.capabilityId}".`;
+        run.history.push({ stepId: step.stepId, capabilityId: step.capabilityId, status: 'FAILED', timestamp: Date.now() });
+        this.runs.set(runId, run);
+        workflowPersistenceStore.saveRun(run);
+        return run;
+      }
 
-      if (res.status === 'APPROVAL_REQUIRED') {
+      const grantId = grantIdsByStep?.[step.stepId] || step.grantId;
+
+      // Mandatory Security Fix: Execute capability exclusively through ToolExecutor execution gate!
+      // Step execution must pass the active grant's agentId if set, or default to workflow context
+      const grant = grantId ? capabilityGrantEngine.getGrant(grantId) : undefined;
+      const agentId = grant?.agentId || 'workflow_agent';
+
+      const toolRes = await toolExecutor.execute({
+        id: `wf_${runId}_${step.stepId}`,
+        toolId: tool.toolId,
+        capability: step.capabilityId,
+        operation: step.operation || 'execute',
+        parameters: step.parameters,
+        chainDepth: 1,
+        riskLevel: step.riskLevel,
+        grantId,
+        agentId,
+        workflowId: wf.workflowId,
+        runId,
+        stepId: step.stepId,
+      });
+
+      if (toolRes.status === 'PENDING') {
         run.status = 'WAITING_APPROVAL';
         run.history.push({ stepId: step.stepId, capabilityId: step.capabilityId, status: 'WAITING_APPROVAL', timestamp: Date.now() });
         this.runs.set(runId, run);
@@ -143,20 +191,33 @@ export class WorkflowEngine {
         return run;
       }
 
-      if (res.status === 'BLOCKED' || res.status === 'FAILED') {
+      if (toolRes.status === 'BLOCKED' || toolRes.status === 'FAILED' || toolRes.status === 'TIMEOUT') {
         run.status = 'FAILED';
-        run.error = res.error;
-        run.history.push({ stepId: step.stepId, capabilityId: step.capabilityId, status: 'FAILED', timestamp: Date.now() });
+        run.error = toolRes.error;
+        run.history.push({ stepId: step.stepId, capabilityId: step.capabilityId, status: toolRes.status, timestamp: Date.now() });
 
         // Trigger Compensating Action if defined
         if (step.compensatingAction) {
-          await integrationRegistry.executeCapability('int_filesystem', step.compensatingAction.capabilityId, step.compensatingAction.parameters);
+          const compTool = toolRegistry.getToolByCapability(step.compensatingAction.capabilityId);
+          if (compTool) {
+            await toolExecutor.execute({
+              id: `comp_${runId}_${step.stepId}`,
+              toolId: compTool.toolId,
+              capability: step.compensatingAction.capabilityId,
+              parameters: step.compensatingAction.parameters,
+              chainDepth: 1,
+              riskLevel: 'LOW',
+            });
+          }
         }
 
         this.runs.set(runId, run);
         workflowPersistenceStore.saveRun(run);
         return run;
       }
+
+      // Mark step completed successfully
+      completedStepIds.add(step.stepId);
 
       // Record durable checkpoint
       const checkpoint: WorkflowCheckpoint = {
@@ -165,7 +226,7 @@ export class WorkflowEngine {
         stepIndex: idx,
         status: 'SUCCESS',
         timestamp: Date.now(),
-        stateSnapshot: { ...step.parameters, resultStatus: res.status },
+        stateSnapshot: { ...step.parameters, resultStatus: toolRes.status, verificationState: toolRes.verificationState },
       };
       run.checkpoints.push(checkpoint);
 

@@ -5,12 +5,16 @@ export interface WorkflowStep {
   stepId: string;
   name: string;
   capabilityId: string;
+  operation?: string;
   parameters: Record<string, any>;
+  dependsOnStepIds?: string[];
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   requiresHumanApproval: boolean;
   expectedOutcome: string;
+  grantId?: string;
   compensatingAction?: {
     capabilityId: string;
+    operation?: string;
     parameters: Record<string, any>;
   };
 }

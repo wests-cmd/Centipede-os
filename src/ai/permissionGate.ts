@@ -12,6 +12,7 @@ export class PermissionGate {
    * Evaluates a plan against Kingdom ZeroTrust capability rules.
    * Asks Kingdom's authorization engine "Is this capability authorized?"
    * Model outputs, confidence scores, or text prompts CANNOT self-authorize or bypass this gate.
+   * DEFAULT STATE IS STRICT FAIL-CLOSED (UNAUTHORIZED / DENIED).
    */
   public async evaluate(plan: Plan): Promise<ActionRequest> {
     const actionId = `action_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -19,10 +20,11 @@ export class PermissionGate {
     const operation = plan.operation || 'execute';
     const parameters = plan.parameters || {};
 
-    let authorizationState: AuthorizationState = 'AUTHORIZED';
+    // Mandatory Security Fix: Default state is FAIL CLOSED (DENIED / UNAUTHORIZED)
+    let authorizationState: AuthorizationState = 'DENIED';
 
-    // Critical or human-approval-required operations automatically set APPROVAL_REQUIRED
-    if (plan.requiresApproval || plan.riskLevel === 'CRITICAL') {
+    // Critical or human-approval-required operations automatically require human approval
+    if (plan.requiresApproval || plan.riskLevel === 'CRITICAL' || plan.riskLevel === 'HIGH') {
       authorizationState = 'APPROVAL_REQUIRED';
     } else if (this.adapter.getConnectionState() === 'CONNECTED') {
       try {
@@ -36,19 +38,20 @@ export class PermissionGate {
           parameters
         );
 
-        if (authRes.decision === 'ALLOWED') {
+        if (authRes && authRes.decision === 'ALLOWED') {
           authorizationState = 'AUTHORIZED';
-        } else if (authRes.decision === 'REQUIRES_APPROVAL') {
+        } else if (authRes && authRes.decision === 'REQUIRES_APPROVAL') {
           authorizationState = 'APPROVAL_REQUIRED';
-        } else if (authRes.decision === 'DENIED') {
+        } else {
           authorizationState = 'DENIED';
         }
       } catch (err) {
-        // If Kingdom authorization call fails or is disconnected, fall back to safe gate check
-        if (plan.riskLevel === 'HIGH' || plan.riskLevel === 'CRITICAL') {
-          authorizationState = 'APPROVAL_REQUIRED';
-        }
+        // Fail closed on error, timeout, or malformed response from Kingdom
+        authorizationState = 'DENIED';
       }
+    } else {
+      // Disconnected or offline -> fail closed
+      authorizationState = 'DENIED';
     }
 
     return {

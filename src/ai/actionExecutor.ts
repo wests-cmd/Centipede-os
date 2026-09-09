@@ -12,7 +12,8 @@ export class ActionExecutor {
   public async execute(action: ActionRequest, intent: Intent): Promise<ActionResult> {
     const timestamp = Date.now();
 
-    // 1. Security Gate Enforcement
+    // 1. Mandatory Fail-Closed Security Gate Enforcement
+    // NEVER trust a caller-supplied authorizationState string as proof of authorization.
     if (action.authorizationState === 'DENIED') {
       return {
         actionId: action.id,
@@ -33,14 +34,25 @@ export class ActionExecutor {
       };
     }
 
-    // 3. Delegate to Verified ToolExecutor
+    // 3. Delegate to Verified ToolExecutor Execution Gate
+    // ToolExecutor independently validates JIT grant / approval requirements before dispatching
     const toolResult = await toolExecutor.execute({
       id: action.id,
       toolId: tool.toolId,
       capability: action.capability,
+      operation: action.operation,
       parameters: action.parameters,
       chainDepth: 1,
       riskLevel: tool.riskClass,
+      grantId: action.grantId,
+      approvalId: action.approvalId,
+      agentId: action.agentId || 'default_agent',
+      sessionId: action.sessionId,
+      userId: action.userId,
+      deviceId: action.deviceId,
+      workflowId: action.workflowId,
+      runId: action.runId,
+      stepId: action.stepId,
     });
 
     return {
