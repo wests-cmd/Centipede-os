@@ -9,6 +9,10 @@ export interface WorkflowStep {
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   requiresHumanApproval: boolean;
   expectedOutcome: string;
+  compensatingAction?: {
+    capabilityId: string;
+    parameters: Record<string, any>;
+  };
 }
 
 export interface WorkflowBudget {
@@ -16,6 +20,17 @@ export interface WorkflowBudget {
   maxActions: number;
   maxRetries: number;
   maxLoopCycles: number;
+  maxNetworkCalls?: number;
+  maxToolCalls?: number;
+}
+
+export interface WorkflowCheckpoint {
+  checkpointId: string;
+  stepId: string;
+  stepIndex: number;
+  status: 'SUCCESS' | 'FAILED' | 'COMPENSATED';
+  timestamp: number;
+  stateSnapshot: Record<string, any>;
 }
 
 export interface WorkflowDefinition {
@@ -35,9 +50,17 @@ export interface WorkflowExecutionRun {
   runId: string;
   workflowId: string;
   workflowVersion: string;
-  status: 'PLANNING' | 'WAITING_APPROVAL' | 'EXECUTING' | 'VERIFYING' | 'COMPLETED' | 'FAILED' | 'BLOCKED';
+  status: 'PLANNING' | 'WAITING_APPROVAL' | 'EXECUTING' | 'VERIFYING' | 'COMPLETED' | 'FAILED' | 'BLOCKED' | 'REQUIRES_HUMAN_REVIEW';
   executedStepsCount: number;
   history: { stepId: string; capabilityId: string; status: string; timestamp: number }[];
+  checkpoints: WorkflowCheckpoint[];
+  consumedBudget: {
+    runtimeMs: number;
+    actionsCount: number;
+    networkCallsCount: number;
+    toolCallsCount: number;
+    loopCyclesCount: number;
+  };
   startTime: number;
   endTime?: number;
   error?: string;
