@@ -37,12 +37,27 @@ export interface ToolInvocationRequest {
   idempotencyKey?: string;
   chainDepth: number;
   riskLevel: RiskLevel;
+  grantId?: string;
+  approvalId?: string;
+  agentId?: string;
+  userId?: string;
+  deviceId?: string;
+  sessionId?: string;
+  workflowId?: string;
+  runId?: string;
+  stepId?: string;
+  operation?: string;
+  resource?: string;
+  parameterHash?: string;
 }
+
+export type VerificationState = 'VERIFIED' | 'EXECUTED_UNVERIFIED' | 'SIMULATED' | 'FAILED';
 
 export interface ToolExecutionResult {
   invocationId: string;
   toolId: string;
   status: 'SUCCESS' | 'FAILED' | 'BLOCKED' | 'PENDING' | 'TIMEOUT';
+  verificationState?: VerificationState;
   data?: any;
   error?: string;
   executionTimeMs: number;
