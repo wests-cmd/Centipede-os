@@ -12,10 +12,13 @@ describe('Step 8 — Mobile Companion, Anti-Tampering & Knowledge Security Suite
   it('Test 1 — Mobile Companion QR Pairing PIN Code Expiration and Re-use Prevention', () => {
     const pairing = deviceTrustManager.initiatePairing('Pixel Companion', 'MOBILE_APP');
     expect(pairing.pairingCode.length).toBe(6);
+    expect(/^[0-9]{6}$/.test(pairing.pairingCode)).toBe(true);
 
     // Confirm once
     const firstConfirm = deviceTrustManager.confirmPairing(pairing.pairingCode);
     expect(firstConfirm.success).toBe(true);
+    expect(firstConfirm.sessionToken).toBeDefined();
+    expect(firstConfirm.sessionToken?.startsWith('tok_')).toBe(true);
 
     // Attempt reuse of single-use pairing PIN code fails
     const secondConfirm = deviceTrustManager.confirmPairing(pairing.pairingCode);
