@@ -1,0 +1,10 @@
+
+Running 2 tests using 1 worker
+
+Test 1: Verifying Centipede OS starts offline without crashing...
+  ✓  1 [chromium] › tests/e2e/e2e.playwright.ts:4:3 › Centipede OS & Kingdom Integration Contract Test Suite › 1. Standalone Offline Boot Verification (2.7s)
+Test 2: Verifying live Kingdom contract & ZeroTrust security...
+--- ALL E2E CONTRACT VERIFICATION TESTS PASSED! ---
+  ✓  2 [chromium] › tests/e2e/e2e.playwright.ts:15:3 › Centipede OS & Kingdom Integration Contract Test Suite › 2. Live API Contract & Security Approval Verification (5.2s)
+
+  2 passed (10.5s)

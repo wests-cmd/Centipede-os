@@ -1,0 +1,41 @@
+$ bun tests/integration/contract.integration.ts
+===========================================================
+  CENTIPEDE OS ↔ KINGDOM CONTRACT VERIFICATION SUITE
+===========================================================
+
+--- 1. CONNECTION & ONLINE/OFFLINE DETECTION ---
+[PASS] Kingdom Available: Engine version = 40.1
+[PASS] Connection State = CONNECTED
+[PASS] Kingdom Unavailable correctly classified as KINGDOM_OFFLINE
+[PASS] Offline Connection State = DISCONNECTED
+
+--- 2. VERSION COMPATIBILITY & RECONNECT ---
+[PASS] Version 40.1.0 Status = COMPATIBLE
+[PASS] Version 40.3.0 Status = COMPATIBLE_WITH_WARNING
+[PASS] Version 39.0.0 Status = UNSUPPORTED
+[PASS] Controlled Reconnect = SUCCESS
+
+--- 3. RUNTIME LIFECYCLE CONTROLS ---
+[PASS] Start Runtime = started
+[PASS] Runtime Running = true
+[PASS] Stop Runtime = stopped
+
+--- 4. TASK LIFECYCLE & CANCEL ---
+[PASS] Submit Task: Created ID = e4533ea3-ed32-4fca-8e6b-82a04843352f Status = queued
+[PASS] Get Task Details: ID = e4533ea3-ed32-4fca-8e6b-82a04843352f Status = queued
+[PASS] Cancel Task: ID = e4533ea3-ed32-4fca-8e6b-82a04843352f Status = cancelled
+
+--- 5. ZEROTRUST SECURITY & HUMAN APPROVAL ---
+[PASS] ZeroTrust Enabled = true Mode = zero_trust
+[PASS] Create Approval Request: ID = appr_5c33d81dedee Status = pending
+[PASS] Approve Operation: ID = appr_5c33d81dedee New Status = approved
+[PASS] Deny Operation: ID = appr_2d1e186be6b9 New Status = denied
+[PASS] Immutable Audit Logs Count = 5
+
+--- 6. ERROR MODEL CATEGORIZATION ---
+[PASS] Invalid Mode Error Code = INVALID_REQUEST | User Message = Invalid Request: {"detail":"Unsupported runtime mode: invalid_mode_enum_test"}
+[PASS] 404 Endpoint Error Code = NOT_FOUND | User Message = Requested endpoint or resource not found (/non_existent_endpoint).
+
+===========================================================
+  ALL CONTRACT VERIFICATION TESTS PASSED 100%!
+===========================================================

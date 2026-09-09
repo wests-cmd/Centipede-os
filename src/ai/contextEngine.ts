@@ -68,8 +68,8 @@ export class ContextEngine {
 
   public simulatePlanDryRun(plan: Plan): DryRunResult {
     const steps = plan.steps || [];
-    const targetCap = plan.requiredCapabilities?.[0] || 'unknown';
-    const requiresApproval = plan.requiresApproval ?? false;
+    const targetCap = plan.requiredCapabilities?.[0] || plan.targetCapability || 'unknown';
+    const requiresApproval = plan.requiresApproval ?? (plan.riskLevel === 'HIGH' || plan.riskLevel === 'CRITICAL');
 
     const simulatedSteps = steps.map((s, idx) => ({
       stepNumber: idx + 1,
