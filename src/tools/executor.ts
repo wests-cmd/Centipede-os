@@ -2,19 +2,85 @@ import { KingdomAdapter, kingdomAdapter } from '../api/kingdomAdapter';
 import { toolRegistry } from './registry';
 import { ToolExecutionResult, ToolInvocationRequest } from './types';
 
+export interface DeadLetterEntry {
+  deadLetterId: string;
+  requestId: string;
+  toolId: string;
+  capability: string;
+  parameters: Record<string, any>;
+  failureReason: string;
+  timestamp: number;
+  retryCount: number;
+  state: 'PERMANENT_FAILURE' | 'RERECONCILED';
+}
+
+export class CircuitBreaker {
+  private failureThreshold = 3;
+  private cooldownMs = 15000;
+  private failures: Map<string, { count: number; lastFailure: number; state: 'CLOSED' | 'OPEN' | 'HALF_OPEN' }> = new Map();
+
+  public checkState(providerOrToolId: string): { isOpen: boolean; state: 'CLOSED' | 'OPEN' | 'HALF_OPEN' } {
+    const record = this.failures.get(providerOrToolId);
+    if (!record || record.state === 'CLOSED') {
+      return { isOpen: false, state: 'CLOSED' };
+    }
+
+    const elapsed = Date.now() - record.lastFailure;
+    if (elapsed > this.cooldownMs) {
+      record.state = 'HALF_OPEN';
+      return { isOpen: false, state: 'HALF_OPEN' };
+    }
+
+    return { isOpen: true, state: 'OPEN' };
+  }
+
+  public recordSuccess(providerOrToolId: string): void {
+    this.failures.set(providerOrToolId, { count: 0, lastFailure: 0, state: 'CLOSED' });
+  }
+
+  public recordFailure(providerOrToolId: string): void {
+    const record = this.failures.get(providerOrToolId) || { count: 0, lastFailure: 0, state: 'CLOSED' };
+    record.count++;
+    record.lastFailure = Date.now();
+
+    if (record.count >= this.failureThreshold) {
+      record.state = 'OPEN';
+    }
+
+    this.failures.set(providerOrToolId, record);
+  }
+}
+
 export class ToolExecutor {
   private adapter: KingdomAdapter;
   private maxChainDepth = 5;
+  private circuitBreaker = new CircuitBreaker();
+  private idempotencyCache: Map<string, ToolExecutionResult> = new Map();
+  private deadLetterQueue: Map<string, DeadLetterEntry> = new Map();
 
   constructor(adapter: KingdomAdapter = kingdomAdapter) {
     this.adapter = adapter;
+  }
+
+  public getCircuitBreaker(): CircuitBreaker {
+    return this.circuitBreaker;
+  }
+
+  public getDeadLetterQueue(): DeadLetterEntry[] {
+    return Array.from(this.deadLetterQueue.values());
   }
 
   public async execute(req: ToolInvocationRequest): Promise<ToolExecutionResult> {
     const startTime = Date.now();
     const idempotencyKey = req.idempotencyKey || `idemp_${req.toolId}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
-    // 1. Tool Chain Composition Bounding
+    // 1. Idempotency Check (Prevent duplicate execution)
+    const cachedResult = this.idempotencyCache.get(idempotencyKey);
+    if (cachedResult) {
+      return { ...cachedResult, executionTimeMs: Date.now() - startTime };
+    }
+
+    // 2. Tool Chain Composition Bounding
     if (req.chainDepth > this.maxChainDepth) {
       return {
         invocationId: req.id,
@@ -26,7 +92,20 @@ export class ToolExecutor {
       };
     }
 
-    // 2. Registry Lookup
+    // 3. Circuit Breaker Boundary
+    const cbStatus = this.circuitBreaker.checkState(req.toolId);
+    if (cbStatus.isOpen) {
+      return {
+        invocationId: req.id,
+        toolId: req.toolId,
+        status: 'BLOCKED',
+        error: `CIRCUIT_BREAKER_OPEN: Provider/Tool "${req.toolId}" is currently OPEN due to repeated failures. Circuit in cooldown.`,
+        executionTimeMs: Date.now() - startTime,
+        idempotencyKey,
+      };
+    }
+
+    // 4. Registry Lookup
     const tool = toolRegistry.getTool(req.toolId);
     if (!tool) {
       return {
@@ -39,7 +118,7 @@ export class ToolExecutor {
       };
     }
 
-    // 3. Input Parameter Schema Validation
+    // 5. Input Parameter Schema Validation
     for (const reqProp of tool.inputSchema.required) {
       const val = req.parameters[reqProp];
       if (val === undefined || val === null || (typeof val === 'string' && !val.trim())) {
@@ -54,8 +133,8 @@ export class ToolExecutor {
       }
     }
 
-    // 4. Security & Risk Enforcement
-    const effectiveRiskClass = tool.riskClass; // Authoritative registered risk class (cannot be lowered by model)
+    // 6. Security & Risk Enforcement
+    const effectiveRiskClass = tool.riskClass;
     const requiresApproval = tool.requiresApproval || effectiveRiskClass === 'CRITICAL';
 
     if (requiresApproval) {
@@ -93,7 +172,7 @@ export class ToolExecutor {
       }
     }
 
-    // 5. Execution with Timeout Enforcement
+    // 7. Execution with Timeout Enforcement
     const timeoutMs = tool.timeoutMs || 10000;
 
     try {
@@ -105,7 +184,9 @@ export class ToolExecutor {
 
       const data = await Promise.race([executionPromise, timeoutPromise]);
 
-      return {
+      this.circuitBreaker.recordSuccess(tool.toolId);
+
+      const result: ToolExecutionResult = {
         invocationId: req.id,
         toolId: tool.toolId,
         status: 'SUCCESS',
@@ -113,26 +194,57 @@ export class ToolExecutor {
         executionTimeMs: Date.now() - startTime,
         idempotencyKey,
       };
-    } catch (err: any) {
-      if (err.message === 'TOOL_TIMEOUT') {
-        return {
-          invocationId: req.id,
-          toolId: tool.toolId,
-          status: 'TIMEOUT',
-          error: `TOOL_TIMEOUT: Tool "${tool.name}" execution exceeded timeout limit (${timeoutMs}ms).`,
-          executionTimeMs: Date.now() - startTime,
-          idempotencyKey,
-        };
-      }
 
-      return {
+      this.idempotencyCache.set(idempotencyKey, result);
+      return result;
+    } catch (err: any) {
+      this.circuitBreaker.recordFailure(tool.toolId);
+
+      const errorMsg = err.message === 'TOOL_TIMEOUT'
+        ? `TOOL_TIMEOUT: Tool "${tool.name}" execution exceeded timeout limit (${timeoutMs}ms).`
+        : `Tool execution error: ${err.message}`;
+
+      const status = err.message === 'TOOL_TIMEOUT' ? 'TIMEOUT' : 'FAILED';
+
+      const failedResult: ToolExecutionResult = {
         invocationId: req.id,
         toolId: tool.toolId,
-        status: 'FAILED',
-        error: `Tool execution error: ${err.message}`,
+        status,
+        error: errorMsg,
         executionTimeMs: Date.now() - startTime,
         idempotencyKey,
       };
+
+      // Record to Dead-Letter Queue for reconciliation
+      const dlqId = `dlq_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      this.deadLetterQueue.set(dlqId, {
+        deadLetterId: dlqId,
+        requestId: req.id,
+        toolId: req.toolId,
+        capability: req.capability,
+        parameters: req.parameters,
+        failureReason: errorMsg,
+        timestamp: Date.now(),
+        retryCount: 1,
+        state: 'PERMANENT_FAILURE',
+      });
+
+      return failedResult;
+    }
+  }
+
+  public async reconcileUnknownState(requestId: string, toolId: string, parameters: Record<string, any>): Promise<{ state: 'VERIFIED_SUCCESS' | 'VERIFIED_FAILURE' | 'REQUIRES_HUMAN_REVIEW'; details: string }> {
+    try {
+      if (toolId.startsWith('tasks.')) {
+        const tasks = await this.adapter.list_tasks();
+        const found = tasks.find((t) => t.prompt?.includes(parameters.prompt || ''));
+        if (found) {
+          return { state: 'VERIFIED_SUCCESS', details: `Reconciled task ID ${found.id} status: ${found.status}` };
+        }
+      }
+      return { state: 'VERIFIED_FAILURE', details: `No execution side effect detected for request ${requestId}` };
+    } catch (err: any) {
+      return { state: 'REQUIRES_HUMAN_REVIEW', details: `Reconciliation failed due to error: ${err.message}` };
     }
   }
 

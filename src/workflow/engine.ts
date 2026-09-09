@@ -1,4 +1,4 @@
-import { WorkflowDefinition, WorkflowExecutionRun, WorkflowStep } from './types';
+import { WorkflowCheckpoint, WorkflowDefinition, WorkflowExecutionRun, WorkflowStep } from './types';
 import { integrationRegistry } from '../workspace/registry';
 import { workflowPersistenceStore } from './persistence';
 
@@ -17,7 +17,7 @@ export class WorkflowEngine {
       version: '1.0.0',
       description: 'Finds completed invoice files and archives them safely.',
       triggerType: 'MANUAL',
-      budget: { maxRuntimeMs: 30000, maxActions: 10, maxRetries: 3, maxLoopCycles: 5 },
+      budget: { maxRuntimeMs: 30000, maxActions: 10, maxRetries: 3, maxLoopCycles: 5, maxNetworkCalls: 10, maxToolCalls: 20 },
       trustState: 'ACTIVE',
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -61,7 +61,7 @@ export class WorkflowEngine {
       version: '1.0.0',
       description,
       triggerType: 'MANUAL',
-      budget: { maxRuntimeMs: 30000, maxActions: 5, maxRetries: 1, maxLoopCycles: 1 },
+      budget: { maxRuntimeMs: 30000, maxActions: 5, maxRetries: 1, maxLoopCycles: 1, maxNetworkCalls: 5, maxToolCalls: 10 },
       trustState: 'DRAFT', // Security Directive: Generated workflows MUST default to DRAFT status!
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -90,6 +90,14 @@ export class WorkflowEngine {
       status: 'EXECUTING',
       executedStepsCount: 0,
       history: [],
+      checkpoints: [],
+      consumedBudget: {
+        runtimeMs: 0,
+        actionsCount: 0,
+        networkCallsCount: 0,
+        toolCallsCount: 0,
+        loopCyclesCount: 0,
+      },
       startTime: Date.now(),
     };
 
@@ -102,7 +110,28 @@ export class WorkflowEngine {
       return run;
     }
 
-    for (const step of wf.steps) {
+    for (let idx = 0; idx < wf.steps.length; idx++) {
+      const step = wf.steps[idx];
+
+      // Multi-dimensional Budget Bounding
+      run.consumedBudget.runtimeMs = Date.now() - run.startTime;
+      if (run.consumedBudget.runtimeMs > wf.budget.maxRuntimeMs) {
+        run.status = 'BLOCKED';
+        run.error = `BUDGET_EXCEEDED: Workflow execution time exceeded maximum runtime budget (${wf.budget.maxRuntimeMs}ms).`;
+        this.runs.set(runId, run);
+        workflowPersistenceStore.saveRun(run);
+        return run;
+      }
+
+      run.consumedBudget.toolCallsCount++;
+      if (wf.budget.maxToolCalls && run.consumedBudget.toolCallsCount > wf.budget.maxToolCalls) {
+        run.status = 'BLOCKED';
+        run.error = `BUDGET_EXCEEDED: Tool calls count (${run.consumedBudget.toolCallsCount}) exceeded maximum tool call budget (${wf.budget.maxToolCalls}).`;
+        this.runs.set(runId, run);
+        workflowPersistenceStore.saveRun(run);
+        return run;
+      }
+
       // Execute capability through IntegrationRegistry
       const res = await integrationRegistry.executeCapability('int_filesystem', step.capabilityId, step.parameters);
 
@@ -118,10 +147,27 @@ export class WorkflowEngine {
         run.status = 'FAILED';
         run.error = res.error;
         run.history.push({ stepId: step.stepId, capabilityId: step.capabilityId, status: 'FAILED', timestamp: Date.now() });
+
+        // Trigger Compensating Action if defined
+        if (step.compensatingAction) {
+          await integrationRegistry.executeCapability('int_filesystem', step.compensatingAction.capabilityId, step.compensatingAction.parameters);
+        }
+
         this.runs.set(runId, run);
         workflowPersistenceStore.saveRun(run);
         return run;
       }
+
+      // Record durable checkpoint
+      const checkpoint: WorkflowCheckpoint = {
+        checkpointId: `chk_${Date.now()}_${idx}`,
+        stepId: step.stepId,
+        stepIndex: idx,
+        status: 'SUCCESS',
+        timestamp: Date.now(),
+        stateSnapshot: { ...step.parameters, resultStatus: res.status },
+      };
+      run.checkpoints.push(checkpoint);
 
       run.executedStepsCount++;
       run.history.push({ stepId: step.stepId, capabilityId: step.capabilityId, status: 'VERIFIED', timestamp: Date.now() });

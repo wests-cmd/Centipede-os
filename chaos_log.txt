@@ -1,0 +1,13 @@
+bun test v1.2.14 (6a363a38)
+
+tests/unit/chaos.test.ts:
+(pass) Step 14 & 15 — Production Chaos & Failure Injection Suite > Chaos Test 1 — Repeated Tool Failures Trip Circuit Breaker into OPEN State [0.30ms]
+(pass) Step 14 & 15 — Production Chaos & Failure Injection Suite > Chaos Test 2 — Idempotency Key Prevents Duplicate Side-Effect Execution [1.74ms]
+(pass) Step 14 & 15 — Production Chaos & Failure Injection Suite > Chaos Test 3 — Permanent Failure Records Entry to Dead-Letter Queue for Reconciliation [0.27ms]
+(pass) Step 14 & 15 — Production Chaos & Failure Injection Suite > Chaos Test 4 — Workflow Bounded Action Budget Halts Runaway Executions [1.32ms]
+(pass) Step 14 & 15 — Production Chaos & Failure Injection Suite > Chaos Test 5 — State Reconciliation Resolves UNKNOWN State Safely [17.46ms]
+
+ 5 pass
+ 0 fail
+ 11 expect() calls
+Ran 5 tests across 1 files. [52.00ms]
