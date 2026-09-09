@@ -1,55 +1,92 @@
 # CENTIPEDE OS TRUST BOUNDARIES & SECURITY ARCHITECTURE MAP
 
-## 1. Trust Classification of Subsystems
+## 1. Primary Security Objective & Core Invariant
+
+> **NO UNTRUSTED OR COMPROMISED CENTIPEDE COMPONENT CAN CAUSE PRIVILEGED EXECUTION UNLESS AN INDEPENDENTLY VALID, EXACTLY SCOPED, NON-EXPIRED, NON-REVOKED AUTHORIZATION IS VERIFIED AT THE FINAL EXECUTION BOUNDARY.**
+
+The following components are treated as potentially untrusted or compromised at all times:
+- AI model outputs
+- Intent parser & Planner
+- Memory store & Context engine
+- Skill manifests & Trusted Skill Engine
+- Workflow definitions & Workflow Execution Engine
+- Integration adapters & 3rd-party external API outputs
+- Mobile companion client & UI inputs
+- Persisted application state
+
+None of these upstream components can manufacture execution authority.
+
+---
+
+## 2. Subsystem Trust Classifications
 
 | Subsystem Component | Trust Classification | Rationale & Authority Limits |
 | :--- | :--- | :--- |
 | **AI Model Outputs (LLM)** | `UNTRUSTED` | Text generation is non-authoritative. Cannot self-authorize, issue grants, or invoke Kingdom directly. |
-| **Planner & Plan Validator** | `UNTRUSTED / VERIFIED` | Proposes tool invocation sequences. Subject to plan drift detection and non-bypassable capability checks. |
+| **Planner & Plan Validator** | `UNTRUSTED` | Proposes tool invocation sequences. Subject to plan drift detection and non-bypassable capability checks. |
 | **Memory Store / Context Engine** | `UNTRUSTED` | Stores context and user preferences. Classified strictly as DATA; cannot grant authority or override rules. |
-| **Skill Manifests / Engine** | `UNTRUSTED / VERIFIED` | Extends agent capabilities. Requires hash/signature verification; cannot bypass ZeroTrust approval gates. |
-| **Workflow Engine & Workflows** | `UNTRUSTED / VERIFIED` | Orchestrates steps. Each privileged step requires individual, active capability grants and validation. |
+| **Skill Manifests / Engine** | `UNTRUSTED / VERIFIED` | Extends agent capabilities. Requires artifact checksum and dependency tree verification; defaults imported skills to `UNTRUSTED`. |
+| **Workflow Engine & Workflows** | `UNTRUSTED / VERIFIED` | Orchestrates steps. Rerouted strictly through the canonical execution boundary; generated workflows default to `DRAFT`. |
 | **Integration Adapters (3rd Party)** | `UNTRUSTED` | Receives external data. Output is tagged as `UNTRUSTED_EXTERNAL_DATA` and stripped of authority. |
-| **Mobile Companion Client** | `PARTIALLY TRUSTED` | Requires device trust pairing (PIN/QR). Mobile approvals are parameter-hash locked to prevent tampering. |
-| **Capability Grant Engine (`src/agent/grants.ts`)** | `TRUSTED` | Issues short-lived (JIT) scoped grants upon valid human/ZeroTrust approval. |
-| **Tool Registry & Executor (`src/tools/`)** | `TRUSTED` | Enforces execution-boundary authorization checks and parameter anti-tampering guards. |
-| **Kingdom Adapter (`src/api/kingdomAdapter.ts`)** | `TRUSTED AUTHORITATIVE` | The sole interface to Kingdom API v40.1. Validates tokens, signatures, and runtime state. |
+| **Mobile Companion Client** | `PARTIALLY TRUSTED` | Requires device trust pairing (PIN/QR). Mobile approvals are parameter-hash locked to prevent post-approval payload modification. |
+| **Capability Grant Engine (`src/agent/grants.ts`)** | `TRUSTED` | Issues short-lived (JIT) grants bound to agent, session, workflow, run, step, capability, operation, resource, and parameter hash. |
+| **Tool Registry & Executor (`src/tools/`)** | `TRUSTED BOUNDARY` | Enforces execution-boundary authorization checks, parameter anti-tampering guards, single-use consumption, and fail-closed defaults. |
+| **Kingdom Adapter (`src/api/kingdomAdapter.ts`)** | `TRUSTED AUTHORITATIVE` | Interface to Kingdom API v40.1. Validates dynamic versioning, connection state, tokens, and runtime status. |
 | **Kingdom Runtime Environment** | `SOLE EXECUTION AUTHORITY` | Final authority for privileged operating system, process, network, and node operations. |
 
 ---
 
-## 2. Real Execution & Authority Flow
+## 3. Authoritative Execution Path
 
 ```text
-User Request / Intent
+Untrusted Input / Intent
        │
        ▼
 [ Centipede AI Pipeline ] ──► Generates Intent & Plan (UNTRUSTED)
        │
        ▼
-[ Capability Resolver ] ──► Map tools & check required risk level
+[ Permission Gate ] ──► Defaults to UNAUTHORIZED / AUTHORIZATION_REQUIRED
        │
        ▼
-[ Permission Gate / JIT Grant Engine ] ──► Is action pre-approved or active JIT Grant valid?
-       ├─ NO ──► Prompt User / Mobile ZeroTrust Approval (Parameter Hash Locked)
-       └─ YES ─► Issue short-lived, exact-action JIT Grant
+[ JIT Capability Grant Engine ] ──► Issues exact-scoped, short-lived JIT Grant on valid approval
        │
        ▼
-[ Tool Executor / Execution Boundary ] ──► Validate Grant ID + Scope + Parameter Hash + State
+[ Canonical Execution Request ] ──► Contains requestId, agentId, sessionId, workflowId, grantId, parameterHash, resource
        │
        ▼
-[ Kingdom Adapter ] ──► Execute via Kingdom API v40.1 REST / WebSocket
+[ Tool Executor Gate ] ──► Final Execution Boundary Check:
+                           1. Identity & Session Binding
+                           2. Active Grant / Approval Validation
+                           3. Resource Scope Normalization (Path Traversal Protection)
+                           4. Parameter Hash Matching
+                           5. Atomic Single-Use Consumption
        │
        ▼
-[ Kingdom Runtime ] ──► (SOLE EXECUTION AUTHORITY) Executes & Returns Verified Result
+[ Kingdom Adapter ] ──► Routes request to Kingdom API v40.1
        │
        ▼
-[ Result Processor & User Verification ]
+[ Kingdom Runtime ] ──► (SOLE EXECUTION AUTHORITY) Executes & Returns Effect Result
+       │
+       ▼
+[ Verification & Result ] ──► Explicitly tagged as EXECUTED, VERIFIED, EXECUTED_UNVERIFIED, or SIMULATED
 ```
 
 ---
 
-## 3. Mandatory Security Invariants
+## 4. Capability Real vs Simulated Execution Matrix
+
+| Capability / Tool ID | Execution Classification | Real Provider Effect vs Simulated |
+| :--- | :--- | :--- |
+| `runtime.get_status`, `runtime.start`, `runtime.stop` | `REAL` | Invokes live Kingdom runtime endpoint `/status`, `/start`, `/stop`. |
+| `tasks.submit`, `tasks.list`, `tasks.cancel` | `REAL` | Invokes live Kingdom task scheduler `/tasks`. |
+| `knights.list`, `models.health` | `REAL` | Invokes live Kingdom swarm knights & model endpoints. |
+| `memory.read`, `memory.search` | `REAL` | Invokes live Kingdom memory store. |
+| `security.status`, `security.approvals_list` | `REAL` | Invokes live Kingdom security subsystem. |
+| `filesystem.read`, `filesystem.write`, `filesystem.delete_restricted` | `SIMULATED` | Executed in sandboxed local environment; output tagged explicitly as `mode: SIMULATED`. |
+
+---
+
+## 5. Master Security Invariants 1–14
 1. **Invariant 1**: No model output can directly cause privileged execution.
 2. **Invariant 2**: No memory content can create authority.
 3. **Invariant 3**: No skill can grant itself authority.
@@ -57,10 +94,10 @@ User Request / Intent
 5. **Invariant 5**: No external provider output can create authority.
 6. **Invariant 6**: No mobile request can bypass authorization.
 7. **Invariant 7**: Authorization is enforced at the execution boundary.
-8. **Invariant 8**: Authorization is bound to the exact action and parameters.
+8. **Invariant 8**: Authorization is bound to the exact action, parameters, and context.
 9. **Invariant 9**: Expired/revoked authorization cannot execute.
-10. **Invariant 10**: Authorization cannot be replayed outside its intended scope.
+10. **Invariant 10**: Authorization cannot be replayed outside its intended scope (atomic single-use).
 11. **Invariant 11**: Kingdom remains sole execution authority.
 12. **Invariant 12**: Authorization failure fails closed.
 13. **Invariant 13**: Verification failure cannot produce false success.
-14. **Invariant 14**: A compromised collection of untrusted components cannot manufacture authority.
+14. **Invariant 14**: Maximum-chain attack across all untrusted components cannot manufacture authority.
