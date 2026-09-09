@@ -1,8 +1,23 @@
 import { createHash } from 'node:crypto';
 
+function canonicalizeObject(obj: any): any {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(canonicalizeObject);
+  }
+  const sortedKeys = Object.keys(obj).sort();
+  const sortedObj: Record<string, any> = {};
+  for (const key of sortedKeys) {
+    sortedObj[key] = canonicalizeObject(obj[key]);
+  }
+  return sortedObj;
+}
+
 export function computeParameterHash(params: Record<string, any> = {}): string {
-  const jsonStr = JSON.stringify(params || {});
-  return createHash('sha256').update(jsonStr).digest('hex');
+  const canonicalJson = JSON.stringify(canonicalizeObject(params || {}));
+  return createHash('sha256').update(canonicalJson).digest('hex');
 }
 
 export interface CapabilityGrantOptions {

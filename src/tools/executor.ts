@@ -1,6 +1,7 @@
 import { KingdomAdapter, kingdomAdapter } from '../api/kingdomAdapter';
 import { capabilityGrantEngine, computeParameterHash, VerificationContext } from '../agent/grants';
 import { approvalTamperGuard } from '../security/approvalTamperGuard';
+import { platformDetector } from '../platform/detector';
 import { toolRegistry } from './registry';
 import { ExecutionAuthorizationContext, ToolExecutionResult, ToolInvocationRequest, VerificationState } from './types';
 
@@ -140,6 +141,20 @@ export class ToolExecutor {
       tool.riskClass === 'CRITICAL';
 
     const requiresHumanApproval = tool.requiresApproval || tool.riskClass === 'CRITICAL' || tool.riskClass === 'HIGH';
+
+    // 5.1 Emergency Storage Threshold Enforcement (< 5% free disk protection)
+    const platformInfo = await platformDetector.detectRuntimeInfo();
+    const storageMetrics = platformInfo.hardware.storageBreakdown;
+    if (storageMetrics && storageMetrics.storagePressure === 'EMERGENCY' && isMutatingOrPrivileged) {
+      return {
+        invocationId: req.id,
+        toolId: tool.toolId,
+        status: 'BLOCKED',
+        error: 'STORAGE_EMERGENCY: Free disk space critical (<5%). Mutating operations blocked to preserve OS bootability.',
+        executionTimeMs: Date.now() - startTime,
+        idempotencyKey,
+      };
+    }
 
     // Canonical Execution Authorization Context Verification
     if (isMutatingOrPrivileged) {
