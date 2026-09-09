@@ -86,7 +86,7 @@ Untrusted Input / Intent
 
 ---
 
-## 5. Master Security Invariants 1–14
+## 5. Master Security Invariants 1–20
 1. **Invariant 1**: No model output can directly cause privileged execution.
 2. **Invariant 2**: No memory content can create authority.
 3. **Invariant 3**: No skill can grant itself authority.
@@ -101,3 +101,9 @@ Untrusted Input / Intent
 12. **Invariant 12**: Authorization failure fails closed.
 13. **Invariant 13**: Verification failure cannot produce false success.
 14. **Invariant 14**: Maximum-chain attack across all untrusted components cannot manufacture authority.
+15. **Invariant 15**: No privileged ToolExecutor call can execute without exact authorization context.
+16. **Invariant 16**: Approval ID alone cannot authorize execution.
+17. **Invariant 17**: Grant ID alone cannot authorize execution for mismatched operations or targets.
+18. **Invariant 18**: Workflow compensation cannot bypass authorization or lower risk levels.
+19. **Invariant 19**: Idempotency cannot bypass authorization.
+20. **Invariant 20**: Unauthorized execution produces zero side effects.

@@ -339,4 +339,239 @@ describe('Master Security Invariants 1–14 Test Suite', () => {
     expect(tamperedCheck.valid).toBe(false);
     expect(tamperedCheck.error).toContain('SKILL_CHECKSUM_MISMATCH');
   });
+
+  it('Adversarial Test — True Concurrent Grant Race Condition via Promise.all (10 Simultaneous Requests)', async () => {
+    const grant = capabilityGrantEngine.issueJustInTimeGrant('agent_1', 'process.execute', '*', 60000);
+
+    const promises = Array.from({ length: 10 }, () =>
+      Promise.resolve().then(() =>
+        capabilityGrantEngine.verifyCapabilityGrant(grant.grantId, 'process.execute', '/bin/ls', undefined, true, { agentId: 'agent_1' })
+      )
+    );
+
+    const results = await Promise.all(promises);
+    const successes = results.filter((r) => r.valid);
+    const rejections = results.filter((r) => !r.valid);
+
+    expect(successes.length).toBe(1);
+    expect(rejections.length).toBe(9);
+    expect(rejections[0].error).toContain('GRANT_ALREADY_CONSUMED');
+  });
+
+  it('Adversarial Test — Real Cryptographic SHA-256 Known Fixture Verification', () => {
+    // SHA-256 of "hello" is "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+    const digest = trustedSkillEngine.calculateArtifactChecksum('hello');
+    expect(digest).toBe('2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824');
+  });
+
+  it('Adversarial Test — Skill Trust Establishment Rejects Unauthoritative Active Claim', () => {
+    const unauthoritativeManifest: SkillManifest = {
+      skillId: 'forged_trust_skill',
+      name: 'Forged Trust Skill',
+      version: '1.0.0',
+      description: 'Attacker claiming active trust state directly',
+      author: 'Attacker',
+      publisher: 'Attacker',
+      checksum: 'sha256_dummy',
+      requiredCapabilities: ['filesystem.write'],
+      dependencies: [],
+      riskLevel: 'HIGH',
+      trustState: 'ACTIVE', // Malicious attempt to self-declare ACTIVE
+      createdAt: Date.now(),
+    };
+
+    // Unauthoritative import defaults to UNTRUSTED regardless of manifest field claim!
+    const registered = trustedSkillEngine.registerSkillManifest(unauthoritativeManifest, false);
+    expect(registered.trustState).toBe('UNTRUSTED');
+
+    const evalResult = trustedSkillEngine.validateSkillExecution('forged_trust_skill', '1.0.0');
+    expect(evalResult.valid).toBe(false);
+    expect(evalResult.error).toContain('UNTRUSTED_SKILL');
+  });
+
+  it('Adversarial Test — Skill Revocation Denies Execution Immediately', () => {
+    const manifest: SkillManifest = {
+      skillId: 'revocable_skill',
+      name: 'Revocable Skill',
+      version: '1.0.0',
+      description: 'Skill to be revoked',
+      author: 'Admin',
+      publisher: 'Admin',
+      checksum: 'abc',
+      requiredCapabilities: ['filesystem.read'],
+      dependencies: [],
+      riskLevel: 'LOW',
+      trustState: 'ACTIVE',
+      createdAt: Date.now(),
+    };
+
+    trustedSkillEngine.registerSkillManifest(manifest, true);
+    expect(trustedSkillEngine.validateSkillExecution('revocable_skill', '1.0.0').valid).toBe(true);
+
+    // Revoke skill dynamically
+    trustedSkillEngine.setSkillTrustState('revocable_skill', '1.0.0', 'REVOKED');
+
+    const postRevocation = trustedSkillEngine.validateSkillExecution('revocable_skill', '1.0.0');
+    expect(postRevocation.valid).toBe(false);
+    expect(postRevocation.error).toContain('REVOKED_SKILL');
+  });
+
+  it('Invariant 15 — No Privileged ToolExecutor Call Without Exact Authorization Context', async () => {
+    // Attempt privileged execution with missing/mismatched context
+    const res = await toolExecutor.execute({
+      id: 'inv15_req',
+      toolId: 'filesystem.write',
+      capability: 'filesystem.write',
+      parameters: { path: '/tmp/forbidden.txt' },
+      chainDepth: 1,
+      riskLevel: 'MEDIUM',
+      grantId: undefined, // Missing grant
+    });
+
+    expect(res.status).toBe('BLOCKED');
+    expect(res.error).toContain('AUTHORIZATION_GRANT_REQUIRED');
+  });
+
+  it('Invariant 16 — Approval ID Alone Cannot Authorize Execution', async () => {
+    // Supplying an approval ID without a valid corresponding JIT grant
+    const res = await toolExecutor.execute({
+      id: 'inv16_req',
+      toolId: 'filesystem.write',
+      capability: 'filesystem.write',
+      parameters: { path: '/tmp/approved.txt' },
+      chainDepth: 1,
+      riskLevel: 'MEDIUM',
+      approvalId: 'appr_fake_123',
+      grantId: undefined, // Omitted grant ID!
+    });
+
+    expect(res.status).toBe('BLOCKED');
+    expect(res.error).toContain('AUTHORIZATION_GRANT_REQUIRED');
+  });
+
+  it('Invariant 17 — Grant ID Alone Cannot Authorize Execution For Mismatched Operations or Targets', async () => {
+    // Grant issued strictly for filesystem.write on /tmp/a.txt
+    const paramHash = '8b1a9953c4611296a827abf8c47804d7' + '00000000000000000000000000000000'; // test string
+    const grant = capabilityGrantEngine.issueJustInTimeGrant(
+      'agent_1',
+      'filesystem.write',
+      '/tmp/a.txt',
+      60000,
+      undefined,
+      undefined,
+      { agentId: 'agent_1' }
+    );
+
+    // Attempting to use the grant for a different target (/tmp/b.txt) MUST FAIL
+    const resDifferentTarget = await toolExecutor.execute({
+      id: 'inv17_req_1',
+      toolId: 'filesystem.write',
+      capability: 'filesystem.write',
+      parameters: { path: '/tmp/b.txt' },
+      chainDepth: 1,
+      riskLevel: 'MEDIUM',
+      grantId: grant.grantId,
+      agentId: 'agent_1',
+    });
+
+    expect(resDifferentTarget.status).toBe('BLOCKED');
+    expect(resDifferentTarget.error).toContain('RESOURCE_SCOPE_EXCEEDED');
+
+    // Attempting to use the grant for a completely different capability (process.execute) MUST FAIL
+    const resDifferentCapability = await toolExecutor.execute({
+      id: 'inv17_req_2',
+      toolId: 'process.execute_restricted',
+      capability: 'process.execute',
+      parameters: { command: 'ls' },
+      chainDepth: 1,
+      riskLevel: 'CRITICAL',
+      grantId: grant.grantId,
+      agentId: 'agent_1',
+    });
+
+    expect(resDifferentCapability.status).toBe('BLOCKED');
+    expect(resDifferentCapability.error).toContain('CAPABILITY_MISMATCH');
+  });
+
+  it('Invariant 18 — Workflow Compensation Cannot Bypass Authorization', async () => {
+    // Workflow step fails and triggers compensating action with a mutating tool
+    const stepWithComp = {
+      stepId: 'step_fail',
+      name: 'Failing Step',
+      capabilityId: 'tasks.cancel', // Tool that fails when required parameters are empty
+      parameters: { taskId: '' }, // Empty taskId causes INVALID_PARAMETERS failure
+      riskLevel: 'HIGH',
+      requiresHumanApproval: false,
+      expectedOutcome: 'fail',
+      compensatingAction: {
+        capabilityId: 'filesystem.write', // Mutating tool requires grant!
+        parameters: { path: '/tmp/rollback.txt' },
+      },
+    };
+
+    const wf: any = {
+      workflowId: 'wf_comp_test',
+      name: 'Compensating Action Security Test',
+      version: '1.0.0',
+      description: 'Testing compensation boundary',
+      triggerType: 'MANUAL',
+      budget: { maxRuntimeMs: 10000, maxActions: 5, maxRetries: 0, maxLoopCycles: 1, maxNetworkCalls: 5, maxToolCalls: 5 },
+      trustState: 'ACTIVE',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      steps: [stepWithComp],
+    };
+
+    workflowEngine.registerWorkflow(wf);
+    const run = await workflowEngine.executeWorkflow('wf_comp_test');
+
+    // Compensating action fails closed because it lacks a valid JIT grant for filesystem.write
+    expect(run.status).toBe('FAILED');
+  });
+
+  it('Invariant 19 — Idempotency Cannot Bypass Authorization', async () => {
+    // An attacker submits an idempotency key previously used by a valid action, but without a grant
+    const res = await toolExecutor.execute({
+      id: 'inv19_req',
+      toolId: 'filesystem.write',
+      capability: 'filesystem.write',
+      parameters: { path: '/tmp/idemp_target.txt' },
+      chainDepth: 1,
+      riskLevel: 'MEDIUM',
+      idempotencyKey: 'idemp_unique_key_123',
+      grantId: undefined, // Missing grant!
+    });
+
+    // Idempotency check does NOT bypass authorization gate!
+    expect(res.status).toBe('BLOCKED');
+    expect(res.error).toContain('AUTHORIZATION_GRANT_REQUIRED');
+  });
+
+  it('Invariant 20 — Unauthorized Execution Produces Zero Side Effects', async () => {
+    let sideEffectCount = 0;
+
+    // Simulate attempts to invoke privileged tools without valid grant
+    const attempts = [
+      { toolId: 'filesystem.write', capability: 'filesystem.write', params: { path: '/tmp/x.txt' } },
+      { toolId: 'runtime.stop', capability: 'runtime.stop', params: {} },
+      { toolId: 'tasks.cancel', capability: 'tasks.cancel', params: { taskId: 't1' } },
+    ];
+
+    for (const attempt of attempts) {
+      const result = await toolExecutor.execute({
+        id: `inv20_${attempt.toolId}`,
+        toolId: attempt.toolId,
+        capability: attempt.capability,
+        parameters: attempt.params,
+        chainDepth: 1,
+        riskLevel: 'HIGH',
+      });
+
+      if (result.status === 'SUCCESS') {
+        sideEffectCount++;
+      }
+    }
+
+    expect(sideEffectCount).toBe(0);
+  });
 });

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { SkillManifest } from './manifest';
 
 function compareSemver(v1: string, v2: string): number {
@@ -18,14 +19,7 @@ export class TrustedSkillEngine {
 
   public calculateArtifactChecksum(content: any): string {
     const raw = typeof content === 'string' ? content : JSON.stringify(content || {});
-    // Deterministic simple hash algorithm for checksum verification
-    let hash = 0;
-    for (let i = 0; i < raw.length; i++) {
-      const char = raw.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash |= 0;
-    }
-    return `sha256_${Math.abs(hash).toString(16)}`;
+    return createHash('sha256').update(raw).digest('hex');
   }
 
   public registerSkillManifest(manifest: SkillManifest, isAuthoritativeTrust = false): SkillManifest {

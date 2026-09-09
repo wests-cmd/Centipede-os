@@ -192,17 +192,23 @@ export class WorkflowEngine {
         run.error = toolRes.error;
         run.history.push({ stepId: step.stepId, capabilityId: step.capabilityId, status: toolRes.status, timestamp: Date.now() });
 
-        // Trigger Compensating Action if defined
+        // Trigger Compensating Action if defined — MUST NOT bypass authorization boundary or lower risk level!
         if (step.compensatingAction) {
           const compTool = toolRegistry.getToolByCapability(step.compensatingAction.capabilityId);
           if (compTool) {
+            const compGrantId = grantIdsByStep?.[`comp_${step.stepId}`] || step.compensatingAction.grantId;
             await toolExecutor.execute({
               id: `comp_${runId}_${step.stepId}`,
               toolId: compTool.toolId,
               capability: step.compensatingAction.capabilityId,
               parameters: step.compensatingAction.parameters,
               chainDepth: 1,
-              riskLevel: 'LOW',
+              riskLevel: compTool.riskClass, // True authoritative tool risk category
+              grantId: compGrantId,
+              agentId: 'workflow_agent',
+              workflowId: wf.workflowId,
+              runId,
+              stepId: `comp_${step.stepId}`,
             });
           }
         }
@@ -227,7 +233,15 @@ export class WorkflowEngine {
       run.checkpoints.push(checkpoint);
 
       run.executedStepsCount++;
-      run.history.push({ stepId: step.stepId, capabilityId: step.capabilityId, status: 'VERIFIED', timestamp: Date.now() });
+
+      // Honest workflow step verification classification (Prompt Item 17)
+      const honestStatus = toolRes.verificationState === 'SIMULATED'
+        ? 'SIMULATED'
+        : toolRes.verificationState === 'VERIFIED'
+        ? 'VERIFIED'
+        : 'EXECUTED_UNVERIFIED';
+
+      run.history.push({ stepId: step.stepId, capabilityId: step.capabilityId, status: honestStatus, timestamp: Date.now() });
     }
 
     run.status = 'COMPLETED';

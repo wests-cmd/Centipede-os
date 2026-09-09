@@ -1,3 +1,10 @@
+import { createHash } from 'node:crypto';
+
+export function computeParameterHash(params: Record<string, any> = {}): string {
+  const jsonStr = JSON.stringify(params || {});
+  return createHash('sha256').update(jsonStr).digest('hex');
+}
+
 export interface CapabilityGrantOptions {
   agentId?: string;
   userId?: string;

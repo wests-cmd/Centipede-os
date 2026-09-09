@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { WorkflowDefinition, WorkflowExecutionRun } from './types';
 
 export class WorkflowPersistenceStore {
@@ -22,24 +23,50 @@ export class WorkflowPersistenceStore {
     return run ? JSON.parse(JSON.stringify(run)) : undefined;
   }
 
+  public computeIntegritySignature(payloadJson: string): string {
+    return createHash('sha256').update(payloadJson).digest('hex');
+  }
+
   public exportDurableState(): string {
-    return JSON.stringify({
+    const rawData = {
       workflows: Array.from(this.persistedWorkflows.values()),
       runs: Array.from(this.persistedRuns.values()),
+    };
+    const jsonContent = JSON.stringify(rawData);
+    const signature = this.computeIntegritySignature(jsonContent);
+    return JSON.stringify({
+      data: rawData,
+      signature,
     }, null, 2);
   }
 
   public recoverFromState(stateJson: string): void {
+    let dataToLoad: any;
     try {
-      const data = JSON.parse(stateJson);
-      if (Array.isArray(data.workflows)) {
-        data.workflows.forEach((w: WorkflowDefinition) => this.persistedWorkflows.set(w.workflowId, w));
+      const parsed = JSON.parse(stateJson);
+      if (parsed && parsed.data && parsed.signature) {
+        const expectedSignature = this.computeIntegritySignature(JSON.stringify(parsed.data));
+        if (parsed.signature !== expectedSignature) {
+          throw new Error('PERSISTENCE_TAMPERING_DETECTED: State integrity signature check failed. Persisted data was modified!');
+        }
+        dataToLoad = parsed.data;
+      } else {
+        dataToLoad = parsed;
       }
-      if (Array.isArray(data.runs)) {
-        data.runs.forEach((r: WorkflowExecutionRun) => this.persistedRuns.set(r.runId, r));
+
+      if (Array.isArray(dataToLoad.workflows)) {
+        dataToLoad.workflows.forEach((w: WorkflowDefinition) => {
+          this.persistedWorkflows.set(w.workflowId, w);
+        });
       }
-    } catch (e) {
-      // Handled
+      if (Array.isArray(dataToLoad.runs)) {
+        dataToLoad.runs.forEach((r: WorkflowExecutionRun) => this.persistedRuns.set(r.runId, r));
+      }
+    } catch (e: any) {
+      if (e.message.startsWith('PERSISTENCE_TAMPERING_DETECTED')) {
+        throw e;
+      }
+      // Invalid format or parse error
     }
   }
 }

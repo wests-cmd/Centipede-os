@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { ActionRequest } from '../ai/types';
 
 export interface VerifiedApprovalPayload {
@@ -62,13 +63,7 @@ export class ApprovalTamperGuard {
   }
 
   private computeHash(content: string): string {
-    let hash = 0;
-    for (let i = 0; i < content.length; i++) {
-      const char = content.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash |= 0; // Convert to 32bit integer
-    }
-    return `hash_${Math.abs(hash)}`;
+    return createHash('sha256').update(content || '').digest('hex');
   }
 }
 

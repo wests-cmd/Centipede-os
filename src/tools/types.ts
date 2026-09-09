@@ -29,6 +29,25 @@ export interface ToolDefinition {
   sideEffects: boolean;
 }
 
+export interface ExecutionAuthorizationContext {
+  requestId: string;
+  agentId: string;
+  userId?: string;
+  deviceId?: string;
+  sessionId?: string;
+  workflowId?: string;
+  runId?: string;
+  stepId?: string;
+  capability: string;
+  operation: string;
+  resource: string;
+  parameters: Record<string, any>;
+  parameterHash: string;
+  grantId?: string;
+  approvalId?: string;
+  riskClass: ToolCategory;
+}
+
 export interface ToolInvocationRequest {
   id: string;
   toolId: string;
