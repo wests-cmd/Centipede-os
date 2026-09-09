@@ -25,12 +25,12 @@ describe('Step 12 & 13 — Advanced Agent Control Plane & Trusted Skill Security
     const agent = agentIdentityManager.createIdentity('Grant Test Agent');
     const grant = capabilityGrantEngine.issueJustInTimeGrant(agent.agentId, 'filesystem.read', '/app/documents');
 
-    // Valid scope
-    const validCheck = capabilityGrantEngine.verifyCapabilityGrant(grant.grantId, 'filesystem.read', '/app/documents/invoice.pdf');
+    // Valid scope (check without consuming to allow second test on scope boundary)
+    const validCheck = capabilityGrantEngine.verifyCapabilityGrant(grant.grantId, 'filesystem.read', '/app/documents/invoice.pdf', undefined, false);
     expect(validCheck.valid).toBe(true);
 
     // Invalid scope attack
-    const invalidScopeCheck = capabilityGrantEngine.verifyCapabilityGrant(grant.grantId, 'filesystem.read', '/etc/shadow');
+    const invalidScopeCheck = capabilityGrantEngine.verifyCapabilityGrant(grant.grantId, 'filesystem.read', '/etc/shadow', undefined, false);
     expect(invalidScopeCheck.valid).toBe(false);
     expect(invalidScopeCheck.error).toContain('RESOURCE_SCOPE_EXCEEDED');
   });

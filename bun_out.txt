@@ -1,0 +1,110 @@
+bun test v1.2.14 (6a363a38)
+
+tests/unit/step10_11.test.ts:
+(pass) Step 10 & 11 — Universal Workspace & Workflow Engine Security Suite > Test 1 — Integration Registry Enforces Least Privilege (Read vs Write/Delete) [0.89ms]
+(pass) Step 10 & 11 — Universal Workspace & Workflow Engine Security Suite > Test 2 — Workflow Engine Enforces Step Execution Verification and ZeroTrust Routing [0.89ms]
+(pass) Step 10 & 11 — Universal Workspace & Workflow Engine Security Suite > Test 3 — Workflow Execution Budget Enforcement Blocks Loop / Runaway Executions [0.21ms]
+(pass) Step 10 & 11 — Universal Workspace & Workflow Engine Security Suite > Test 4 — Untrusted / Revoked Workflow Fails Closed [0.27ms]
+
+tests/unit/step12_13.test.ts:
+(pass) Step 12 & 13 — Advanced Agent Control Plane & Trusted Skill Security Suite > Test 1 — Agent Identity Validation and Revocation Blocks Execution Context [0.28ms]
+(pass) Step 12 & 13 — Advanced Agent Control Plane & Trusted Skill Security Suite > Test 2 — JIT Capability Grant Enforces Expiration and Resource Scope Boundaries [0.23ms]
+(pass) Step 12 & 13 — Advanced Agent Control Plane & Trusted Skill Security Suite > Test 3 — Plan Drift Engine Detects Material External Transfer and Destructive Plan Expansion [0.17ms]
+(pass) Step 12 & 13 — Advanced Agent Control Plane & Trusted Skill Security Suite > Test 4 — Trusted Skill Engine Blocks Untrusted Skills and Detects Tool Poisoning [0.39ms]
+
+tests/unit/step8.test.ts:
+(pass) Step 8 — Mobile Companion, Anti-Tampering & Knowledge Security Suite > Test 1 — Mobile Companion QR Pairing PIN Code Expiration and Re-use Prevention [0.26ms]
+(pass) Step 8 — Mobile Companion, Anti-Tampering & Knowledge Security Suite > Test 2 — Approval Anti-Tampering Guard Detects Parameter Modification After Human Approval [0.25ms]
+(pass) Step 8 — Mobile Companion, Anti-Tampering & Knowledge Security Suite > Test 3 — Knowledge Manager Enforces Provenance and Trust Classification Hierarchy [0.14ms]
+
+tests/unit/tools.test.ts:
+(pass) Attack 1 — Requesting Nonexistent Tool Fails Closed [0.86ms]
+(pass) Attack 2 — Runtime Tool Registration / Modification Prohibited After Init [0.15ms]
+(pass) Attack 3 — Model Cannot Lower Authoritative Tool Risk Class [8.49ms]
+(pass) Attack 4 — Missing Required Parameters Block Execution [0.20ms]
+(pass) Attack 5 — Tool Chain Depth Limit Enforced (Max Depth 5) [0.27ms]
+(pass) Attack 6 — Generic Execution Primitives (shell, execute_anything) Fail Closed [0.14ms]
+(pass) Attack 7 — Idempotency Key Generation for Mutating Tools [9.86ms]
+
+tests/unit/voiceAndAutonomy.test.ts:
+(pass) VoiceProcessor Unit Tests > 1. Requires user confirmation when STT confidence is < 0.85 [1.66ms]
+(pass) VoiceProcessor Unit Tests > 2. Interruption keywords (STOP, CANCEL) immediately abort voice input [0.34ms]
+(pass) VoiceProcessor Unit Tests > 3. High confidence voice input routes through AI pipeline with ZeroTrust permission check [109.99ms]
+(pass) AutonomyEngine Unit Tests > 1. Defaults to Level 0 (Manual Only) and blocks routine execution [0.55ms]
+(pass) AutonomyEngine Unit Tests > 2. Global Kill Switch immediately blocks execution and locks autonomy level modification [0.36ms]
+(pass) AutonomyEngine Unit Tests > 3. Level 3 permits low-risk routine execution [106.67ms]
+
+tests/unit/adversarial.test.ts:
+(pass) Master Security Invariants 1–14 Test Suite > Invariant 1 — AI Model Output Cannot Directly Cause Privileged Execution [0.29ms]
+(pass) Master Security Invariants 1–14 Test Suite > Invariant 2 — Memory Content Cannot Grant Authority [0.43ms]
+(pass) Master Security Invariants 1–14 Test Suite > Invariant 3 — Skills Cannot Self-Grant Authority [0.24ms]
+(pass) Master Security Invariants 1–14 Test Suite > Invariant 4 — Workflows Cannot Self-Grant Authority [0.30ms]
+(pass) Master Security Invariants 1–14 Test Suite > Invariant 5 — External Provider Output Cannot Grant Authority [0.24ms]
+(pass) Master Security Invariants 1–14 Test Suite > Invariant 6 — Mobile Request Cannot Bypass Authorization [0.14ms]
+(pass) Master Security Invariants 1–14 Test Suite > Invariant 7 — Authorization Enforced at Execution Boundary [0.13ms]
+(pass) Master Security Invariants 1–14 Test Suite > Invariant 8 — Authorization Bound to Exact Action and Parameters [0.08ms]
+(pass) Master Security Invariants 1–14 Test Suite > Invariant 9 — Expired and Revoked Authorizations Cannot Execute [0.07ms]
+(pass) Master Security Invariants 1–14 Test Suite > Invariant 10 — Authorization Cannot Be Replayed (Atomic Single-Use) [0.05ms]
+(pass) Master Security Invariants 1–14 Test Suite > Invariant 11 — Kingdom Remains Sole Execution Authority [0.11ms]
+(pass) Master Security Invariants 1–14 Test Suite > Invariant 12 — Authorization Failure Fails Closed [0.15ms]
+(pass) Master Security Invariants 1–14 Test Suite > Invariant 13 — Verification Failure Cannot Produce False Success [0.07ms]
+(pass) Master Security Invariants 1–14 Test Suite > Invariant 14 — Maximum-Chain Attack Blocked at Execution Boundary [0.21ms]
+
+tests/unit/adapter.test.ts:
+(pass) KingdomAdapter Unit Tests & Version Verification [2.78ms]
+
+tests/unit/learning.test.ts:
+(pass) MemoryStore > stores local memory and calculates trust levels correctly [0.30ms]
+(pass) MemoryStore > enforces trust level hierarchy during overwrites [0.28ms]
+(pass) MemoryStore > filters memories by scope [0.50ms]
+(pass) LearningEngine > accumulates evidence signals and detects when capability threshold N=3 is reached [0.33ms]
+(pass) LearningEngine > evaluates candidate skill and fails evaluation if security violations exist [0.42ms]
+(pass) SkillManager > prevents overwriting active skill version directly [0.09ms]
+(pass) SkillManager > calculates capability diff accurately and detects capability expansion [0.23ms]
+(pass) SkillManager > supports candidate promotion and rollback engine [0.53ms]
+
+tests/unit/aiCore.test.ts:
+(pass) 1. Recognized Intent Parsing [0.94ms]
+(pass) 2. Unknown Intent Handling (Zero Guessing) [0.12ms]
+(pass) 3. Capability Resolver & Risk Classification [0.10ms]
+(pass) 4. Planner Step Generation [0.15ms]
+(pass) 5. Test A & G — AI Text Output Cannot Self-Authorize or Modify Approval State [0.28ms]
+(pass) 6. Test B — Security Gate Denial Blocks Action Execution [0.16ms]
+(pass) 7. Test C — Unsupported Capability Fails Closed with Zero Action [0.13ms]
+(pass) 8. Test D & E — Parameter Validation Rejects Missing / Invalid Parameters [0.18ms]
+(pass) 9. Full End-to-End CentipedeAIPipeline Execution with Awaited PermissionGate [104.37ms]
+(pass) 10. Conversation Manager Message Tracking [0.22ms]
+
+tests/unit/step10_11_reality.test.ts:
+(pass) Step 10 & 11 — Production Reality & Security Adversarial Suite > Test 1 — Unauthenticated External Integrations Report NEEDS_AUTH and Fail Closed [0.17ms]
+(pass) Step 10 & 11 — Production Reality & Security Adversarial Suite > Test 2 — Generated Natural-Language Workflows Default to DRAFT and Block Direct Execution [0.21ms]
+(pass) Step 10 & 11 — Production Reality & Security Adversarial Suite > Test 3 — Active Workflow Version Immutability Prevents In-Place Payload Mutation [0.15ms]
+(pass) Step 10 & 11 — Production Reality & Security Adversarial Suite > Test 4 — Workflow Persistence Store Persists State across Restart [0.45ms]
+
+tests/unit/step9.test.ts:
+(pass) Step 9 — Persistent Knowledge, Context Reasoning & Skill Intelligence Suite > Test 1 — Context Engine Ranks Context and Generates Side-Effect-Free Dry Run Simulation [1.27ms]
+(pass) Step 9 — Persistent Knowledge, Context Reasoning & Skill Intelligence Suite > Test 2 — User Knowledge Store Supports Fact Correction, Conflict Resolution & Memory Forget [0.40ms]
+(pass) Step 9 — Persistent Knowledge, Context Reasoning & Skill Intelligence Suite > Test 3 — Skill Version Capability Expansion Diffing Prevents Silent Privilege Escalation [0.14ms]
+
+tests/unit/search.test.ts:
+FileSearchProvider: Path traversal attack blocked for query: "../../etc/passwd"
+(pass) 1. Path Traversal Attack Blocked in File Search [0.52ms]
+(pass) 2. Web Content Prompt Injection Defense (Data Only, Zero Authority) [0.14ms]
+(pass) 3. Search -> Action Separation: Search Never Directly Executes Actions [16.28ms]
+(pass) 4. Context Bounding & Max Results Bounding [0.54ms]
+(pass) 5. Result Provenance Preservation [0.21ms]
+(pass) 6. Conflicting Information Detection [10.14ms]
+(pass) 7. Source Permissions Policy Filtering [0.59ms]
+
+tests/unit/step7.test.ts:
+(pass) Step 7 — Platform Harness, Docker, API & Security Test Suite > Test A — Platform Capability Detection verifies environment without docker socket mounting [0.68ms]
+(pass) Step 7 — Platform Harness, Docker, API & Security Test Suite > Test B — Configuration Manager validates user/runtime settings [0.16ms]
+(pass) Step 7 — Platform Harness, Docker, API & Security Test Suite > Test C & D — Mobile QR Pairing, Session Auth & Device Revocation Flow [0.72ms]
+(pass) Step 7 — Platform Harness, Docker, API & Security Test Suite > Test F & J — Untrusted Uploaded Content is Classified as DATA with Prompt Injection Detection [0.31ms]
+(pass) Step 7 — Platform Harness, Docker, API & Security Test Suite > Test G — Kingdom Version Incompatibility Fails Closed [0.11ms]
+(pass) Step 7 — Platform Harness, Docker, API & Security Test Suite > Test H — Versioned REST API Endpoint /api/v1/runtime returns dynamic runtime state [0.17ms]
+
+ 77 pass
+ 0 fail
+ 200 expect() calls
+Ran 77 tests across 13 files. [495.00ms]

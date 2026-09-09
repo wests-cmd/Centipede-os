@@ -2,5 +2,7 @@ node_modules
 dist
 test-results
 data
+coverage
+.cache
 *.log
 .DS_Store
