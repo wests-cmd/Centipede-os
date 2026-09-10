@@ -13,6 +13,25 @@ export interface TrustedDevice {
   lastSeenAt?: number;
 }
 
+function generateSecureRandomHex(bytes = 16): string {
+  if (typeof globalThis !== 'undefined' && globalThis.crypto && globalThis.crypto.getRandomValues) {
+    const array = new Uint8Array(bytes);
+    globalThis.crypto.getRandomValues(array);
+    return Array.from(array, (b) => b.toString(16).padStart(2, '0')).join('');
+  }
+  return Math.random().toString(36).substring(2, 10);
+}
+
+function generateSecurePin(): string {
+  if (typeof globalThis !== 'undefined' && globalThis.crypto && globalThis.crypto.getRandomValues) {
+    const array = new Uint32Array(1);
+    globalThis.crypto.getRandomValues(array);
+    const pin = (array[0] % 900000) + 100000;
+    return pin.toString();
+  }
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
 export class DeviceTrustManager {
   private devices: Map<string, TrustedDevice> = new Map();
   private pendingPairingCodes: Map<string, { deviceId: string; expiresAt: number }> = new Map();
