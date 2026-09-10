@@ -36,9 +36,24 @@ export class DeviceTrustManager {
   private devices: Map<string, TrustedDevice> = new Map();
   private pendingPairingCodes: Map<string, { deviceId: string; expiresAt: number }> = new Map();
 
+  // CSPRNG helpers to prevent PRNG state prediction for PINs, tokens, and device IDs
+  private getRandomHex(bytes: number): string {
+    const buf = new Uint8Array(bytes);
+    globalThis.crypto.getRandomValues(buf);
+    return Array.from(buf, (b) => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  private generateSecurePin(): string {
+    // Cryptographically secure 6-digit PIN generation (100000 - 999999)
+    const buf = new Uint32Array(1);
+    globalThis.crypto.getRandomValues(buf);
+    const pinNum = 100000 + (buf[0] % 900000);
+    return pinNum.toString();
+  }
+
   public initiatePairing(deviceName: string, deviceType: DeviceType): { deviceId: string; pairingCode: string; qrData: string } {
-    const deviceId = `dev_${Date.now()}_${generateSecureRandomHex(4)}`;
-    const pairingCode = generateSecurePin(); // CSPRNG 6-digit PIN
+    const deviceId = `dev_${Date.now()}_${this.getRandomHex(4)}`;
+    const pairingCode = this.generateSecurePin();
 
     const device: TrustedDevice = {
       deviceId,
@@ -72,7 +87,7 @@ export class DeviceTrustManager {
       return { success: false, error: 'Device not found.' };
     }
 
-    const sessionToken = `tok_${Date.now()}_${generateSecureRandomHex(8)}`;
+    const sessionToken = `tok_${Date.now()}_${this.getRandomHex(8)}`;
     device.trustState = 'PAIRED_ACTIVE';
     device.sessionToken = sessionToken;
     device.pairedAt = Date.now();
