@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { KingdomAdapter } from '../api/kingdomAdapter';
-import { Sliders, CheckCircle2, RotateCcw, HardDrive, Database, ShieldAlert } from 'lucide-react';
+import { Sliders, CheckCircle2, RotateCcw, HardDrive, Cpu, Sparkles, Check, Server } from 'lucide-react';
+import { platformDetector } from '../platform/detector';
+import { CentipedeProfile } from '../platform/types';
 
 interface SettingsPanelProps {
   adapter: KingdomAdapter;
@@ -10,6 +12,16 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter }) => {
   const [url, setUrl] = useState(adapter.getBaseUrl());
   const [pollInterval, setPollInterval] = useState('3000');
   const [savedMessage, setSavedMessage] = useState('');
+  const [selectedProfile, setSelectedProfile] = useState<CentipedeProfile>('FULL_CENTIPEDE');
+
+  const profileRec = platformDetector.getProfileRecommendation({
+    cpuCores: 8,
+    totalMemoryMb: 16384,
+    availableMemoryMb: 8192,
+    storageTotalGb: 512,
+    storageAvailableGb: 256,
+    gpuAvailable: false,
+  });
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +54,63 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter }) => {
           <span>{savedMessage}</span>
         </div>
       )}
+
+      {/* Centipede OS Profile Selector & Hardware Auto-Detector */}
+      <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 space-y-4 shadow-xl">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Server className="w-6 h-6 text-purple-400" />
+            <div>
+              <h3 className="text-lg font-bold text-white">Centipede OS Deployment Profile</h3>
+              <p className="text-xs text-slate-400">Select your active role or let Segmentor auto-recommend based on hardware</p>
+            </div>
+          </div>
+          <span className="px-3 py-1 bg-purple-950/80 border border-purple-500/40 text-purple-300 font-mono text-xs font-semibold rounded-full flex items-center space-x-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span>Recommended: {profileRec.recommendedProfile}</span>
+          </span>
+        </div>
+
+        {/* Hardware Suitability Explanation Banner */}
+        <div className="bg-slate-900 border border-slate-700/80 p-3.5 rounded-xl text-xs space-y-1">
+          <div className="text-slate-300 font-bold flex items-center justify-between">
+            <span>Hardware Assessment: {profileRec.hardwareSummary}</span>
+            <span className="text-emerald-400 font-mono font-semibold">Score: {profileRec.suitabilityScore}/100</span>
+          </div>
+          <p className="text-slate-400">{profileRec.explanation}</p>
+        </div>
+
+        {/* Profile Choice Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-2">
+          {[
+            { id: 'FULL_CENTIPEDE', title: 'Full Centipede', desc: 'Commander + Knight + Scout' },
+            { id: 'COMMANDER', title: 'Commander', desc: 'System coordination & swarm manager' },
+            { id: 'KNIGHT', title: 'Knight', desc: 'Worker node for approved task workloads' },
+            { id: 'SCOUT', title: 'Scout', desc: 'Lightweight observation & discovery node' },
+          ].map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => {
+                setSelectedProfile(p.id as CentipedeProfile);
+                setSavedMessage(`Active Centipede Profile set to "${p.title}". Configuration updated!`);
+                setTimeout(() => setSavedMessage(''), 3000);
+              }}
+              className={`p-3.5 rounded-xl border text-left transition-all relative ${
+                selectedProfile === p.id
+                  ? 'bg-purple-950/60 border-purple-500 text-white shadow-lg shadow-purple-950/50'
+                  : 'bg-slate-900/60 border-slate-700/80 text-slate-300 hover:border-slate-600'
+              }`}
+            >
+              <div className="font-bold text-xs flex items-center justify-between">
+                <span>{p.title}</span>
+                {selectedProfile === p.id && <Check className="w-4 h-4 text-purple-400" />}
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">{p.desc}</p>
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Graphical Storage Manager Card */}
       <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 space-y-6 shadow-xl">
