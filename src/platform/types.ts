@@ -1,5 +1,14 @@
 export type OSPlatform = 'WINDOWS' | 'LINUX' | 'MACOS' | 'CONTAINER_LINUX' | 'UNKNOWN';
 
+export type CentipedeProfile = 'COMMANDER' | 'KNIGHT' | 'SCOUT' | 'FULL_CENTIPEDE' | 'SEGMENTOR_RECOMMENDATION';
+
+export interface ProfileRecommendation {
+  recommendedProfile: CentipedeProfile;
+  suitabilityScore: number;
+  explanation: string;
+  hardwareSummary: string;
+}
+
 export type StoragePressureState = 'NORMAL' | 'INFORMATIONAL_WARNING' | 'WARNING' | 'CRITICAL' | 'EMERGENCY';
 
 export interface StorageBreakdownMetrics {

@@ -1,6 +1,32 @@
-import { OSPlatform, PlatformCapabilities, RuntimeInfo, StorageBreakdownMetrics, StoragePressureState } from './types';
+import { CentipedeProfile, HardwareInfo, OSPlatform, PlatformCapabilities, ProfileRecommendation, RuntimeInfo, StorageBreakdownMetrics, StoragePressureState } from './types';
 
 export class PlatformDetector {
+  public getProfileRecommendation(hardware: HardwareInfo): ProfileRecommendation {
+    const cores = hardware.cpuCores || 4;
+    const ramGb = Math.round((hardware.totalMemoryMb || 8192) / 1024);
+    const diskGb = hardware.storageTotalGb || 128;
+
+    let recommendedProfile: CentipedeProfile = 'FULL_CENTIPEDE';
+    let explanation = 'Your computer meets all hardware requirements for Full Centipede OS (Commander + Knight + Scout).';
+    let suitabilityScore = 95;
+
+    if (cores < 4 || ramGb < 8 || diskGb < 64) {
+      recommendedProfile = 'SCOUT';
+      explanation = 'Your computer has lightweight hardware. Scout profile is recommended for discovery and monitoring with minimal resource usage.';
+      suitabilityScore = 75;
+    } else if (cores < 6 || ramGb < 16) {
+      recommendedProfile = 'KNIGHT';
+      explanation = 'Your computer is ideal as a Knight worker node for executing assigned tasks and container workloads.';
+      suitabilityScore = 85;
+    }
+
+    return {
+      recommendedProfile,
+      suitabilityScore,
+      explanation,
+      hardwareSummary: `${cores} CPU Cores • ${ramGb} GB RAM • ${diskGb} GB Storage`,
+    };
+  }
   private overrideStorageFreeGb: number | null = null;
 
   public setStorageFreeOverrideGb(freeGb: number | null): void {
