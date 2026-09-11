@@ -15,7 +15,18 @@ export interface TrustedDevice {
 
 export class DeviceTrustManager {
   private devices: Map<string, TrustedDevice> = new Map();
-  private pendingPairingCodes: Map<string, { deviceId: string; expiresAt: number }> = new Map();
+  private pendingPairingCodes: Map<string, { deviceId: string; expiresAt: number; attempts: number }> = new Map();
+  private static readonly MAX_PAIRING_ATTEMPTS = 5;
+
+  // Cleanup expired pairing codes to prevent memory leakage
+  private cleanupExpired(): void {
+    const now = Date.now();
+    for (const [code, entry] of this.pendingPairingCodes.entries()) {
+      if (entry.expiresAt <= now) {
+        this.pendingPairingCodes.delete(code);
+      }
+    }
+  }
 
   // CSPRNG helpers to prevent PRNG state prediction for PINs, tokens, and device IDs
   private getRandomHex(bytes: number): string {
@@ -33,6 +44,7 @@ export class DeviceTrustManager {
   }
 
   public initiatePairing(deviceName: string, deviceType: DeviceType): { deviceId: string; pairingCode: string; qrData: string } {
+    this.cleanupExpired();
     const deviceId = `dev_${Date.now()}_${this.getRandomHex(4)}`;
     const pairingCode = this.generateSecurePin();
 
@@ -48,7 +60,7 @@ export class DeviceTrustManager {
     };
 
     this.devices.set(deviceId, device);
-    this.pendingPairingCodes.set(pairingCode, { deviceId, expiresAt: Date.now() + 5 * 60 * 1000 }); // 5 min TTL
+    this.pendingPairingCodes.set(pairingCode, { deviceId, expiresAt: Date.now() + 5 * 60 * 1000, attempts: 0 }); // 5 min TTL
 
     return {
       deviceId,
@@ -58,8 +70,25 @@ export class DeviceTrustManager {
   }
 
   public confirmPairing(pairingCode: string): { success: boolean; sessionToken?: string; error?: string } {
+    this.cleanupExpired();
+
+    if (!pairingCode || typeof pairingCode !== 'string' || !/^\d{6}$/.test(pairingCode)) {
+      return { success: false, error: 'Invalid pairing code format.' };
+    }
+
     const pending = this.pendingPairingCodes.get(pairingCode);
-    if (!pending || pending.expiresAt < Date.now()) {
+    if (!pending) {
+      return { success: false, error: 'Invalid or expired pairing code.' };
+    }
+
+    pending.attempts += 1;
+    if (pending.attempts > DeviceTrustManager.MAX_PAIRING_ATTEMPTS) {
+      this.pendingPairingCodes.delete(pairingCode);
+      return { success: false, error: 'Invalid or expired pairing code.' };
+    }
+
+    if (pending.expiresAt < Date.now()) {
+      this.pendingPairingCodes.delete(pairingCode);
       return { success: false, error: 'Invalid or expired pairing code.' };
     }
 
