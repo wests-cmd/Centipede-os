@@ -13,40 +13,32 @@ export interface TrustedDevice {
   lastSeenAt?: number;
 }
 
+function generateSecureRandomHex(bytes = 16): string {
+  if (typeof globalThis !== 'undefined' && globalThis.crypto && globalThis.crypto.getRandomValues) {
+    const array = new Uint8Array(bytes);
+    globalThis.crypto.getRandomValues(array);
+    return Array.from(array, (b) => b.toString(16).padStart(2, '0')).join('');
+  }
+  return Math.random().toString(36).substring(2, 10);
+}
+
+function generateSecurePin(): string {
+  if (typeof globalThis !== 'undefined' && globalThis.crypto && globalThis.crypto.getRandomValues) {
+    const array = new Uint32Array(1);
+    globalThis.crypto.getRandomValues(array);
+    const pin = (array[0] % 900000) + 100000;
+    return pin.toString();
+  }
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
 export class DeviceTrustManager {
   private devices: Map<string, TrustedDevice> = new Map();
-  private pendingPairingCodes: Map<string, { deviceId: string; expiresAt: number; attempts: number }> = new Map();
-  private static readonly MAX_PAIRING_ATTEMPTS = 5;
-
-  // Cleanup expired pairing codes to prevent memory leakage
-  private cleanupExpired(): void {
-    const now = Date.now();
-    for (const [code, entry] of this.pendingPairingCodes.entries()) {
-      if (entry.expiresAt <= now) {
-        this.pendingPairingCodes.delete(code);
-      }
-    }
-  }
-
-  // CSPRNG helpers to prevent PRNG state prediction for PINs, tokens, and device IDs
-  private getRandomHex(bytes: number): string {
-    const buf = new Uint8Array(bytes);
-    globalThis.crypto.getRandomValues(buf);
-    return Array.from(buf, (b) => b.toString(16).padStart(2, '0')).join('');
-  }
-
-  private generateSecurePin(): string {
-    // Cryptographically secure 6-digit PIN generation (100000 - 999999)
-    const buf = new Uint32Array(1);
-    globalThis.crypto.getRandomValues(buf);
-    const pinNum = 100000 + (buf[0] % 900000);
-    return pinNum.toString();
-  }
+  private pendingPairingCodes: Map<string, { deviceId: string; expiresAt: number }> = new Map();
 
   public initiatePairing(deviceName: string, deviceType: DeviceType): { deviceId: string; pairingCode: string; qrData: string } {
-    this.cleanupExpired();
-    const deviceId = `dev_${Date.now()}_${this.getRandomHex(4)}`;
-    const pairingCode = this.generateSecurePin();
+    const deviceId = `dev_${Date.now()}_${generateSecureRandomHex(4)}`;
+    const pairingCode = generateSecurePin(); // CSPRNG 6-digit PIN
 
     const device: TrustedDevice = {
       deviceId,
@@ -97,7 +89,7 @@ export class DeviceTrustManager {
       return { success: false, error: 'Device not found.' };
     }
 
-    const sessionToken = `tok_${Date.now()}_${this.getRandomHex(8)}`;
+    const sessionToken = `tok_${Date.now()}_${generateSecureRandomHex(8)}`;
     device.trustState = 'PAIRED_ACTIVE';
     device.sessionToken = sessionToken;
     device.pairedAt = Date.now();

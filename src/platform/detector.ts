@@ -1,6 +1,71 @@
-import { OSPlatform, PlatformCapabilities, RuntimeInfo } from './types';
+import { CentipedeProfile, HardwareInfo, OSPlatform, PlatformCapabilities, ProfileRecommendation, RuntimeInfo, StorageBreakdownMetrics, StoragePressureState } from './types';
 
 export class PlatformDetector {
+  public getProfileRecommendation(hardware: HardwareInfo): ProfileRecommendation {
+    const cores = hardware.cpuCores || 4;
+    const ramGb = Math.round((hardware.totalMemoryMb || 8192) / 1024);
+    const diskGb = hardware.storageTotalGb || 128;
+
+    let recommendedProfile: CentipedeProfile = 'FULL_CENTIPEDE';
+    let explanation = 'Your computer meets all hardware requirements for Full Centipede OS (Commander + Knight + Scout).';
+    let suitabilityScore = 95;
+
+    if (cores < 4 || ramGb < 8 || diskGb < 64) {
+      recommendedProfile = 'SCOUT';
+      explanation = 'Your computer has lightweight hardware. Scout profile is recommended for discovery and monitoring with minimal resource usage.';
+      suitabilityScore = 75;
+    } else if (cores < 6 || ramGb < 16) {
+      recommendedProfile = 'KNIGHT';
+      explanation = 'Your computer is ideal as a Knight worker node for executing assigned tasks and container workloads.';
+      suitabilityScore = 85;
+    }
+
+    return {
+      recommendedProfile,
+      suitabilityScore,
+      explanation,
+      hardwareSummary: `${cores} CPU Cores • ${ramGb} GB RAM • ${diskGb} GB Storage`,
+    };
+  }
+  private overrideStorageFreeGb: number | null = null;
+
+  public setStorageFreeOverrideGb(freeGb: number | null): void {
+    this.overrideStorageFreeGb = freeGb;
+  }
+
+  public calculateStorageMetrics(totalGb = 512, freeGb = 256): StorageBreakdownMetrics {
+    const effectiveFreeGb = this.overrideStorageFreeGb !== null ? this.overrideStorageFreeGb : freeGb;
+    const diskUsedGb = totalGb - effectiveFreeGb;
+    const freeSpacePercent = Math.round((effectiveFreeGb / totalGb) * 100);
+
+    let storagePressure: StoragePressureState = 'NORMAL';
+    if (freeSpacePercent < 5) {
+      storagePressure = 'EMERGENCY';
+    } else if (freeSpacePercent < 10) {
+      storagePressure = 'CRITICAL';
+    } else if (freeSpacePercent < 20) {
+      storagePressure = 'WARNING';
+    } else if (freeSpacePercent <= 30) {
+      storagePressure = 'INFORMATIONAL_WARNING';
+    }
+
+    return {
+      diskTotalGb: totalGb,
+      diskUsedGb,
+      diskFreeGb: effectiveFreeGb,
+      freeSpacePercent,
+      systemUsedGb: 31,
+      kingdomUsedGb: 4,
+      dockerUsedGb: 28,
+      vmUsedGb: 52,
+      modelsUsedGb: 21,
+      skillsUsedGb: 7,
+      logsUsedGb: 2,
+      userUsedGb: 22,
+      storagePressure,
+    };
+  }
+
   public async detectRuntimeInfo(): Promise<RuntimeInfo> {
     const isContainer = this.detectContainerEnvironment();
     const os = this.detectOS(isContainer);
@@ -16,6 +81,8 @@ export class PlatformDetector {
       dockerSocketMounted: false, // Security Directive: Docker socket mounting is prohibited!
     };
 
+    const storageBreakdown = this.calculateStorageMetrics(512, 256);
+
     return {
       centipedeVersion: '1.0.0',
       platform: {
@@ -28,8 +95,9 @@ export class PlatformDetector {
         totalMemoryMb: 16384,
         availableMemoryMb: 8192,
         storageTotalGb: 512,
-        storageAvailableGb: 256,
+        storageAvailableGb: storageBreakdown.diskFreeGb,
         gpuAvailable: false,
+        storageBreakdown,
       },
       environment: {
         isContainerized: isContainer,

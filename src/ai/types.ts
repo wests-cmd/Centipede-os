@@ -1,5 +1,6 @@
 export type IntentType =
   | 'QUERY_STATUS'
+  | 'QUERY_STORAGE'
   | 'START_RUNTIME'
   | 'STOP_RUNTIME'
   | 'GET_MODE'

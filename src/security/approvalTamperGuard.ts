@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { computeParameterHash } from '../agent/grants';
 import { ActionRequest } from '../ai/types';
 
 export interface VerifiedApprovalPayload {
@@ -14,15 +14,14 @@ export class ApprovalTamperGuard {
   private approvedPayloadHashes: Map<string, VerifiedApprovalPayload> = new Map();
 
   public registerApprovalRequest(approvalId: string, actionReq: ActionRequest): VerifiedApprovalPayload {
-    const rawParametersJson = JSON.stringify(actionReq.parameters || {});
-    const parameterHash = this.computeHash(rawParametersJson);
+    const parameterHash = computeParameterHash(actionReq.parameters || {});
 
     const payload: VerifiedApprovalPayload = {
       approvalId,
       capability: actionReq.capability,
       operation: actionReq.operation || 'execute',
       parameterHash,
-      rawParametersJson,
+      rawParametersJson: JSON.stringify(actionReq.parameters || {}),
       requestedTimestamp: Date.now(),
     };
 
@@ -49,8 +48,7 @@ export class ApprovalTamperGuard {
     }
 
     // Anti-Tampering Check 2: Parameter Hash Mismatch
-    const currentParamJson = JSON.stringify(executionActionReq.parameters || {});
-    const currentHash = this.computeHash(currentParamJson);
+    const currentHash = computeParameterHash(executionActionReq.parameters || {});
 
     if (record.parameterHash !== currentHash) {
       return {
@@ -60,10 +58,6 @@ export class ApprovalTamperGuard {
     }
 
     return { valid: true };
-  }
-
-  private computeHash(content: string): string {
-    return createHash('sha256').update(content || '').digest('hex');
   }
 }
 
