@@ -1,8 +1,34 @@
-# Centipede OS — The ZeroTrust AI Desktop Operating System
+# [Centipede OS](https://github.com/wests-cmd/Centipede-os) — The ZeroTrust AI Desktop Operating System
 
-**Centipede OS** is an easy-to-use, secure operating system designed to give you an intelligent AI assistant (**Jarvis**) that can perform real-world tasks on your computer while keeping your files, credentials, and privacy completely safe.
+**[Centipede OS](https://github.com/wests-cmd/Centipede-os)** is an easy-to-use, secure operating system designed to give you an intelligent AI assistant (**Segmentor**) that can perform real-world tasks on your computer while keeping your files, credentials, and privacy completely safe.
 
 Centipede OS operates on top of **Kingdom** (`wests-cmd/kingdom`), an independent security engine that ensures AI models can never perform dangerous or unauthorized actions without your permission.
+
+---
+
+# Download Centipede OS
+
+Choose the download profile that fits your system or hardware role:
+
+### 1. [Download Commander](https://github.com/wests-cmd/Centipede-os/releases/latest)
+For your main desktop PC or primary control hub. Manages AI orchestration, workflow planning, and security policies.
+
+### 2. [Download Knight](https://github.com/wests-cmd/Centipede-os/releases/latest)
+For dedicated execution worker nodes. Handles background workloads, data processing, and approved automated tasks.
+
+### 3. [Download Ultralight / Live USB](https://github.com/wests-cmd/Centipede-os/releases/latest)
+For USB flash drives, Virtual Machines (VirtualBox/VMware/UTM), or older hardware with limited storage (< 5 GB installed footprint).
+
+### 4. [Download Scout](https://github.com/wests-cmd/Centipede-os/releases/latest)
+For lightweight edge discovery and monitoring nodes. Collects device telemetry and system health without heavy workloads.
+
+### 5. [Download Full Centipede](https://github.com/wests-cmd/Centipede-os/releases/latest)
+For the complete all-in-one local desktop experience with pre-packaged local AI models and container tools.
+
+---
+
+### Unsure Which Profile You Need?
+Choose **[Auto-Detect & Recommend Profile](https://github.com/wests-cmd/Centipede-os/releases/latest)** during bootstrap setup. Centipede OS will evaluate your computer's CPU cores, RAM, and disk space to recommend the safest profile automatically.
 
 ---
 
@@ -10,9 +36,9 @@ Centipede OS operates on top of **Kingdom** (`wests-cmd/kingdom`), an independen
 
 - [What is Centipede OS?](#what-is-centipede-os)
 - [Core Concepts Explained](#core-concepts-explained)
-- [Choosing Your Profile: Full vs. Ultralight (<5 GB)](#choosing-your-profile)
+- [Choosing Your Profile](#choosing-your-profile)
 - [How Do I Control Centipede OS From My Phone?](#phone-command-center)
-- [Installation Guide](#installation-guide)
+- [Installation Guide](docs/INSTALLATION_GUIDE.md)
 - [Security & Privacy FAQ](#security-faq)
 - [Troubleshooting & Recovery](#recovery)
 - [Developer & Testing Documentation](#developer-info)
@@ -23,10 +49,10 @@ Centipede OS operates on top of **Kingdom** (`wests-cmd/kingdom`), an independen
 
 Centipede OS is a modern desktop environment where AI automation and security work together seamlessly:
 
-- **Intelligent Assistant (Jarvis)**: Ask questions, search your files, organize documents, or run automated routines using simple natural language.
+- **Intelligent Assistant (Segmentor)**: Ask questions, search your files, organize documents, or run automated routines using simple natural language.
 - **ZeroTrust Security Boundary**: The AI pipeline proposes plans, but **Kingdom** independently checks permissions. The AI model can *never* self-authorize or run raw system commands.
 - **Privacy First**: Your documents, memory graphs, and task histories stay on your local device.
-- **Mobile Companion Command Center**: Monitor your computer's health, review pending approvals, and send commands to Jarvis safely from your phone.
+- **Mobile Companion Command Center**: Monitor your computer's health, review pending approvals, and send commands to Segmentor safely from your phone.
 
 ---
 
@@ -41,21 +67,21 @@ A **Knight** is an execution worker node inside the Kingdom swarm. Knights handl
 ### What is a Scout?
 A **Scout** is a discovery node that monitors device capabilities, network interfaces, and system health to report available resources to the swarm.
 
-### What is Jarvis (Centipede Assistant)?
-**Jarvis** is your natural language assistant. Jarvis translates your requests ("Find my invoice and archive it") into step-by-step plans, checks for required permissions, and executes approved steps.
+### What is Segmentor (Centipede Assistant)?
+**Segmentor** is your natural language assistant. Segmentor translates your requests ("Find my invoice and archive it") into step-by-step plans, checks for required permissions, and executes approved steps.
 
 ---
 
 ## Choosing Your Profile
 
-Centipede OS offers two official installation profiles:
+Centipede OS offers profile choices tailored to your hardware:
 
 | Feature / Target | Centipede OS Full Experience | Centipede OS Ultralight (< 5 GB Target) |
 | :--- | :--- | :--- |
 | **Download / ISO Target** | 8–12 GB | **1.8 GB Compressed** |
 | **Base Installed Size** | 30 GB | **3.2 GB Installed** (Leaves 1.8 GB margin under 5 GB) |
 | **Recommended Computer Disk** | 128 GB – 256 GB SSD | **32 GB – 64 GB Disk** |
-| **Included Features** | Full Desktop, Kingdom Runtime, AI Models, Docker Containers, VMs | Essential Desktop, Kingdom Core, Security Gate, Jarvis, Recovery Tools |
+| **Included Features** | Full Desktop, Kingdom Runtime, AI Models, Docker Containers, VMs | Essential Desktop, Kingdom Core, Security Gate, Segmentor, Recovery Tools |
 | **Optional Workloads** | Pre-installed | **On-Demand Package Acquisition** (Downloaded only on request) |
 
 ---
@@ -69,7 +95,7 @@ You can monitor and command Centipede OS away from your computer using any mobil
 3. Your phone becomes a secure authenticated client:
    - View system health and storage pressure in real time.
    - Review and approve pending security requests.
-   - Send commands to Jarvis.
+   - Send commands to Segmentor.
    - Instantly revoke phone access if lost or stolen.
 
 *Security Rule*: Your phone acts as an authenticated client—it **cannot** bypass Kingdom authorization or execute raw host shell commands.
@@ -78,9 +104,11 @@ You can monitor and command Centipede OS away from your computer using any mobil
 
 ## Installation Guide
 
+For detailed non-technical installation steps, see our [Installation Guide](docs/INSTALLATION_GUIDE.md).
+
 ### Option A: Try Centipede OS Live / USB
 1. Insert a **32 GB or 64 GB USB drive**.
-2. Flash the Centipede OS Live image using BalenaEtcher or Rufus.
+2. Flash `centipede-os-ultralight.iso` using BalenaEtcher or Rufus.
 3. Boot your computer from USB to try Centipede OS without touching your hard drive.
 
 ### Option B: Run in a Virtual Machine (VM)
@@ -132,7 +160,7 @@ If an update or workflow fails, Centipede OS preserves your data:
 # Install dependencies
 bun install
 
-# Run unit & adversarial test suites (97 tests across 14 suites)
+# Run unit & adversarial test suites (100 tests across 14 suites)
 bun test
 
 # Run contract verification against live Kingdom server
