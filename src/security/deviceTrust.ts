@@ -105,12 +105,13 @@ export class DeviceTrustManager {
     device.pairedAt = Date.now();
     device.lastSeenAt = Date.now();
 
+    this.sessionTokenIndex.set(sessionToken, device);
     this.pendingPairingCodes.delete(pairingCode);
     return { success: true, sessionToken };
   }
 
   public validateSessionToken(sessionToken: string): { valid: boolean; device?: TrustedDevice; error?: string } {
-    const device = Array.from(this.devices.values()).find((d) => d.sessionToken === sessionToken);
+    const device = this.sessionTokenIndex.get(sessionToken) || Array.from(this.devices.values()).find((d) => d.sessionToken === sessionToken);
     if (!device) {
       return { valid: false, error: 'Device not authenticated or session token invalid.' };
     }
@@ -127,6 +128,9 @@ export class DeviceTrustManager {
     const device = this.devices.get(deviceId);
     if (!device) return false;
 
+    if (device.sessionToken) {
+      this.sessionTokenIndex.delete(device.sessionToken);
+    }
     device.trustState = 'REVOKED';
     device.sessionToken = undefined;
     return true;

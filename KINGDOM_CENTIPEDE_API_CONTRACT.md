@@ -228,6 +228,21 @@ All user-visible error messages undergo **Error Masking** to strip Python traceb
 
 ---
 
+## 5. Capability Negotiation Specification (`src/api/capabilityNegotiator.ts`)
+
+Centipede OS evaluates capabilities against Kingdom runtime info and version headers:
+
+- `SUPPORTED`: Capability exists and is fully supported by active Kingdom runtime version.
+- `UNSUPPORTED`: Capability is not supported by current Kingdom engine version.
+- `DEGRADED`: Kingdom is offline, disconnected, or unreachable; privileged operations are blocked fail-closed.
+- `INCOMPATIBLE`: Major Kingdom version mismatch detected.
+- `UNKNOWN`: Capability or version header is unverified.
+- `REQUIRES_UPDATE`: Kingdom version requires Centipede OS update to operate capability safely.
+
+*Mandatory ZeroTrust Directives*: Capability negotiation determines protocol and compatibility state; it **never** grants authorization or bypasses ZeroTrust checks.
+
+---
+
 ## 5. Security Boundary & Non-Bypass Directives
 
 1. **Non-Bypass Enforcement**: Centipede OS must **never** attempt to bypass Kingdom ZeroTrust security checks or alter security policies directly.
