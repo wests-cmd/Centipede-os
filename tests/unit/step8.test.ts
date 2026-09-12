@@ -55,7 +55,7 @@ describe('Step 8 — Mobile Companion, Anti-Tampering & Knowledge Security Suite
       planId: 'p1',
       intentId: 'i1',
       riskLevel: 'HIGH',
-      authorizationState: 'PENDING',
+      authorizationState: 'APPROVAL_REQUIRED',
     };
 
     // Register approval
