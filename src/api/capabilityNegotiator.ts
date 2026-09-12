@@ -1,126 +1,114 @@
-import { KINGDOM_CONTRACT_SPEC } from './contractSpec';
-import { KingdomRuntimeInfo, RuntimeStatus } from '../types';
+import { KINGDOM_CONTRACT_SPEC, KingdomContractSpecification } from './contractSpec';
 
-export type CapabilityNegotiationStatus =
-  | 'SUPPORTED'
-  | 'UNSUPPORTED'
-  | 'DEGRADED'
-  | 'INCOMPATIBLE'
-  | 'UNKNOWN'
-  | 'REQUIRES_UPDATE';
+export type CapabilityStatus = 'SUPPORTED' | 'UNSUPPORTED' | 'DEGRADED' | 'INCOMPATIBLE' | 'UNKNOWN';
 
 export interface CapabilityNegotiationResult {
   capability: string;
-  status: CapabilityNegotiationStatus;
-  reason: string;
-  requiredMinVersion?: string;
+  status: CapabilityStatus;
+  reason?: string;
+  requiresKingdomUpdate?: boolean;
 }
 
-export class CapabilityNegotiator {
-  private minSupportedVersion = KINGDOM_CONTRACT_SPEC.minSupportedKingdomVersion; // '40.0.0'
-  private maxTestedVersion = KINGDOM_CONTRACT_SPEC.maxTestedKingdomVersion; // '40.1.9'
+export interface ContractDriftReport {
+  contractVersion: string;
+  detectedVersion: string | null;
+  overallStatus: 'COMPATIBLE' | 'DEGRADED' | 'INCOMPATIBLE';
+  capabilities: CapabilityNegotiationResult[];
+  schemaDriftDetected: boolean;
+  driftDetails: string[];
+}
 
-  public evaluateCapability(
+export class KingdomCapabilityNegotiator {
+  private spec: KingdomContractSpecification = KINGDOM_CONTRACT_SPEC;
+
+  public negotiateCapability(
+    detectedKingdomVersion: string | null,
     capability: string,
-    kingdomRuntime: KingdomRuntimeInfo
+    responseSample?: Record<string, any>
   ): CapabilityNegotiationResult {
-    if (kingdomRuntime.connectionState === 'DISCONNECTED' || kingdomRuntime.connectionState === 'CONNECTING') {
-      return {
-        capability,
-        status: 'DEGRADED',
-        reason: 'Kingdom server is offline or connecting. Privileged execution unavailable.',
-      };
-    }
-
-    if (kingdomRuntime.connectionState === 'VERSION_INCOMPATIBLE') {
-      return {
-        capability,
-        status: 'INCOMPATIBLE',
-        reason: `Kingdom version ${kingdomRuntime.connectedKingdomVersion || 'unknown'} is incompatible.`,
-      };
-    }
-
-    if (!KINGDOM_CONTRACT_SPEC.capabilities[capability]) {
+    if (!detectedKingdomVersion) {
       return {
         capability,
         status: 'UNKNOWN',
-        reason: `Capability "${capability}" is not recognized in current contract specification.`,
+        reason: 'Kingdom version unavailable or connection offline.',
       };
     }
 
-    const version = kingdomRuntime.connectedKingdomVersion;
-    if (!version) {
-      return {
-        capability,
-        status: 'UNKNOWN',
-        reason: 'Kingdom version header missing or unverified.',
-      };
-    }
+    const clean = detectedKingdomVersion.replace(/^v/i, '').trim();
+    const major = parseInt(clean.split('.')[0], 10) || 0;
 
-    // Evaluate semver version logic
-    const clean = version.trim().replace(/^v/i, '');
-    const parts = clean.split('.').map((p) => parseInt(p, 10) || 0);
-    const major = parts[0] || 0;
-    const minor = parts[1] || 0;
+    const minor = parseInt(clean.split('.')[1], 10) || 0;
 
-    if (major < 40) {
+    if (major < 40 || major > 40) {
       return {
         capability,
         status: 'INCOMPATIBLE',
-        reason: `Kingdom major version v${clean} is older than minimum supported v${this.minSupportedVersion}.`,
-        requiredMinVersion: this.minSupportedVersion,
+        reason: `Kingdom major version v${clean} is unsupported (Requires v40.x). Privileged execution blocked.`,
+        requiresKingdomUpdate: true,
       };
     }
 
-    if (major > 40) {
-      return {
-        capability,
-        status: 'REQUIRES_UPDATE',
-        reason: `Kingdom major version v${clean} requires Centipede OS update.`,
-      };
-    }
-
-    // Major is 40
     if (minor > 1) {
       return {
         capability,
-        status: 'SUPPORTED',
-        reason: `Kingdom v${clean} supports "${capability}" (Exceeds tested minor range v${this.maxTestedVersion}).`,
+        status: 'DEGRADED',
+        reason: `Kingdom minor version v${clean} exceeds tested minor range (Tested up to v${this.spec.maxTestedKingdomVersion}).`,
       };
+    }
+
+    if (!this.spec.requiredCapabilities.includes(capability)) {
+      return {
+        capability,
+        status: 'UNSUPPORTED',
+        reason: `Capability "${capability}" is not defined in Kingdom contract v${this.spec.contractVersion}.`,
+      };
+    }
+
+    if (responseSample && typeof responseSample === 'object') {
+      // Check for expected schema drift
+      if (responseSample.status === 'DEGRADED' || responseSample.degraded) {
+        return {
+          capability,
+          status: 'DEGRADED',
+          reason: `Capability "${capability}" is reporting DEGRADED execution mode from Kingdom.`,
+        };
+      }
     }
 
     return {
       capability,
       status: 'SUPPORTED',
-      reason: `Capability "${capability}" is fully supported on Kingdom v${clean}.`,
     };
   }
 
-  public validateResponseSchema(
-    endpointName: string,
-    responsePayload: Record<string, any>
-  ): { valid: boolean; missingFields: string[] } {
-    const spec = KINGDOM_CONTRACT_SPEC.endpoints[endpointName];
-    if (!spec || !spec.responseRequiredFields) {
-      return { valid: true, missingFields: [] };
-    }
+  public evaluateContractDrift(detectedKingdomVersion: string | null, healthData?: Record<string, any>): ContractDriftReport {
+    const capabilities: CapabilityNegotiationResult[] = this.spec.requiredCapabilities.map((cap) =>
+      this.negotiateCapability(detectedKingdomVersion, cap, healthData)
+    );
 
-    const missingFields: string[] = [];
-    if (!responsePayload || typeof responsePayload !== 'object') {
-      return { valid: false, missingFields: spec.responseRequiredFields };
-    }
+    const incompatible = capabilities.filter((c) => c.status === 'INCOMPATIBLE');
+    const degraded = capabilities.filter((c) => c.status === 'DEGRADED');
 
-    for (const field of spec.responseRequiredFields) {
-      if (!(field in responsePayload) || responsePayload[field] === undefined) {
-        missingFields.push(field);
-      }
+    let overallStatus: 'COMPATIBLE' | 'DEGRADED' | 'INCOMPATIBLE' = 'COMPATIBLE';
+    const driftDetails: string[] = [];
+
+    if (incompatible.length > 0) {
+      overallStatus = 'INCOMPATIBLE';
+      driftDetails.push(`Major Kingdom version mismatch or incompatible endpoints detected: ${incompatible.length} capabilities blocked.`);
+    } else if (degraded.length > 0) {
+      overallStatus = 'DEGRADED';
+      driftDetails.push(`${degraded.length} capabilities running in DEGRADED status.`);
     }
 
     return {
-      valid: missingFields.length === 0,
-      missingFields,
+      contractVersion: this.spec.contractVersion,
+      detectedVersion: detectedKingdomVersion,
+      overallStatus,
+      capabilities,
+      schemaDriftDetected: driftDetails.length > 0,
+      driftDetails,
     };
   }
 }
 
-export const capabilityNegotiator = new CapabilityNegotiator();
+export const kingdomCapabilityNegotiator = new KingdomCapabilityNegotiator();
