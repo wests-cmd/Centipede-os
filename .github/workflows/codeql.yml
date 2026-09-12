@@ -20,7 +20,6 @@ jobs:
     permissions:
       security-events: write
       contents: read
-      actions: read
 
     strategy:
       fail-fast: false
@@ -28,21 +27,19 @@ jobs:
         include:
           - language: javascript-typescript
             build-mode: none
-          - language: actions
-            build-mode: none
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
           config-file: .github/codeql/codeql-config.yml
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:${{matrix.language}}"
