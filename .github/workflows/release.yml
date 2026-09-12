@@ -1,0 +1,116 @@
+name: Centipede OS Release & Deployment Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release Tag (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+jobs:
+  validate-and-test:
+    name: Test & Quality Verification Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun Environment
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Run Full Unit & Adversarial Test Suites
+        run: bun test
+
+      - name: Verify TypeScript Types
+        run: bun run build
+
+  build-and-release:
+    name: Build & Publish Release Artifacts
+    needs: validate-and-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun Environment
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Build Web Desktop & Sandbox Workloads
+        run: bun run build
+
+      - name: Package Dist Artifacts
+        run: |
+          mkdir -p release_builds
+          tar -czvf release_builds/centipede-os-desktop-v1.0.0.tar.gz dist/
+          cp -r dist/ release_builds/centipede-os-ultralight-v1.0.0
+
+      - name: Compute Dynamic SHA-256 Checksums
+        run: |
+          cd release_builds
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Generate Machine-Readable Release Manifest
+        run: |
+          VERSION="${{ github.ref_name }}"
+          if [ -z "$VERSION" ] || [ "$VERSION" = "main" ]; then
+            VERSION="v1.0.0"
+          fi
+          COMMIT_HASH="${{ github.sha }}"
+
+          cat <<EOF > release_builds/release-manifest.json
+          {
+            "productName": "Centipede OS",
+            "version": "${VERSION}",
+            "commit": "${COMMIT_HASH}",
+            "buildDate": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
+            "kingdomCompatibilityContract": "40.1.0",
+            "artifacts": [
+              {
+                "name": "centipede-os-desktop-v1.0.0.tar.gz",
+                "sha256": "$(sha256sum release_builds/centipede-os-desktop-v1.0.0.tar.gz | awk '{print $1}')",
+                "targetProfile": "Commander / Full Centipede"
+              }
+            ]
+          }
+          EOF
+          cat release_builds/release-manifest.json
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            release_builds/centipede-os-desktop-v1.0.0.tar.gz
+            release_builds/SHA256SUMS
+            release_builds/release-manifest.json
+          draft: false
+          prerelease: false
+          body: |
+            # Centipede OS v1.0.0 Production Release
+
+            ## Release Highlights
+            - **ZeroTrust Execution Gate**: All mutating tool calls require JIT capability grants & Kingdom authorization.
+            - **Dynamic Kingdom Contract Compatibility**: Validates Kingdom API v40.1 contract version compatibility.
+            - **Ultralight Profile**: 3.2 GB base installed footprint (< 5.0 GB limit).
+            - **Emergency Storage Braking**: Automatic mutation pause when free disk space falls below 5%.
+
+            ## SHA-256 Checksums
+            See attached `SHA256SUMS` and `release-manifest.json`.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

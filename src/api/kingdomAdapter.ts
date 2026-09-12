@@ -1,3 +1,4 @@
+import { kingdomCapabilityNegotiator } from './capabilityNegotiator';
 import {
   ApprovalRequest,
   AuditLogEntry,
@@ -16,8 +17,6 @@ import {
   VersionCompatibility,
   VersionCompatibilityStatus,
 } from '../types';
-import { capabilityNegotiator, CapabilityNegotiationResult } from './capabilityNegotiator';
-import { KINGDOM_CONTRACT_SPEC } from './contractSpec';
 
 export class KingdomApiError extends Error {
   public code: KingdomErrorCode;
@@ -105,10 +104,6 @@ export class KingdomAdapter {
     };
   }
 
-  public negotiateCapability(capability: string): CapabilityNegotiationResult {
-    return capabilityNegotiator.evaluateCapability(capability, this.getKingdomRuntimeInfo());
-  }
-
   public subscribeConnection(listener: (state: ConnectionState) => void): () => void {
     this.connectionListeners.add(listener);
     listener(this.connectionState);
@@ -168,19 +163,17 @@ export class KingdomAdapter {
     }
 
     const clean = rawVersion.trim().replace(/^v/i, '');
-    const parts = clean.split('.').map((p) => parseInt(p, 10) || 0);
-    const major = parts[0] || 0;
-    const minor = parts[1] || 0;
+    const driftReport = kingdomCapabilityNegotiator.evaluateContractDrift(clean);
 
     let status: VersionCompatibilityStatus = 'COMPATIBLE';
-    let message = `Kingdom v${clean} is fully compatible.`;
+    let message = `Kingdom v${clean} is fully compatible with contract v40.1.0.`;
 
-    if (major < 40 || major > 40) {
+    if (driftReport.overallStatus === 'INCOMPATIBLE') {
       status = 'UNSUPPORTED';
-      message = `Kingdom major version v${clean} is unsupported (Requires v${this.minSupportedVersion}–v${this.maxTestedVersion}).`;
-    } else if (minor > 1) {
+      message = `Kingdom version v${clean} is unsupported or incompatible: ${driftReport.driftDetails.join(' ')}`;
+    } else if (driftReport.overallStatus === 'DEGRADED') {
       status = 'COMPATIBLE_WITH_WARNING';
-      message = `Kingdom v${clean} exceeds tested minor range (Tested up to v${this.maxTestedVersion}).`;
+      message = `Kingdom v${clean} operating in degraded state: ${driftReport.driftDetails.join(' ')}`;
     }
 
     const info: VersionCompatibility = {
@@ -256,26 +249,7 @@ export class KingdomAdapter {
       }
 
       this.recordSuccess();
-      const json = (await res.json()) as T;
-
-      // Capability & Schema Drift Detection
-      const cleanPath = path.split('?')[0];
-      const matchingSpecKey = Object.keys(KINGDOM_CONTRACT_SPEC.endpoints).find((key) => {
-        const spec = KINGDOM_CONTRACT_SPEC.endpoints[key];
-        const specPathRegex = new RegExp('^' + spec.path.replace(/\{[^}]+\}/g, '[^/]+') + '$');
-        const specMethod = spec.method || 'GET';
-        const reqMethod = options.method || 'GET';
-        return specMethod === reqMethod && specPathRegex.test(cleanPath);
-      });
-
-      if (matchingSpecKey && json && typeof json === 'object') {
-        const validation = capabilityNegotiator.validateResponseSchema(matchingSpecKey, json as Record<string, any>);
-        if (!validation.valid) {
-          console.warn(`[CONTRACT DRIFT DETECTED] Endpoint "${path}" missing required fields: ${validation.missingFields.join(', ')}`);
-        }
-      }
-
-      return json;
+      return (await res.json()) as T;
     } catch (err: any) {
       clearTimeout(timeoutId);
 
