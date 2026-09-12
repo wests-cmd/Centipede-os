@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { syncSha256 } from '../security/cryptoUtils';
 import { WorkflowDefinition, WorkflowExecutionRun } from './types';
 
 export class WorkflowPersistenceStore {
@@ -24,7 +24,7 @@ export class WorkflowPersistenceStore {
   }
 
   public computeIntegritySignature(payloadJson: string): string {
-    return createHash('sha256').update(payloadJson).digest('hex');
+    return syncSha256(payloadJson);
   }
 
   public exportDurableState(): string {
