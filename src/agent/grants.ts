@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { syncSha256 } from '../security/cryptoUtils';
 
 function canonicalizeObject(obj: any): any {
   if (obj === null || typeof obj !== 'object') {
@@ -17,7 +17,7 @@ function canonicalizeObject(obj: any): any {
 
 export function computeParameterHash(params: Record<string, any> = {}): string {
   const canonicalJson = JSON.stringify(canonicalizeObject(params || {}));
-  return createHash('sha256').update(canonicalJson).digest('hex');
+  return syncSha256(canonicalJson);
 }
 
 export interface CapabilityGrantOptions {

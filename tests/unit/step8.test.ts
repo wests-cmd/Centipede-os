@@ -13,6 +13,11 @@ describe('Step 8 — Mobile Companion, Anti-Tampering & Knowledge Security Suite
     const pairing = deviceTrustManager.initiatePairing('Pixel Companion', 'MOBILE_APP');
     expect(pairing.pairingCode.length).toBe(6);
 
+    // Invalid code format check fails closed
+    const invalidFormat = deviceTrustManager.confirmPairing('abc');
+    expect(invalidFormat.success).toBe(false);
+    expect(invalidFormat.error).toContain('Invalid pairing code format');
+
     // Confirm once
     const firstConfirm = deviceTrustManager.confirmPairing(pairing.pairingCode);
     expect(firstConfirm.success).toBe(true);
@@ -21,6 +26,24 @@ describe('Step 8 — Mobile Companion, Anti-Tampering & Knowledge Security Suite
     const secondConfirm = deviceTrustManager.confirmPairing(pairing.pairingCode);
     expect(secondConfirm.success).toBe(false);
     expect(secondConfirm.error).toContain('Invalid or expired');
+  });
+
+  it('Test 1b — Mobile Companion Isolation and Single-Use Consumption', () => {
+    const pairingUserA = deviceTrustManager.initiatePairing('User A Device', 'MOBILE_APP');
+    const pairingUserB = deviceTrustManager.initiatePairing('User B Device', 'MOBILE_APP');
+
+    // Attacker guessing wrong codes does NOT affect User A or User B's pending codes
+    for (let i = 0; i < 5; i++) {
+      const wrongConfirm = deviceTrustManager.confirmPairing('000000');
+      expect(wrongConfirm.success).toBe(false);
+    }
+
+    // User A and User B can still successfully confirm their pairing codes
+    const confirmA = deviceTrustManager.confirmPairing(pairingUserA.pairingCode);
+    expect(confirmA.success).toBe(true);
+
+    const confirmB = deviceTrustManager.confirmPairing(pairingUserB.pairingCode);
+    expect(confirmB.success).toBe(true);
   });
 
   it('Test 2 — Approval Anti-Tampering Guard Detects Parameter Modification After Human Approval', () => {
