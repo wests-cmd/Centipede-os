@@ -16,6 +16,8 @@ import {
   VersionCompatibility,
   VersionCompatibilityStatus,
 } from '../types';
+import { capabilityNegotiator, CapabilityNegotiationResult } from './capabilityNegotiator';
+import { KINGDOM_CONTRACT_SPEC } from './contractSpec';
 
 export class KingdomApiError extends Error {
   public code: KingdomErrorCode;
@@ -101,6 +103,10 @@ export class KingdomAdapter {
       running: this.lastKnownStatus?.running || false,
       mode: this.lastKnownStatus?.mode || 'OFFLINE',
     };
+  }
+
+  public negotiateCapability(capability: string): CapabilityNegotiationResult {
+    return capabilityNegotiator.evaluateCapability(capability, this.getKingdomRuntimeInfo());
   }
 
   public subscribeConnection(listener: (state: ConnectionState) => void): () => void {
@@ -250,7 +256,26 @@ export class KingdomAdapter {
       }
 
       this.recordSuccess();
-      return (await res.json()) as T;
+      const json = (await res.json()) as T;
+
+      // Capability & Schema Drift Detection
+      const cleanPath = path.split('?')[0];
+      const matchingSpecKey = Object.keys(KINGDOM_CONTRACT_SPEC.endpoints).find((key) => {
+        const spec = KINGDOM_CONTRACT_SPEC.endpoints[key];
+        const specPathRegex = new RegExp('^' + spec.path.replace(/\{[^}]+\}/g, '[^/]+') + '$');
+        const specMethod = spec.method || 'GET';
+        const reqMethod = options.method || 'GET';
+        return specMethod === reqMethod && specPathRegex.test(cleanPath);
+      });
+
+      if (matchingSpecKey && json && typeof json === 'object') {
+        const validation = capabilityNegotiator.validateResponseSchema(matchingSpecKey, json as Record<string, any>);
+        if (!validation.valid) {
+          console.warn(`[CONTRACT DRIFT DETECTED] Endpoint "${path}" missing required fields: ${validation.missingFields.join(', ')}`);
+        }
+      }
+
+      return json;
     } catch (err: any) {
       clearTimeout(timeoutId);
 
