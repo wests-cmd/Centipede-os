@@ -23,7 +23,7 @@ import { Brain, Cpu, Map, Server, Shield, Activity, Folder, Terminal as TermIcon
 export const App: React.FC = () => {
   const [activeAppId, setActiveAppId] = useState<string>('launcher');
   const [status, setStatus] = useState<RuntimeStatus | null>(null);
-  const [connectionState, setConnectionState] = useState<ConnectionState>('offline');
+  const [connectionState, setConnectionState] = useState<ConnectionState>('DISCONNECTED');
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
 
   useEffect(() => {

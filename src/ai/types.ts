@@ -64,6 +64,9 @@ export interface Plan {
   parameters: Record<string, any>;
   riskLevel: RiskLevel;
   requiresApproval: boolean;
+  description?: string;
+  reasoning?: string;
+  targetCapability?: string;
 }
 
 export type AuthorizationState = 'AUTHORIZED' | 'APPROVAL_REQUIRED' | 'DENIED';
@@ -90,7 +93,7 @@ export interface ActionRequest {
 
 export interface ActionResult {
   actionId: string;
-  status: 'SUCCESS' | 'FAILED' | 'BLOCKED' | 'PENDING';
+  status: 'SUCCESS' | 'FAILED' | 'BLOCKED' | 'PENDING' | 'TIMEOUT';
   data?: any;
   error?: string;
   timestamp: number;

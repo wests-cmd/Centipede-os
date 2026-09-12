@@ -125,7 +125,7 @@ export const UniversalSearch: React.FC<UniversalSearchProps> = ({ adapter, onNav
                       <span className="text-amber-400 font-bold">Untrusted Data (No Instruction Authority)</span>
                     ) : item.metadata?.appId ? (
                       <button
-                        onClick={() => onNavigateApp(item.metadata.appId)}
+                        onClick={() => onNavigateApp(item.metadata?.appId || '')}
                         className="text-blue-400 font-bold hover:underline"
                       >
                         Open App →
