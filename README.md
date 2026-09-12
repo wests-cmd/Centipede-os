@@ -6,6 +6,7 @@ Centipede OS operates on top of **Kingdom** (`wests-cmd/kingdom`), an independen
 
 ---
 
+<!-- CENTIPEDE_DOWNLOADS_START -->
 # Download Centipede OS
 
 Choose the download profile that fits your system or hardware role:
@@ -27,8 +28,17 @@ For the complete all-in-one local desktop experience with pre-packaged local AI 
 
 ---
 
+## Mobile Command Companion
+
+- **[Download Android APK](https://github.com/wests-cmd/Centipede-os/releases/latest)** (Direct Android Mobile Client)
+- **[Google Play Store](https://github.com/wests-cmd/Centipede-os)** (Play Store Listing)
+- **[Apple App Store / TestFlight](https://github.com/wests-cmd/Centipede-os)** (iOS Companion Client)
+
+---
+
 ### Unsure Which Profile You Need?
 Choose **[Auto-Detect & Recommend Profile](https://github.com/wests-cmd/Centipede-os/releases/latest)** during bootstrap setup. Centipede OS will evaluate your computer's CPU cores, RAM, and disk space to recommend the safest profile automatically.
+<!-- CENTIPEDE_DOWNLOADS_END -->
 
 ---
 
@@ -160,7 +170,7 @@ If an update or workflow fails, Centipede OS preserves your data:
 # Install dependencies
 bun install
 
-# Run unit, adversarial & compatibility test suites (105 tests across 15 suites)
+# Run unit & adversarial test suites (105 tests across 15 suites)
 bun test
 
 # Run contract verification against live Kingdom server
@@ -169,9 +179,3 @@ bun run test:contract
 # Run Playwright E2E browser tests
 bun run test:e2e
 ```
-
-### Kingdom ↔ Centipede Capability Negotiation & Compatibility
-- **Contract Specification**: `src/api/contractSpec.ts`
-- **Capability Negotiator**: `src/api/capabilityNegotiator.ts`
-- **Expected Version**: `v40.1.0` (Supported: `v40.0.0` – `v40.1.9`)
-- **ZeroTrust Boundary**: Capability negotiation classifies version/capability status (`SUPPORTED`, `UNSUPPORTED`, `DEGRADED`, `INCOMPATIBLE`, `UNKNOWN`, `REQUIRES_UPDATE`), but NEVER acts as an authorization authority. Kingdom remains authoritative.
