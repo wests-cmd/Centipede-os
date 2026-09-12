@@ -36,12 +36,11 @@ export class DeviceTrustManager {
   public static readonly MAX_PAIRING_ATTEMPTS = 5;
   private devices: Map<string, TrustedDevice> = new Map();
   private pendingPairingCodes: Map<string, { deviceId: string; expiresAt: number; attempts: number }> = new Map();
-  private sessionTokenIndex: Map<string, TrustedDevice> = new Map();
 
   private cleanupExpired(): void {
     const now = Date.now();
     for (const [code, pending] of this.pendingPairingCodes.entries()) {
-      if (pending.expiresAt < now || pending.attempts > DeviceTrustManager.MAX_PAIRING_ATTEMPTS) {
+      if (pending.expiresAt < now) {
         this.pendingPairingCodes.delete(code);
       }
     }
