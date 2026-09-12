@@ -52,29 +52,40 @@ export class SearchAggregator {
     const accessedProtectedSources: string[] = [];
     const aggregatedResults: SearchResultItem[] = [];
 
-    // Execute provider searches in parallel with timeouts
+    // Execute provider searches in parallel with timeouts using Promise.allSettled
     const searchPromises = activeProviders.map(async (provider) => {
+      let timer: any = null;
       try {
-        const timeoutPromise = new Promise<SearchResultItem[]>((resolve) =>
-          setTimeout(() => resolve([]), query.timeoutMs)
-        );
+        const timeoutPromise = new Promise<SearchResultItem[]>((resolve) => {
+          timer = setTimeout(() => resolve([]), query.timeoutMs);
+        });
 
         const results = await Promise.race([provider.search(query), timeoutPromise]);
+        if (timer) clearTimeout(timer);
 
         accessedProtectedSources.push(provider.sourceType);
         return results.slice(0, effectivePolicy.maxResultsPerProvider);
       } catch (err) {
+        if (timer) clearTimeout(timer);
         return [];
       }
     });
 
-    const globalTimeout = new Promise<SearchResultItem[][]>((resolve) =>
-      setTimeout(() => resolve([]), effectivePolicy.globalTimeoutMs)
-    );
+    let globalTimer: any = null;
+    const globalTimeout = new Promise<SearchResultItem[][]>((resolve) => {
+      globalTimer = setTimeout(() => resolve([]), effectivePolicy.globalTimeoutMs);
+    });
 
-    const providerResultsArray = await Promise.race([Promise.all(searchPromises), globalTimeout]);
+    const providerResultsSettled = await Promise.race([
+      Promise.allSettled(searchPromises).then((settled) =>
+        settled.map((s) => (s.status === 'fulfilled' ? s.value : []))
+      ),
+      globalTimeout,
+    ]);
 
-    for (const resList of providerResultsArray) {
+    if (globalTimer) clearTimeout(globalTimer);
+
+    for (const resList of providerResultsSettled) {
       if (Array.isArray(resList)) {
         aggregatedResults.push(...resList);
       }
@@ -83,11 +94,16 @@ export class SearchAggregator {
     // Enforce total context size cap
     const finalResults = aggregatedResults.slice(0, 20);
 
-    // Conflict detection across sources
+    // Fast O(N) Conflict detection across sources using a Set
     let hasConflicts = false;
-    const titles = finalResults.map((r) => r.title.toLowerCase());
-    if (titles.some((t, i) => titles.indexOf(t) !== i)) {
-      hasConflicts = true;
+    const seenTitles = new Set<string>();
+    for (let i = 0; i < finalResults.length; i++) {
+      const lowerTitle = finalResults[i].title.toLowerCase();
+      if (seenTitles.has(lowerTitle)) {
+        hasConflicts = true;
+        break;
+      }
+      seenTitles.add(lowerTitle);
     }
 
     return {
