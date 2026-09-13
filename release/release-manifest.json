@@ -1,0 +1,25 @@
+{
+  "product": "Centipede OS",
+  "centipedeVersion": "1.0.0",
+  "releaseChannel": "production",
+  "buildTimestamp": "2026-09-13T22:05:45.351Z",
+  "gitCommit": "d6e73a0ce7c498eac71488e3ddf90440100ea8a9",
+  "expectedKingdomContractVersion": "40.1.0",
+  "minimumKingdomSupportedVersion": "40.0.0",
+  "maximumKingdomTestedVersion": "40.1.9",
+  "artifacts": [
+    {
+      "filename": "centipede-os-1.0.0-desktop-web-bundle.tar.gz",
+      "targetProfile": "Desktop Web App / Commander / Knight",
+      "platform": "Cross-Platform (Web / Node / Bun)",
+      "sizeBytes": 98013,
+      "sha256": "b1b382306a4ae04405c6a9ef19a318c28a38405b6d1abb0a0bc7e809d25be0d1"
+    }
+  ],
+  "deploymentProfiles": {
+    "Commander": "Full orchestration, swarm management & ZeroTrust authorization",
+    "Knight": "Worker node executing assigned tasks & container workloads",
+    "Scout": "Lightweight environment & capability discovery",
+    "Ultralight": "Base install < 5.0 GB for Live USB & VM targets"
+  }
+}

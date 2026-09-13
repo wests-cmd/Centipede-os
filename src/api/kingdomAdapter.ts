@@ -18,6 +18,12 @@ import {
 } from '../types';
 import { capabilityNegotiator, CapabilityNegotiationResult } from './capabilityNegotiator';
 import { KINGDOM_CONTRACT_SPEC } from './contractSpec';
+import {
+  CENTIPEDE_VERSION,
+  EXPECTED_KINGDOM_CONTRACT_VERSION,
+  MIN_KINGDOM_SUPPORTED_VERSION,
+  MAX_KINGDOM_TESTED_VERSION,
+} from '../version';
 
 export class KingdomApiError extends Error {
   public code: KingdomErrorCode;
@@ -48,13 +54,13 @@ export class KingdomAdapter {
   private maxBackoffDelay = 16000;
   private isReconnecting = false;
 
-  private minSupportedVersion = '40.0.0';
-  private maxTestedVersion = '40.1.9';
+  private minSupportedVersion = MIN_KINGDOM_SUPPORTED_VERSION;
+  private maxTestedVersion = MAX_KINGDOM_TESTED_VERSION;
 
   private compatibilityInfo: VersionCompatibility = {
     detectedVersion: null,
-    minSupportedVersion: '40.0.0',
-    maxTestedVersion: '40.1.9',
+    minSupportedVersion: MIN_KINGDOM_SUPPORTED_VERSION,
+    maxTestedVersion: MAX_KINGDOM_TESTED_VERSION,
     status: 'UNKNOWN',
     message: 'Kingdom version not yet checked.',
   };
@@ -94,8 +100,8 @@ export class KingdomAdapter {
   public getKingdomRuntimeInfo(): KingdomRuntimeInfo {
     const isOnline = this.connectionState === 'CONNECTED';
     return {
-      centipedeVersion: '1.0.0',
-      expectedKingdomContractVersion: '40.1.0',
+      centipedeVersion: CENTIPEDE_VERSION,
+      expectedKingdomContractVersion: EXPECTED_KINGDOM_CONTRACT_VERSION,
       connectedKingdomVersion: isOnline && this.lastKnownStatus ? this.lastKnownStatus.version : null,
       lastKnownKingdomVersion: this.lastKnownKingdomVersion,
       connectionState: this.connectionState,
