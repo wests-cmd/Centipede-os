@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "start": "bun scripts/start-centipede.ts",
     "dev": "vite",
     "build": "vite build",
     "build:release": "bun scripts/build-release.ts",
