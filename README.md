@@ -8,22 +8,16 @@ Centipede OS operates on top of **Kingdom** (`wests-cmd/kingdom`), an independen
 
 # Download Centipede OS
 
-Choose the download profile that fits your system or hardware role:
+Choose the deployment profile or release package for your environment:
 
-### 1. [Download Commander](https://github.com/wests-cmd/Centipede-os/releases/latest)
-For your main desktop PC or primary control hub. Manages AI orchestration, workflow planning, and security policies.
+### 1. [Download Cross-Platform Desktop Web Bundle (`.tar.gz`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
+Available Now. Standalone cross-platform desktop workstation web bundle with guided First-Run Setup Wizard and Segmentor assistant.
 
-### 2. [Download Knight](https://github.com/wests-cmd/Centipede-os/releases/latest)
-For dedicated execution worker nodes. Handles background workloads, data processing, and approved automated tasks.
+### 2. [Launch Swarm Docker Stack (`docker-compose.yml`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
+Available Now. Production multi-container Docker Compose stack featuring Commander (`centipede-commander`), Knight (`centipede-knight`), Scout (`centipede-scout`), and Kingdom Engine (`centipede-kingdom-engine`).
 
-### 3. [Download Ultralight / Live USB](https://github.com/wests-cmd/Centipede-os/releases/latest)
-For USB flash drives, Virtual Machines (VirtualBox/VMware/UTM), or older hardware with limited storage (< 5 GB installed footprint).
-
-### 4. [Download Scout](https://github.com/wests-cmd/Centipede-os/releases/latest)
-For lightweight edge discovery and monitoring nodes. Collects device telemetry and system health without heavy workloads.
-
-### 5. [Download Full Centipede](https://github.com/wests-cmd/Centipede-os/releases/latest)
-For the complete all-in-one local desktop experience with pre-packaged local AI models and container tools.
+### 3. [Live USB / Bootable ISO Image](https://github.com/wests-cmd/Centipede-os/releases/latest)
+Planned Milestone. On-demand Linux kernel live bootable ISO packaging pipeline for bare-metal flash drives and VMs.
 
 ---
 
@@ -106,23 +100,25 @@ You can monitor and command Centipede OS away from your computer using any mobil
 
 For detailed non-technical installation steps, see our [Installation Guide](docs/INSTALLATION_GUIDE.md).
 
-### Option A: Try Centipede OS Live / USB
-1. Insert a **32 GB or 64 GB USB drive**.
-2. Flash `centipede-os-ultralight.iso` using BalenaEtcher or Rufus.
-3. Boot your computer from USB to try Centipede OS without touching your hard drive.
-
-### Option B: Run in a Virtual Machine (VM)
-1. Open VirtualBox, VMware, or UTM.
-2. Create a VM with **2 CPU cores, 4 GB RAM, and 32 GB Storage**.
-3. Select `centipede-os-ultralight.iso` as the boot disk.
-
-### Option C: Run with Docker Compose
+### Option A: Desktop Workstation Quick Start (One-Click Launch)
 ```bash
 # Clone repository
 git clone https://github.com/wests-cmd/Centipede-os.git
 cd Centipede-os
 
-# Start non-root container environment
+# Install & launch with one-click script
+bun install
+bun start
+```
+Open `http://localhost:3000` in your browser to complete the guided 6-step First-Run Setup Wizard.
+
+### Option B: Run Swarm Docker Stack
+```bash
+# Clone repository
+git clone https://github.com/wests-cmd/Centipede-os.git
+cd Centipede-os
+
+# Start production multi-node swarm containers
 docker-compose up -d
 ```
 Open `http://localhost:3000` in your browser.
