@@ -19,10 +19,12 @@ describe('MemoryStore', () => {
 
   it('stores local memory and calculates trust levels correctly', async () => {
     const memory = await memoryStore.recordMemory({
-      type: 'CONVERSATION',
-      content: { key: 'user_preference', value: 'dark_theme' },
+      type: 'SEMANTIC',
+      content: 'user preference: dark theme',
       trustLevel: 'USER_CONFIRMED',
       scope: 'USER',
+      provenance: { source: 'TEST', sourceId: 'mem1', timestamp: Date.now() },
+      confidence: 1.0,
     });
 
     expect(memory.memoryId).toBeDefined();
@@ -33,38 +35,46 @@ describe('MemoryStore', () => {
   it('enforces trust level hierarchy during overwrites', async () => {
     const mem1 = await memoryStore.recordMemory({
       memoryId: 'mem-100',
-      type: 'FACT',
+      type: 'SEMANTIC',
       content: 'Trusted authority fact',
       trustLevel: 'SYSTEM_AUTHORITY',
-      scope: 'GLOBAL',
+      scope: 'SYSTEM',
+      provenance: { source: 'TEST', sourceId: 'mem100', timestamp: Date.now() },
+      confidence: 1.0,
     });
 
     // Attempting to overwrite with lower trust level should fail
     await expect(
       memoryStore.recordMemory({
         memoryId: 'mem-100',
-        type: 'FACT',
+        type: 'SEMANTIC',
         content: 'Unverified rumor',
         trustLevel: 'UNVERIFIED',
-        scope: 'GLOBAL',
+        scope: 'SYSTEM',
+        provenance: { source: 'TEST', sourceId: 'mem100', timestamp: Date.now() },
+        confidence: 0.1,
       })
     ).rejects.toThrow(/Trust level hierarchy violation/);
   });
 
   it('filters memories by scope', async () => {
     await memoryStore.recordMemory({
-      type: 'TASK_HISTORY',
-      content: { task: '1' },
+      type: 'PROCEDURAL',
+      content: 'task 1',
       trustLevel: 'VERIFIED_TOOL_RESULT',
       scope: 'PROJECT',
       projectId: 'proj-A',
+      provenance: { source: 'TEST', sourceId: 'proj1', timestamp: Date.now() },
+      confidence: 1.0,
     });
 
     await memoryStore.recordMemory({
-      type: 'FEEDBACK',
-      content: { text: 'good' },
+      type: 'SEMANTIC',
+      content: 'good feedback',
       trustLevel: 'USER_CONFIRMED',
       scope: 'USER',
+      provenance: { source: 'TEST', sourceId: 'user1', timestamp: Date.now() },
+      confidence: 1.0,
     });
 
     const projectOnly = memoryStore.getMemories('PROJECT');

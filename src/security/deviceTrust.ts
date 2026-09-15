@@ -41,7 +41,7 @@ export class DeviceTrustManager {
   private cleanupExpired(): void {
     const now = Date.now();
     for (const [code, pending] of this.pendingPairingCodes.entries()) {
-      if (pending.expiresAt < now || pending.attempts > DeviceTrustManager.MAX_PAIRING_ATTEMPTS) {
+      if (pending.expiresAt < now) {
         this.pendingPairingCodes.delete(code);
       }
     }
