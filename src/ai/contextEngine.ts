@@ -34,6 +34,7 @@ export class ContextEngine {
     const rawMemories = memoryStore.getMemoriesByScope('GLOBAL');
     const now = Date.now();
     const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+    const lowerQuery = query.toLowerCase();
 
     const items: ContextItem[] = rawMemories.map((mem) => {
       const timestamp = mem.provenance?.timestamp || mem.timestamp || now;
@@ -42,7 +43,8 @@ export class ContextEngine {
 
       // Calculate relevance score
       let score = 0.5;
-      if (query.toLowerCase().includes(mem.content.toLowerCase().slice(0, 10))) {
+      const lowerContentSnippet = mem.content.toLowerCase().slice(0, 10);
+      if (lowerQuery.includes(lowerContentSnippet)) {
         score += 0.4;
       }
       if (mem.trustLevel === 'SYSTEM_AUTHORITY') score += 0.3;
