@@ -243,8 +243,6 @@ export class ToolExecutor {
           capability: req.capability || tool.capabilities[0],
           operation: req.operation || 'execute',
           parameters: req.parameters,
-          planId: req.id,
-          intentId: req.id,
           riskLevel: tool.riskClass,
           authorizationState: 'AUTHORIZED',
         });

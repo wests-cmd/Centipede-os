@@ -19,12 +19,10 @@ describe('MemoryStore', () => {
 
   it('stores local memory and calculates trust levels correctly', async () => {
     const memory = await memoryStore.recordMemory({
-      type: 'SEMANTIC',
-      content: 'user preference: dark theme',
+      type: 'CONVERSATION',
+      content: { key: 'user_preference', value: 'dark_theme' },
       trustLevel: 'USER_CONFIRMED',
       scope: 'USER',
-      provenance: { source: 'TEST', sourceId: 'mem1', timestamp: Date.now() },
-      confidence: 1.0,
     });
 
     expect(memory.memoryId).toBeDefined();
@@ -35,46 +33,38 @@ describe('MemoryStore', () => {
   it('enforces trust level hierarchy during overwrites', async () => {
     const mem1 = await memoryStore.recordMemory({
       memoryId: 'mem-100',
-      type: 'SEMANTIC',
+      type: 'FACT',
       content: 'Trusted authority fact',
       trustLevel: 'SYSTEM_AUTHORITY',
-      scope: 'SYSTEM',
-      provenance: { source: 'TEST', sourceId: 'mem100', timestamp: Date.now() },
-      confidence: 1.0,
+      scope: 'GLOBAL',
     });
 
     // Attempting to overwrite with lower trust level should fail
     await expect(
       memoryStore.recordMemory({
         memoryId: 'mem-100',
-        type: 'SEMANTIC',
+        type: 'FACT',
         content: 'Unverified rumor',
         trustLevel: 'UNVERIFIED',
-        scope: 'SYSTEM',
-        provenance: { source: 'TEST', sourceId: 'mem100', timestamp: Date.now() },
-        confidence: 0.1,
+        scope: 'GLOBAL',
       })
     ).rejects.toThrow(/Trust level hierarchy violation/);
   });
 
   it('filters memories by scope', async () => {
     await memoryStore.recordMemory({
-      type: 'PROCEDURAL',
-      content: 'task 1',
+      type: 'TASK_HISTORY',
+      content: { task: '1' },
       trustLevel: 'VERIFIED_TOOL_RESULT',
       scope: 'PROJECT',
       projectId: 'proj-A',
-      provenance: { source: 'TEST', sourceId: 'proj1', timestamp: Date.now() },
-      confidence: 1.0,
     });
 
     await memoryStore.recordMemory({
-      type: 'SEMANTIC',
-      content: 'good feedback',
+      type: 'FEEDBACK',
+      content: { text: 'good' },
       trustLevel: 'USER_CONFIRMED',
       scope: 'USER',
-      provenance: { source: 'TEST', sourceId: 'user1', timestamp: Date.now() },
-      confidence: 1.0,
     });
 
     const projectOnly = memoryStore.getMemories('PROJECT');

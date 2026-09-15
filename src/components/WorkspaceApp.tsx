@@ -20,9 +20,9 @@ export const WorkspaceApp: React.FC = () => {
     refreshData();
   }, []);
 
-  const handleExecuteWorkflow = async (workflowId: string) => {
+  const handleExecuteWorkflow = (workflowId: string) => {
     try {
-      const run = await workflowEngine.executeWorkflow(workflowId);
+      const run = workflowEngine.executeWorkflow(workflowId);
       setActiveRun(run);
       setStatusMessage(`Workflow run ${run.runId} initiated with status: ${run.status}`);
     } catch (err: any) {
