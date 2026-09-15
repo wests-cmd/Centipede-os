@@ -1,5 +1,4 @@
 import { RiskLevel } from '../ai/types';
-export type { RiskLevel };
 
 export type MemoryCategory =
   | 'EPISODIC'

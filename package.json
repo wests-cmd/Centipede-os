@@ -4,10 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "bun scripts/start-centipede.ts",
     "dev": "vite",
     "build": "vite build",
-    "build:release": "bun scripts/build-release.ts",
     "preview": "vite preview",
     "test": "bun test tests/unit/*.test.ts",
     "test:contract": "bun tests/integration/contract.integration.ts",

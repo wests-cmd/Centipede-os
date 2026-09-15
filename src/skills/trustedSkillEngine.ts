@@ -1,4 +1,4 @@
-import { syncSha256 } from '../security/cryptoUtils';
+import { createHash } from 'node:crypto';
 import { SkillManifest } from './manifest';
 
 function compareSemver(v1: string, v2: string): number {
@@ -19,7 +19,7 @@ export class TrustedSkillEngine {
 
   public calculateArtifactChecksum(content: any): string {
     const raw = typeof content === 'string' ? content : JSON.stringify(content || {});
-    return syncSha256(raw);
+    return createHash('sha256').update(raw).digest('hex');
   }
 
   public registerSkillManifest(manifest: SkillManifest, isAuthoritativeTrust = false): SkillManifest {
