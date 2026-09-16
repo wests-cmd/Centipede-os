@@ -1,5 +1,5 @@
 import { IntegrationCapability, NormalizedIntegrationResult, WorkspaceIntegration } from './types';
-import { toolExecutor } from '../tools/executor';
+import { toolExecutor, toolRegistry } from '../tools';
 
 export class IntegrationRegistry {
   private integrations: Map<string, WorkspaceIntegration> = new Map();

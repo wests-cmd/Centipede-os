@@ -48,6 +48,7 @@ export class DeviceTrustManager {
   }
 
   public initiatePairing(deviceName: string, deviceType: DeviceType): { deviceId: string; pairingCode: string; qrData: string } {
+    this.cleanupExpired();
     const deviceId = `dev_${Date.now()}_${generateSecureRandomHex(4)}`;
     const pairingCode = generateSecurePin(); // CSPRNG 6-digit PIN
 
