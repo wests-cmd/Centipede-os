@@ -88,11 +88,19 @@ export class DeviceTrustManager {
     pending.attempts += 1;
     if (pending.attempts > DeviceTrustManager.MAX_PAIRING_ATTEMPTS) {
       this.pendingPairingCodes.delete(pairingCode);
+      const device = this.devices.get(pending.deviceId);
+      if (device && device.trustState === 'PENDING_PAIRING') {
+        this.devices.delete(pending.deviceId);
+      }
       return { success: false, error: 'Invalid or expired pairing code.' };
     }
 
     if (pending.expiresAt < Date.now()) {
       this.pendingPairingCodes.delete(pairingCode);
+      const device = this.devices.get(pending.deviceId);
+      if (device && device.trustState === 'PENDING_PAIRING') {
+        this.devices.delete(pending.deviceId);
+      }
       return { success: false, error: 'Invalid or expired pairing code.' };
     }
 
@@ -139,6 +147,7 @@ export class DeviceTrustManager {
   }
 
   public getPairedDevices(): TrustedDevice[] {
+    this.cleanupExpired();
     return Array.from(this.devices.values()).filter((d) => d.trustState === 'PAIRED_ACTIVE' || d.trustState === 'REVOKED');
   }
 }
