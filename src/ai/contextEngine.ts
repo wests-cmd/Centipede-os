@@ -31,18 +31,20 @@ export interface DryRunResult {
 
 export class ContextEngine {
   public getRankedContext(query: string, maxItems = 5): ContextItem[] {
-    const rawMemories = memoryStore.getMemoriesByScope('GLOBAL');
+    const rawMemories = memoryStore.getMemoriesByScope('SYSTEM');
     const now = Date.now();
     const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+    const lowerQuery = query.toLowerCase();
 
-    const items: ContextItem[] = rawMemories.map((mem) => {
+    const items: ContextItem[] = rawMemories.map((mem: any) => {
       const timestamp = mem.provenance?.timestamp || mem.timestamp || now;
       const ageMs = now - timestamp;
       const isStale = ageMs > thirtyDaysMs;
 
       // Calculate relevance score
       let score = 0.5;
-      if (query.toLowerCase().includes(mem.content.toLowerCase().slice(0, 10))) {
+      const lowerContentSnippet = mem.content.toLowerCase().slice(0, 10);
+      if (lowerQuery.includes(lowerContentSnippet)) {
         score += 0.4;
       }
       if (mem.trustLevel === 'SYSTEM_AUTHORITY') score += 0.3;
@@ -51,7 +53,7 @@ export class ContextEngine {
 
       return {
         id: mem.memoryId,
-        type: mem.type === 'FACT' ? 'SEMANTIC' : 'LONG_TERM',
+        type: mem.type === 'SEMANTIC' ? 'SEMANTIC' : 'LONG_TERM',
         content: mem.content,
         source: mem.trustLevel,
         relevanceScore: Math.min(1.0, Math.max(0.0, score)),

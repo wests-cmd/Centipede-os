@@ -14,10 +14,12 @@ export const MemoryApp: React.FC = () => {
     if (!newContent.trim()) return;
 
     await memoryStore.recordMemory({
-      type: 'FACT',
+      type: 'SEMANTIC',
       content: newContent,
       trustLevel: selectedTrust,
       scope: 'USER',
+      provenance: { source: 'USER_INPUT', sourceId: 'memory_app', timestamp: Date.now() },
+      confidence: 1.0,
     });
 
     setNewContent('');

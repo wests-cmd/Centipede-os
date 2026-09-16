@@ -39,10 +39,14 @@ describe('Step 12 & 13 — Advanced Agent Control Plane & Trusted Skill Security
     const originalIntent = 'Summarize my invoice document';
     const driftedPlan: Plan = {
       id: 'plan_drift_1',
+      intentId: 'intent_drift_1',
       description: 'Read invoice document and upload file to external server',
       steps: [],
+      requiredCapabilities: ['filesystem.read', 'external.upload'],
+      operation: 'upload',
+      parameters: {},
       riskLevel: 'HIGH',
-      requiresHumanApproval: true,
+      requiresApproval: true,
       reasoning: 'Drift test plan',
     };
 

@@ -13,14 +13,18 @@ describe('Step 9 — Persistent Knowledge, Context Reasoning & Skill Intelligenc
   it('Test 1 — Context Engine Ranks Context and Generates Side-Effect-Free Dry Run Simulation', () => {
     const mockPlan: Plan = {
       id: 'plan_sim_1',
+      intentId: 'intent_sim_1',
       description: 'Simulate file deletion workflow',
       steps: [
-        { description: 'Locate files in /tmp', actionType: 'find' },
-        { description: 'Delete temp files', actionType: 'delete' },
+        { stepNumber: 1, description: 'Locate files in /tmp', actionType: 'find', requiredCapability: 'filesystem.read', operation: 'read', parameters: { path: '/tmp' } },
+        { stepNumber: 2, description: 'Delete temp files', actionType: 'delete', requiredCapability: 'filesystem.delete', operation: 'delete', parameters: { path: '/tmp/test' } },
       ],
+      requiredCapabilities: ['filesystem.delete'],
+      operation: 'delete',
+      parameters: { path: '/tmp/test' },
       targetCapability: 'filesystem.delete',
       riskLevel: 'HIGH',
-      requiresHumanApproval: true,
+      requiresApproval: true,
       reasoning: 'Simulation test plan',
     };
 

@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # --- 1. KINGDOM RUNTIME ENGINE ---
+  # --- 1. KINGDOM DISTRIBUTED RUNTIME ENGINE ---
   kingdom-engine:
     image: python:3.11-slim
     container_name: centipede-kingdom-engine
@@ -21,14 +21,15 @@ services:
       - kingdom-data:/app/data
     restart: unless-stopped
 
-  # --- 2. CENTIPEDE OS DESKTOP SHELL ---
-  centipede-ui:
+  # --- 2. COMMANDER NODE (Control & Orchestration Workstation) ---
+  commander-node:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: centipede-os-ui
+    container_name: centipede-commander
     environment:
       - PORT=3000
+      - CENTIPEDE_PROFILE=FULL_CENTIPEDE
       - KINGDOM_API_URL=http://kingdom-engine:8000
       - OLLAMA_API_URL=http://ollama-model:11434
     networks:
@@ -44,7 +45,59 @@ services:
       timeout: 5s
       retries: 3
     volumes:
-      - centipede-data:/app/data
+      - commander-data:/app/data
+    restart: unless-stopped
+
+  # --- 3. KNIGHT NODE (Workload Execution Worker) ---
+  knight-node:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: centipede-knight
+    environment:
+      - PORT=3001
+      - CENTIPEDE_PROFILE=KNIGHT
+      - KINGDOM_API_URL=http://kingdom-engine:8000
+    networks:
+      - centipede-net
+    ports:
+      - "3001:3000"
+    depends_on:
+      kingdom-engine:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost:3000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - knight-data:/app/data
+    restart: unless-stopped
+
+  # --- 4. SCOUT NODE (Environment Discovery Agent) ---
+  scout-node:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: centipede-scout
+    environment:
+      - PORT=3002
+      - CENTIPEDE_PROFILE=SCOUT
+      - KINGDOM_API_URL=http://kingdom-engine:8000
+    networks:
+      - centipede-net
+    ports:
+      - "3002:3000"
+    depends_on:
+      kingdom-engine:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost:3000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - scout-data:/app/data
     restart: unless-stopped
 
 networks:
@@ -53,4 +106,6 @@ networks:
 
 volumes:
   kingdom-data:
-  centipede-data:
+  commander-data:
+  knight-data:
+  scout-data:

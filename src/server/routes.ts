@@ -1,6 +1,7 @@
 import { deviceTrustManager } from '../security/deviceTrust';
 import { platformDetector } from '../platform/detector';
 import { configManager } from '../config';
+import { CENTIPEDE_VERSION } from '../version';
 
 export interface ApiRequest {
   path: string;
@@ -17,16 +18,17 @@ export interface ApiResponse {
 
 export class ApiRouter {
   public async handleRequest(req: ApiRequest): Promise<ApiResponse> {
-    const sessionToken = req.headers?.['authorization']?.replace('Bearer ', '');
+    try {
+      const sessionToken = req.headers?.['authorization']?.replace('Bearer ', '');
 
-    // 1. Unauthenticated Public Endpoints
+      // 1. Unauthenticated Public Endpoints
     if (req.path === '/api/v1/health') {
       const configVal = configManager.validateConfig();
       return {
         status: 200,
         data: {
           status: configVal.valid ? 'HEALTHY' : 'DEGRADED',
-          version: '1.0.0',
+          version: CENTIPEDE_VERSION,
           timestamp: Date.now(),
         },
       };
@@ -64,6 +66,9 @@ export class ApiRouter {
     }
 
     return { status: 404, error: 'Endpoint not found.' };
+    } catch (err: any) {
+      return { status: 500, error: `Internal Server Error: ${err.message || 'Unexpected exception.'}` };
+    }
   }
 }
 
