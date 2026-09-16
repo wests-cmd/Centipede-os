@@ -42,11 +42,16 @@ export class DeviceTrustManager {
     for (const [code, pending] of this.pendingPairingCodes.entries()) {
       if (pending.expiresAt < now) {
         this.pendingPairingCodes.delete(code);
+        const device = this.devices.get(pending.deviceId);
+        if (device && device.trustState === 'PENDING_PAIRING') {
+          this.devices.delete(pending.deviceId);
+        }
       }
     }
   }
 
   public initiatePairing(deviceName: string, deviceType: DeviceType): { deviceId: string; pairingCode: string; qrData: string } {
+    this.cleanupExpired();
     const deviceId = `dev_${Date.now()}_${generateSecureRandomHex(4)}`;
     const pairingCode = generateSecurePin(); // CSPRNG 6-digit PIN
 
@@ -86,11 +91,19 @@ export class DeviceTrustManager {
     pending.attempts += 1;
     if (pending.attempts > DeviceTrustManager.MAX_PAIRING_ATTEMPTS) {
       this.pendingPairingCodes.delete(pairingCode);
+      const device = this.devices.get(pending.deviceId);
+      if (device && device.trustState === 'PENDING_PAIRING') {
+        this.devices.delete(pending.deviceId);
+      }
       return { success: false, error: 'Invalid or expired pairing code.' };
     }
 
     if (pending.expiresAt < Date.now()) {
       this.pendingPairingCodes.delete(pairingCode);
+      const device = this.devices.get(pending.deviceId);
+      if (device && device.trustState === 'PENDING_PAIRING') {
+        this.devices.delete(pending.deviceId);
+      }
       return { success: false, error: 'Invalid or expired pairing code.' };
     }
 
@@ -110,6 +123,7 @@ export class DeviceTrustManager {
   }
 
   public validateSessionToken(sessionToken: string): { valid: boolean; device?: TrustedDevice; error?: string } {
+    this.cleanupExpired();
     const device = Array.from(this.devices.values()).find((d) => d.sessionToken === sessionToken);
     if (!device) {
       return { valid: false, error: 'Device not authenticated or session token invalid.' };
@@ -133,6 +147,7 @@ export class DeviceTrustManager {
   }
 
   public getPairedDevices(): TrustedDevice[] {
+    this.cleanupExpired();
     return Array.from(this.devices.values()).filter((d) => d.trustState === 'PAIRED_ACTIVE' || d.trustState === 'REVOKED');
   }
 }
