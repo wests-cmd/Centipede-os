@@ -51,6 +51,63 @@ export interface WorkflowDefinition {
   updatedAt: number;
 }
 
+export type MissionStatus = 'DRAFT' | 'PLANNING' | 'WAITING_APPROVAL' | 'QUEUED' | 'RUNNING' | 'PAUSED' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED' | 'BLOCKED' | 'RECOVERY';
+
+export type TaskStatus = 'DRAFT' | 'WAITING_APPROVAL' | 'QUEUED' | 'DISPATCHED' | 'RUNNING' | 'PAUSED' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED' | 'TIMED_OUT' | 'BLOCKED' | 'RECOVERY';
+
+export interface MissionModel {
+  missionId: string;
+  userIntent: string;
+  createdAt: number;
+  updatedAt: number;
+  status: MissionStatus;
+  planId: string;
+  taskIds: string[];
+  approvalIds: string[];
+  requestedBy: string;
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  result?: Record<string, any>;
+  auditTraceId: string;
+}
+
+export interface TaskModel {
+  taskId: string;
+  missionId: string;
+  planId: string;
+  intentId: string;
+  actionId: string;
+  capability: string;
+  operation?: string;
+  parameters: Record<string, any>;
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  authorizationState: 'UNAUTHORIZED' | 'PENDING_APPROVAL' | 'AUTHORIZED';
+  nodeId?: string;
+  status: TaskStatus;
+  createdAt: number;
+  startedAt?: number;
+  completedAt?: number;
+  timeoutMs: number;
+  idempotencyKey: string;
+  correlationId: string;
+  result?: Record<string, any>;
+  error?: string;
+}
+
+export interface ActionModel {
+  actionId: string;
+  taskId: string;
+  missionId: string;
+  planId: string;
+  intentId: string;
+  capability: string;
+  operation?: string;
+  parameters: Record<string, any>;
+  parameterHash: string;
+  grantId?: string;
+  idempotencyKey: string;
+  correlationId: string;
+}
+
 export interface WorkflowExecutionRun {
   runId: string;
   workflowId: string;
