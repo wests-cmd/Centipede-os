@@ -16,6 +16,7 @@ export interface WorkflowStep {
     capabilityId: string;
     operation?: string;
     parameters: Record<string, any>;
+    grantId?: string;
   };
 }
 

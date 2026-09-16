@@ -17,14 +17,21 @@ import { MemoryApp } from './components/MemoryApp';
 import { SkillsApp } from './components/SkillsApp';
 import { MapsApp } from './components/MapsApp';
 import { Window } from './components/Window';
+import { FirstRunWizard } from './components/FirstRunWizard';
 import { ApprovalRequest, ConnectionState, RuntimeStatus } from './types';
 import { Brain, Cpu, Map, Server, Shield, Activity, Folder, Terminal as TermIcon, Sliders, Bot, Search, Smartphone, Grid, ShieldAlert } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [activeAppId, setActiveAppId] = useState<string>('launcher');
   const [status, setStatus] = useState<RuntimeStatus | null>(null);
-  const [connectionState, setConnectionState] = useState<ConnectionState>('offline');
+  const [connectionState, setConnectionState] = useState<ConnectionState>('DISCONNECTED');
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
+  const [isFirstRunCompleted, setIsFirstRunCompleted] = useState<boolean>(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return localStorage.getItem('centipede_first_run_completed') === 'true';
+    }
+    return true;
+  });
 
   useEffect(() => {
     const unsubConn = kingdomAdapter.subscribeConnection(setConnectionState);
@@ -153,6 +160,10 @@ export const App: React.FC = () => {
         );
     }
   };
+
+  if (!isFirstRunCompleted) {
+    return <FirstRunWizard onComplete={() => setIsFirstRunCompleted(true)} />;
+  }
 
   return (
     <DesktopShell

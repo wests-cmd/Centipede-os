@@ -6,6 +6,26 @@ Centipede OS operates on top of **Kingdom** (`wests-cmd/kingdom`), an independen
 
 ---
 
+# Download Centipede OS
+
+Choose the deployment profile or release package for your environment:
+
+### 1. [Download Cross-Platform Desktop Web Bundle (`.tar.gz`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
+Available Now. Standalone cross-platform desktop workstation web bundle with guided First-Run Setup Wizard and Segmentor assistant.
+
+### 2. [Launch Swarm Docker Stack (`docker-compose.yml`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
+Available Now. Production multi-container Docker Compose stack featuring Commander (`centipede-commander`), Knight (`centipede-knight`), Scout (`centipede-scout`), and Kingdom Engine (`centipede-kingdom-engine`).
+
+### 3. [Live USB / Bootable ISO Image](https://github.com/wests-cmd/Centipede-os/releases/latest)
+Planned Milestone. On-demand Linux kernel live bootable ISO packaging pipeline for bare-metal flash drives and VMs.
+
+---
+
+### Unsure Which Profile You Need?
+Choose **[Auto-Detect & Recommend Profile](https://github.com/wests-cmd/Centipede-os/releases/latest)** during bootstrap setup. Centipede OS will evaluate your computer's CPU cores, RAM, and disk space to recommend the safest profile automatically.
+
+---
+
 ## Quick Navigation
 
 - [What is Centipede OS?](#what-is-centipede-os)
@@ -78,23 +98,27 @@ You can monitor and command Centipede OS away from your computer using any mobil
 
 ## Installation Guide
 
-### Option A: Try Centipede OS Live / USB
-1. Insert a **32 GB or 64 GB USB drive**.
-2. Flash the Centipede OS Live image using BalenaEtcher or Rufus.
-3. Boot your computer from USB to try Centipede OS without touching your hard drive.
+For detailed non-technical installation steps, see our [Installation Guide](docs/INSTALLATION_GUIDE.md).
 
-### Option B: Run in a Virtual Machine (VM)
-1. Open VirtualBox, VMware, or UTM.
-2. Create a VM with **2 CPU cores, 4 GB RAM, and 32 GB Storage**.
-3. Select `centipede-os-ultralight.iso` as the boot disk.
-
-### Option C: Run with Docker Compose
+### Option A: Desktop Workstation Quick Start (One-Click Launch)
 ```bash
 # Clone repository
 git clone https://github.com/wests-cmd/Centipede-os.git
 cd Centipede-os
 
-# Start non-root container environment
+# Install & launch with one-click script
+bun install
+bun start
+```
+Open `http://localhost:3000` in your browser to complete the guided 6-step First-Run Setup Wizard.
+
+### Option B: Run Swarm Docker Stack
+```bash
+# Clone repository
+git clone https://github.com/wests-cmd/Centipede-os.git
+cd Centipede-os
+
+# Start production multi-node swarm containers
 docker-compose up -d
 ```
 Open `http://localhost:3000` in your browser.
