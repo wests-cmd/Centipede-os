@@ -8,34 +8,37 @@ function rightRotate(value: number, amount: number): number {
   return (value >>> amount) | (value << (32 - amount));
 }
 
-export function syncSha256(str: string): string {
-  // UTF-8 encode input string to byte array
+export function syncSha256(input: string | Uint8Array): string {
   let bytes: Uint8Array;
-  if (typeof TextEncoder !== 'undefined') {
-    bytes = new TextEncoder().encode(str || '');
+  if (input instanceof Uint8Array) {
+    bytes = input;
   } else {
-    // Fallback UTF-8 encoder
-    const encoded: number[] = [];
-    for (let i = 0; i < str.length; i++) {
-      let code = str.charCodeAt(i);
-      if (code < 0x80) {
-        encoded.push(code);
-      } else if (code < 0x800) {
-        encoded.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));
-      } else if (code < 0xd800 || code >= 0xe000) {
-        encoded.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
-      } else {
-        i++;
-        code = 0x10000 + (((code & 0x3ff) << 10) | (str.charCodeAt(i) & 0x3ff));
-        encoded.push(
-          0xf0 | (code >> 18),
-          0x80 | ((code >> 12) & 0x3f),
-          0x80 | ((code >> 6) & 0x3f),
-          0x80 | (code & 0x3f)
-        );
+    const str = input || '';
+    if (typeof TextEncoder !== 'undefined') {
+      bytes = new TextEncoder().encode(str);
+    } else {
+      const encoded: number[] = [];
+      for (let i = 0; i < str.length; i++) {
+        let code = str.charCodeAt(i);
+        if (code < 0x80) {
+          encoded.push(code);
+        } else if (code < 0x800) {
+          encoded.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));
+        } else if (code < 0xd800 || code >= 0xe000) {
+          encoded.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
+        } else {
+          i++;
+          code = 0x10000 + (((code & 0x3ff) << 10) | (str.charCodeAt(i) & 0x3ff));
+          encoded.push(
+            0xf0 | (code >> 18),
+            0x80 | ((code >> 12) & 0x3f),
+            0x80 | ((code >> 6) & 0x3f),
+            0x80 | (code & 0x3f)
+          );
+        }
       }
+      bytes = new Uint8Array(encoded);
     }
-    bytes = new Uint8Array(encoded);
   }
 
   // SHA-256 Constants

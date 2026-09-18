@@ -45,7 +45,7 @@ execSync(`tar -czf "${bundlePath}" -C "${rootDir}" dist`, { stdio: 'inherit' });
 // 4. Calculate Artifact Checksums & Metrics
 console.log('\n--- 3. Generating SHA-256 Checksums ---');
 const bundleBuffer = readFileSync(bundlePath);
-const bundleSha256 = syncSha256(bundleBuffer.toString('binary'));
+const bundleSha256 = syncSha256(new Uint8Array(bundleBuffer));
 const bundleSize = statSync(bundlePath).size;
 
 const sha256sumsContent = `${bundleSha256}  ${bundleName}\n`;
