@@ -82,7 +82,35 @@ export class PlatformDetector {
       dockerSocketMounted: false, // Security Directive: Docker socket mounting is prohibited!
     };
 
-    const storageBreakdown = this.calculateStorageMetrics(512, 256);
+    // Dynamic memory & hardware detection using navigator / node os module
+    let cpuCores = 4;
+    let totalMemoryMb = 8192;
+    let availableMemoryMb = 4096;
+
+    if (typeof navigator !== 'undefined') {
+      cpuCores = navigator.hardwareConcurrency || 4;
+      if ('deviceMemory' in navigator) {
+        totalMemoryMb = ((navigator as any).deviceMemory || 8) * 1024;
+        availableMemoryMb = Math.round(totalMemoryMb * 0.5);
+      }
+    }
+
+    let storageTotalGb = 128;
+    let storageAvailableGb = 64;
+
+    if (typeof navigator !== 'undefined' && 'storage' in navigator && navigator.storage && navigator.storage.estimate) {
+      try {
+        const estimate = await navigator.storage.estimate();
+        if (estimate.quota && estimate.usage !== undefined) {
+          storageTotalGb = Math.round(estimate.quota / (1024 * 1024 * 1024));
+          storageAvailableGb = Math.round((estimate.quota - estimate.usage) / (1024 * 1024 * 1024));
+        }
+      } catch (_) {
+        // Fallback estimate if storage API is restricted
+      }
+    }
+
+    const storageBreakdown = this.calculateStorageMetrics(storageTotalGb, storageAvailableGb);
 
     return {
       centipedeVersion: CENTIPEDE_VERSION,
@@ -92,11 +120,11 @@ export class PlatformDetector {
         osRelease: typeof process !== 'undefined' ? process.platform || 'browser' : 'browser',
       },
       hardware: {
-        cpuCores: typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 8 : 8,
-        totalMemoryMb: 16384,
-        availableMemoryMb: 8192,
-        storageTotalGb: 512,
-        storageAvailableGb: storageBreakdown.diskFreeGb,
+        cpuCores,
+        totalMemoryMb,
+        availableMemoryMb,
+        storageTotalGb,
+        storageAvailableGb,
         gpuAvailable: false,
         storageBreakdown,
       },

@@ -14,12 +14,15 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter }) => {
   const [savedMessage, setSavedMessage] = useState('');
   const [selectedProfile, setSelectedProfile] = useState<CentipedeProfile>('FULL_CENTIPEDE');
 
+  const detectedCores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 4 : 4;
+  const detectedRamMb = typeof navigator !== 'undefined' && 'deviceMemory' in navigator ? ((navigator as any).deviceMemory || 8) * 1024 : 8192;
+
   const profileRec = platformDetector.getProfileRecommendation({
-    cpuCores: 8,
-    totalMemoryMb: 16384,
-    availableMemoryMb: 8192,
-    storageTotalGb: 512,
-    storageAvailableGb: 256,
+    cpuCores: detectedCores,
+    totalMemoryMb: detectedRamMb,
+    availableMemoryMb: Math.round(detectedRamMb * 0.5),
+    storageTotalGb: 128,
+    storageAvailableGb: 64,
     gpuAvailable: false,
   });
 
