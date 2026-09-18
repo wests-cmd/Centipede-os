@@ -2,7 +2,7 @@
   "product": "Centipede OS",
   "centipedeVersion": "1.0.0",
   "releaseChannel": "production",
-  "buildTimestamp": "2026-09-18T16:38:45.281Z",
+  "buildTimestamp": "2026-09-18T17:23:21.847Z",
   "gitCommit": "d6e73a0ce7c498eac71488e3ddf90440100ea8a9",
   "expectedKingdomContractVersion": "40.1.0",
   "minimumKingdomSupportedVersion": "40.0.0",
@@ -12,8 +12,8 @@
       "filename": "centipede-os-1.0.0-desktop-web-bundle.tar.gz",
       "targetProfile": "Desktop Web App / Commander / Knight",
       "platform": "Cross-Platform (Web / Node / Bun)",
-      "sizeBytes": 108338,
-      "sha256": "2ea17072755fcfbb6332ce0ca72d3b34b08fc9b7c501286ee64d3953849f576a"
+      "sizeBytes": 108335,
+      "sha256": "8e0d74a3fdff42afebe344df84fb6994e7b20fdf356a1816fa3d05e129b63bc8"
     }
   ],
   "deploymentProfiles": {
