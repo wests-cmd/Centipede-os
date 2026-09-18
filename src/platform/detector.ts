@@ -1,5 +1,4 @@
 import { CentipedeProfile, HardwareInfo, OSPlatform, PlatformCapabilities, ProfileRecommendation, RuntimeInfo, StorageBreakdownMetrics, StoragePressureState } from './types';
-import { CENTIPEDE_VERSION } from '../version';
 
 export class PlatformDetector {
   public getProfileRecommendation(hardware: HardwareInfo): ProfileRecommendation {
@@ -85,7 +84,7 @@ export class PlatformDetector {
     const storageBreakdown = this.calculateStorageMetrics(512, 256);
 
     return {
-      centipedeVersion: CENTIPEDE_VERSION,
+      centipedeVersion: '1.0.0',
       platform: {
         os,
         architecture: typeof process !== 'undefined' ? process.arch || 'x64' : 'x64',
@@ -108,7 +107,7 @@ export class PlatformDetector {
       },
       capabilities,
       services: {
-        centipede: { status: 'HEALTHY', endpoint: 'http://localhost:3000', version: CENTIPEDE_VERSION, latencyMs: 2 },
+        centipede: { status: 'HEALTHY', endpoint: 'http://localhost:3000', version: '1.0.0', latencyMs: 2 },
         kingdom: { status: 'STOPPED', endpoint: 'http://localhost:8000' },
         aiModel: { status: 'STOPPED', endpoint: 'http://localhost:11434' },
       },

@@ -1,7 +1,6 @@
 import { deviceTrustManager } from '../security/deviceTrust';
 import { platformDetector } from '../platform/detector';
 import { configManager } from '../config';
-import { CENTIPEDE_VERSION } from '../version';
 
 export interface ApiRequest {
   path: string;
@@ -28,7 +27,7 @@ export class ApiRouter {
         status: 200,
         data: {
           status: configVal.valid ? 'HEALTHY' : 'DEGRADED',
-          version: CENTIPEDE_VERSION,
+          version: '1.0.0',
           timestamp: Date.now(),
         },
       };

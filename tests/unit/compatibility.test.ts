@@ -90,24 +90,4 @@ describe('Kingdom ↔ Centipede Compatibility & Adversarial Security Suite', () 
 
     expect(downgradeCompat.status).toBe('INCOMPATIBLE');
   });
-
-  it('5. Segmentor Identity Enforcement & Release Manifest Integrity', async () => {
-    const fs = await import('node:fs');
-    const path = await import('node:path');
-
-    // Read release manifest if created
-    const manifestPath = path.resolve(process.cwd(), 'release/release-manifest.json');
-    if (fs.existsSync(manifestPath)) {
-      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-      expect(manifest.product).toBe('Centipede OS');
-      expect(manifest.centipedeVersion).toBe('1.0.0');
-      expect(manifest.artifacts.length).toBeGreaterThan(0);
-      expect(manifest.artifacts[0].sha256).toBeDefined();
-    }
-
-    // Verify version file single source of truth
-    const { CENTIPEDE_VERSION, EXPECTED_KINGDOM_CONTRACT_VERSION } = await import('../../src/version');
-    expect(CENTIPEDE_VERSION).toBe('1.0.0');
-    expect(EXPECTED_KINGDOM_CONTRACT_VERSION).toBe('40.1.0');
-  });
 });

@@ -57,20 +57,12 @@ Open `http://localhost:3000` in your web browser.
 
 ---
 
-## 3. One-Click Launch & Guided First-Run Setup Wizard
+## 3. First-Boot Setup & Mobile Pairing
 
-1. Start Centipede OS using the one-click command or executable:
-   ```bash
-   bun start
-   ```
-2. The **Centipede OS Guided First-Run Wizard** will automatically launch in your browser at `http://localhost:3000`:
-   - **Step 1: Welcome** — Overview of Segmentor assistant and ZeroTrust governance.
-   - **Step 2: System Check** — Automated verification of OS, CPU, RAM, and storage allocation.
-   - **Step 3: Role Selection** — Select **Full Centipede OS Workstation**, **Knight Worker Node**, or **Scout Agent**.
-   - **Step 4: Security** — Configure ZeroTrust permission gate and approval policies.
-   - **Step 5: Kingdom Swarm** — Connect and verify connection to Kingdom backend (`http://localhost:8000`).
-   - **Step 6: Finish** — Confirm health check and enter Desktop Shell.
-3. Your setup preferences are saved locally and survive system restarts.
+1. When Centipede OS boots, the **Desktop Shell** appears.
+2. Click **Settings** → **Mobile Companion** to pair your smartphone.
+3. Scan the QR code or enter the 6-digit PIN on your phone.
+4. Your phone is now paired as an authorized command client.
 
 ---
 

@@ -11,21 +11,26 @@ export class UserKnowledgeStore {
   private memories: Map<string, MemoryItem> = new Map();
   private auditCorrections: UserFactCorrection[] = [];
 
-  public addConfirmedFact(memoryId: string, content: string, scope = 'SYSTEM'): MemoryItem {
+  public addConfirmedFact(memoryId: string, content: string, scope = 'SYSTEM_CONTEXT'): MemoryItem {
     const item: MemoryItem = {
       memoryId,
-      type: 'SEMANTIC',
+      type: 'FACT',
       content,
       trustLevel: 'USER_CONFIRMED',
       confidence: 1.0,
       version: 1,
-      scope: 'SYSTEM',
+      scope: 'SYSTEM_CONTEXT',
       provenance: {
-        source: 'USER_INPUT',
+        sourceType: 'USER_INPUT',
         sourceId: 'user_knowledge_store',
         timestamp: Date.now(),
       },
-      lifecycle: 'ACTIVE',
+      lifecycle: {
+        accessCount: 1,
+        lastAccessedAt: Date.now(),
+        isArchived: false,
+      },
+      timestamp: Date.now(),
     };
     this.memories.set(memoryId, item);
     return item;
@@ -37,18 +42,23 @@ export class UserKnowledgeStore {
     // Conflict resolution: New user-confirmed correction supersedes old fact
     const updated: MemoryItem = {
       memoryId,
-      type: 'SEMANTIC',
+      type: 'FACT',
       content: newContent,
       trustLevel: 'USER_CONFIRMED',
       confidence: 1.0,
       version: existing ? existing.version + 1 : 1,
-      scope: existing ? existing.scope : 'SYSTEM',
+      scope: existing ? existing.scope : 'SYSTEM_CONTEXT',
       provenance: {
-        source: 'USER_INPUT',
+        sourceType: 'USER_INPUT',
         sourceId: 'user_knowledge_store_correction',
         timestamp: Date.now(),
       },
-      lifecycle: 'ACTIVE',
+      lifecycle: {
+        accessCount: (existing?.lifecycle?.accessCount || 0) + 1,
+        lastAccessedAt: Date.now(),
+        isArchived: false,
+      },
+      timestamp: Date.now(),
     };
 
     this.auditCorrections.push({
