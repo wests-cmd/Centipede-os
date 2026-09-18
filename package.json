@@ -4,8 +4,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "start": "bun scripts/start-centipede.ts",
     "dev": "vite",
     "build": "vite build",
+    "build:release": "bun scripts/build-release.ts",
     "preview": "vite preview",
     "test": "bun test tests/unit/*.test.ts",
     "test:contract": "bun tests/integration/contract.integration.ts",
@@ -22,6 +24,9 @@
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.6.1",
+    "postcss": "^8.5.28",
+    "tailwindcss": "3.4.17",
     "typescript": "^5.7.2",
     "vite": "^5.4.11",
     "vitest": "^2.1.8"

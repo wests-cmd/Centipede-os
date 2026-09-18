@@ -62,6 +62,55 @@ export interface ServiceHealth {
   latencyMs?: number;
 }
 
+export type NodeState = 'DISCOVERED' | 'PAIRING' | 'ONLINE' | 'DEGRADED' | 'OFFLINE' | 'QUARANTINED' | 'DRAINING' | 'RETIRED';
+
+export type CentipedeEventType =
+  | 'MISSION_CREATED'
+  | 'MISSION_PLANNED'
+  | 'APPROVAL_REQUIRED'
+  | 'APPROVAL_APPROVED'
+  | 'APPROVAL_DENIED'
+  | 'TASK_QUEUED'
+  | 'TASK_DISPATCHED'
+  | 'TASK_STARTED'
+  | 'TASK_SUCCEEDED'
+  | 'TASK_FAILED'
+  | 'NODE_ONLINE'
+  | 'NODE_OFFLINE'
+  | 'NODE_DEGRADED'
+  | 'KINGDOM_CONNECTED'
+  | 'KINGDOM_DISCONNECTED'
+  | 'CONTRACT_DRIFT'
+  | 'SECURITY_BLOCK';
+
+export interface CentipedeEvent {
+  eventId: string;
+  eventType: CentipedeEventType;
+  timestamp: number;
+  source: string;
+  missionId?: string;
+  taskId?: string;
+  nodeId?: string;
+  correlationId: string;
+  severity: 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL';
+  payload: Record<string, any>;
+  schemaVersion: string;
+}
+
+export interface NodeInformation {
+  nodeId: string;
+  role: CentipedeProfile;
+  version: string;
+  capabilities: string[];
+  platform: OSPlatform;
+  architecture: string;
+  health: 'HEALTHY' | 'DEGRADED' | 'UNHEALTHY';
+  trustState: 'TRUSTED' | 'UNTRUSTED' | 'QUARANTINED';
+  nodeState: NodeState;
+  lastHeartbeat: number;
+  supportedProtocols: string[];
+}
+
 export interface RuntimeInfo {
   centipedeVersion: string;
   platform: {

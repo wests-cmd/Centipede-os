@@ -1,5 +1,5 @@
 import React from 'react';
-import { CentipedeOuroboros } from './CentipedeOuroboros';
+import { CentipedeWorldVisual } from './CentipedeWorldVisual';
 import {
   Activity,
   Bot,
@@ -110,9 +110,9 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8">
-      {/* Centipede Ouroboros Core Identity Banner */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-2xl backdrop-blur-md">
-        <CentipedeOuroboros size={220} />
+      {/* Centipede World Core Identity Visual */}
+      <div className="bg-slate-900/60 border border-slate-800 rounded-3xl h-64 overflow-hidden relative shadow-2xl backdrop-blur-md">
+        <CentipedeWorldVisual quality="BALANCED" motion="FULL" activeProfileName="Centipede Around the World" />
       </div>
 
       <div className="flex items-center space-x-3">

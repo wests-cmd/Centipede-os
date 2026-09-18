@@ -29,6 +29,7 @@ describe('Step 14 & 15 — Production Chaos & Failure Injection Suite', () => {
       capability: 'filesystem.read',
       parameters: { path: '/tmp/test.txt' },
       chainDepth: 1,
+      riskLevel: 'LOW' as const,
       idempotencyKey: 'idemp_unique_key_123',
     };
 
@@ -47,6 +48,7 @@ describe('Step 14 & 15 — Production Chaos & Failure Injection Suite', () => {
       capability: 'unknown.cap',
       parameters: { data: 'test' },
       chainDepth: 1,
+      riskLevel: 'LOW' as const,
     };
 
     const res = await toolExecutor.execute(request);

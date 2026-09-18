@@ -20,7 +20,7 @@ export class MemoryStore {
     this.adapter = adapter;
   }
 
-  public async recordMemory(entry: Omit<MemoryEntry, 'version' | 'lifecycle'>): Promise<MemoryEntry> {
+  public async recordMemory(entry: Omit<MemoryEntry, 'memoryId' | 'version' | 'lifecycle'> & { memoryId?: string }): Promise<MemoryEntry> {
     const memoryId = entry.memoryId || `mem_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const fullEntry: MemoryEntry = {
       ...entry,
@@ -70,12 +70,16 @@ export class MemoryStore {
     return false;
   }
 
-  public supersedeMemory(oldMemoryId: string, newEntry: Omit<MemoryEntry, 'version' | 'lifecycle'>): Promise<MemoryEntry> {
+  public supersedeMemory(oldMemoryId: string, newEntry: Omit<MemoryEntry, 'memoryId' | 'version' | 'lifecycle'> & { memoryId?: string }): Promise<MemoryEntry> {
     const old = this.localEntries.get(oldMemoryId);
     if (old) {
       old.lifecycle = 'SUPERSEDED';
     }
     return this.recordMemory(newEntry);
+  }
+
+  public getMemoriesByScope(scope: MemoryScope, projectId?: string): MemoryEntry[] {
+    return this.getMemories(scope, projectId);
   }
 
   public getMemories(scope?: MemoryScope, projectId?: string): MemoryEntry[] {
