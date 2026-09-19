@@ -89,6 +89,26 @@ describe('Step 7 — Platform Harness, Docker, API & Security Test Suite', () =>
     expect(res.data.capabilities).toBeDefined();
   });
 
+  it('Test K — API Error Handler Sanitizes 500 Responses Without Leaking Details', async () => {
+    const originalDetect = platformDetector.detectRuntimeInfo;
+    platformDetector.detectRuntimeInfo = async () => {
+      throw new Error('Database password / secret connection string failed at db.ts:42');
+    };
+
+    try {
+      const res = await apiRouter.handleRequest({
+        path: '/api/v1/runtime',
+        method: 'GET',
+      });
+
+      expect(res.status).toBe(500);
+      expect(res.error).toBe('Internal Server Error.');
+      expect(res.error).not.toContain('Database password');
+    } finally {
+      platformDetector.detectRuntimeInfo = originalDetect;
+    }
+  });
+
   it('Test I — Centipede OS Ultralight Profile Base Footprint Size Gate (< 5.0 GB Target)', async () => {
     const runtime = await platformDetector.detectRuntimeInfo();
     const storageBreakdown = runtime.hardware.storageBreakdown;
