@@ -112,6 +112,16 @@ export function isResourceWithinScope(requestedResource: string, resourceScope: 
 export class CapabilityGrantEngine {
   private grants: Map<string, CapabilityGrant> = new Map();
 
+  private purgeExpiredGrants(): void {
+    if (this.grants.size < 50) return;
+    const now = Date.now();
+    for (const [id, grant] of this.grants.entries()) {
+      if (grant.expiresAt <= now || grant.consumed) {
+        this.grants.delete(id);
+      }
+    }
+  }
+
   public issueJustInTimeGrant(
     agentId: string,
     capabilityId: string,
@@ -121,6 +131,7 @@ export class CapabilityGrantEngine {
     parameterHash?: string,
     contextOptions: CapabilityGrantOptions = {}
   ): CapabilityGrant {
+    this.purgeExpiredGrants();
     const grantId = `grant_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const grant: CapabilityGrant = {
       grantId,

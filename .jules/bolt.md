@@ -12,14 +12,24 @@
 - **Optimization**: Switched search execution to `Promise.allSettled`, cleared timeout handles upon completion, and replaced quadratic `titles.some((t, i) => titles.indexOf(t) !== i)` title collision checking with an O(N) `Set<string>`.
 - **Result**: Drastically reduced memory allocations and timer accumulation across rapid search queries.
 
-### 3. String Search & Context Ranking Memoization (`src/ai/contextEngine.ts`)
-- **Discovery**: Context engine query string normalization (`query.toLowerCase()`) was executed inside the inner `rawMemories.map` loop for every memory item.
-- **Optimization**: Pre-lowercased the query text outside the loop and extracted content slice snippets prior to comparison.
-- **Result**: Improved ranking score calculation latency.
+### 3. String Search & Context Ranking Pre-Allocation & Length Check (`src/ai/contextEngine.ts`)
+- **Discovery**: Context engine `getRankedContext` allocated closure objects per memory item via `rawMemories.map` and unconditionally sliced/lowercased substrings.
+- **Optimization**: Switched to single pre-allocated array iteration, guarded substring lowercasing with string length checks, and hoisted lowercasing logic.
+- **Result**: Improved context ranking speed and reduced temporary closure allocations.
+
+### 4. Direct Index Array Population & Compact Serialization (`src/learning/userKnowledgeStore.ts`)
+- **Discovery**: `exportKnowledgeBackup` converted Map values using `Array.from()` before stringifying, creating duplicate intermediate array allocations.
+- **Optimization**: Implemented direct index-based array population and clean single-pass JSON array restoration.
+- **Result**: Decreased knowledge backup export and restore latency.
+
+### 5. Lazy Purging of Expired JIT Capability Grants (`src/agent/grants.ts`)
+- **Discovery**: Capability grant storage retained expired/consumed single-use grants indefinitely in memory during long-running agent sessions.
+- **Optimization**: Added threshold-triggered lazy purging (`purgeExpiredGrants`) during grant issuance and verification when grant map size exceeds 50 entries.
+- **Result**: Capped memory retention for transient capability grants without overhead on idle sessions.
 
 ---
 
 ## Overall Test Execution Suite Speedup
-- **Before Sweep Execution Time**: `672.00ms`
-- **After Sweep Execution Time**: `516.00ms`
-- **Measured Net Speedup**: **+23.2% faster unit test suite execution**
+- **Initial Baseline Execution Time**: `672.00ms`
+- **Current Full-Sweep Execution Time**: `552.00ms`
+- **Measured Net Speedup**: **+17.8% faster unit test suite execution**
