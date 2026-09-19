@@ -19,7 +19,8 @@ export interface ApiResponse {
 export class ApiRouter {
   public async handleRequest(req: ApiRequest): Promise<ApiResponse> {
     try {
-      const sessionToken = req.headers?.['authorization']?.replace('Bearer ', '');
+      const authHeader = req.headers?.['authorization'] || req.headers?.['Authorization'];
+      const sessionToken = authHeader?.replace('Bearer ', '');
 
       // 1. Unauthenticated Public Endpoints
     if (req.path === '/api/v1/health') {
@@ -67,7 +68,9 @@ export class ApiRouter {
 
     return { status: 404, error: 'Endpoint not found.' };
     } catch (err: any) {
-      return { status: 500, error: `Internal Server Error: ${err.message || 'Unexpected exception.'}` };
+      console.error('API Error:', err);
+      // Fail securely: do not leak internal error message or stack trace to client
+      return { status: 500, error: 'Internal Server Error.' };
     }
   }
 }
