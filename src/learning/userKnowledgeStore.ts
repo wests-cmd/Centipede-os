@@ -71,13 +71,26 @@ export class UserKnowledgeStore {
   }
 
   public exportKnowledgeBackup(): string {
-    return JSON.stringify(Array.from(this.memories.values()), null, 2);
+    const items = new Array(this.memories.size);
+    let i = 0;
+    for (const value of this.memories.values()) {
+      items[i++] = value;
+    }
+    return JSON.stringify(items);
   }
 
   public restoreKnowledgeBackup(backupJson: string): number {
     try {
       const items: MemoryItem[] = JSON.parse(backupJson);
-      items.forEach((item) => this.memories.set(item.memoryId, item));
+      if (!Array.isArray(items)) {
+        throw new Error('Backup payload is not an array.');
+      }
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item && item.memoryId) {
+          this.memories.set(item.memoryId, item);
+        }
+      }
       return items.length;
     } catch (e) {
       throw new Error('Invalid knowledge backup JSON format.');

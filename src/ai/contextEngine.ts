@@ -36,22 +36,27 @@ export class ContextEngine {
     const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
     const lowerQuery = query.toLowerCase();
 
-    const items: ContextItem[] = rawMemories.map((mem: any) => {
+    const len = rawMemories.length;
+    const items: ContextItem[] = new Array(len);
+
+    for (let i = 0; i < len; i++) {
+      const mem: any = rawMemories[i];
       const timestamp = mem.provenance?.timestamp || mem.timestamp || now;
       const ageMs = now - timestamp;
       const isStale = ageMs > thirtyDaysMs;
 
-      // Calculate relevance score
+      // Calculate relevance score using pre-sliced content comparison
       let score = 0.5;
-      const lowerContentSnippet = mem.content.toLowerCase().slice(0, 10);
-      if (lowerQuery.includes(lowerContentSnippet)) {
+      const contentStr = mem.content || '';
+      const snippet = contentStr.length > 10 ? contentStr.substring(0, 10).toLowerCase() : contentStr.toLowerCase();
+      if (snippet && lowerQuery.includes(snippet)) {
         score += 0.4;
       }
       if (mem.trustLevel === 'SYSTEM_AUTHORITY') score += 0.3;
       if (mem.trustLevel === 'USER_CONFIRMED') score += 0.2;
       if (isStale) score -= 0.2;
 
-      return {
+      items[i] = {
         id: mem.memoryId,
         type: mem.type === 'SEMANTIC' ? 'SEMANTIC' : 'LONG_TERM',
         content: mem.content,
@@ -61,7 +66,7 @@ export class ContextEngine {
         isStale,
         createdAt: timestamp,
       };
-    });
+    }
 
     return items
       .sort((a, b) => b.relevanceScore - a.relevanceScore)

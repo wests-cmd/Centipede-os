@@ -48,6 +48,15 @@ describe('Kingdom ↔ Centipede Compatibility & Adversarial Security Suite', () 
     expect(res.valid).toBe(false);
     expect(res.missingFields).toContain('version');
     expect(res.missingFields).toContain('tasks');
+
+    const validRes = capabilityNegotiator.validateResponseSchema('get_status', {
+      running: true,
+      mode: 'adaptive',
+      version: '40.1.0',
+      tasks: [],
+    });
+    expect(validRes.valid).toBe(true);
+    expect(validRes.missingFields.length).toBe(0);
   });
 
   it('3. Security Adversarial Scenario 1–5: Forged / Malicious Metadata', async () => {

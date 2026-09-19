@@ -46,10 +46,11 @@ export class SearchAggregator {
       timeoutMs: 3000,
     };
 
-    // Filter providers by allowed source permissions
-    const activeProviders = this.providers.filter((p) => permissions.includes(p.sourceType));
+    // Use Set lookup for permissions checking
+    const permissionSet = new Set(permissions);
+    const activeProviders = this.providers.filter((p) => permissionSet.has(p.sourceType));
 
-    const accessedProtectedSources: string[] = [];
+    const accessedSet = new Set<string>();
     const aggregatedResults: SearchResultItem[] = [];
 
     // Execute provider searches in parallel with timeouts using Promise.allSettled
@@ -63,7 +64,7 @@ export class SearchAggregator {
         const results = await Promise.race([provider.search(query), timeoutPromise]);
         if (timer) clearTimeout(timer);
 
-        accessedProtectedSources.push(provider.sourceType);
+        accessedSet.add(provider.sourceType);
         return results.slice(0, effectivePolicy.maxResultsPerProvider);
       } catch (err) {
         if (timer) clearTimeout(timer);
@@ -110,7 +111,7 @@ export class SearchAggregator {
       queryId,
       results: finalResults,
       hasConflicts,
-      accessedProtectedSources,
+      accessedProtectedSources: Array.from(accessedSet),
     };
   }
 }
