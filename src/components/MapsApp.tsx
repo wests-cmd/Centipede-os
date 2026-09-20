@@ -15,13 +15,13 @@ export const MapsApp: React.FC<MapsAppProps> = ({ adapter }) => {
   const fetchMaps = async () => {
     setLoading(true);
     try {
-      const list = await adapter.get_maps().catch(() => ['swarm_topology', 'capability_graph']);
+      const list = await adapter.get_maps();
       setMaps(list);
       if (list.length > 0 && !selectedMap) {
         handleSelectMap(list[0]);
       }
     } catch (e) {
-      setMaps(['swarm_topology', 'capability_graph']);
+      setMaps([]);
     } finally {
       setLoading(false);
     }
@@ -30,11 +30,7 @@ export const MapsApp: React.FC<MapsAppProps> = ({ adapter }) => {
   const handleSelectMap = async (name: string) => {
     setSelectedMap(name);
     try {
-      const data = await adapter.get_map(name).catch(() => ({
-        name,
-        nodes: [{ id: 'node1', label: 'Planner' }, { id: 'node2', label: 'Coder' }],
-        edges: [{ from: 'node1', to: 'node2' }],
-      }));
+      const data = await adapter.get_map(name);
       setMapData(data);
     } catch (e) {
       setMapData(null);
