@@ -8,6 +8,13 @@ export type ConnectionState =
 
 export type VersionCompatibilityStatus =
   | 'COMPATIBLE'
+  | 'COMPATIBLE_WITH_REDUCED_CAPABILITIES'
+  | 'UNKNOWN_CAPABILITY'
+  | 'INCOMPATIBLE_PROTOCOL'
+  | 'AUTHENTICATION_FAILED'
+  | 'CONTRACT_MISMATCH'
+  | 'KINGDOM_UNAVAILABLE'
+  | 'MAINTENANCE'
   | 'COMPATIBLE_WITH_WARNING'
   | 'UNSUPPORTED'
   | 'UNKNOWN';
@@ -26,23 +33,42 @@ export type KingdomErrorCode =
   | 'SERVER_ERROR'
   | 'UNKNOWN_ERROR';
 
+export interface ProtocolVersion {
+  major: number;
+  minor: number;
+}
+
 export interface VersionCompatibility {
   detectedVersion: string | null;
+  protocol?: ProtocolVersion | null;
   minSupportedVersion: string;
   maxTestedVersion: string;
   status: VersionCompatibilityStatus;
   message: string;
 }
 
+export interface KingdomCompatibilityManifest {
+  protocolMajor: number;
+  minProtocolMinor: number;
+  requiredCapabilities: string[];
+  optionalCapabilities: string[];
+  taskSafetyContract: {
+    disconnectBehavior: 'UNKNOWN_STATE';
+  };
+  errorContract: KingdomErrorCode[];
+}
+
 export interface KingdomRuntimeInfo {
   centipedeVersion: string; // Centipede OS App Version (e.g., "1.0.0")
-  expectedKingdomContractVersion: string; // Contract expected version (e.g., "40.1.0")
-  connectedKingdomVersion: string | null; // Live Kingdom version from /status (e.g., "40.1")
+  expectedKingdomContractVersion: string; // Contract baseline representation (e.g., "Protocol v1.0+")
+  connectedKingdomVersion: string | null; // Live Kingdom release version from /status (e.g., "40.2.0")
   lastKnownKingdomVersion: string | null; // Last recorded version if currently offline
   connectionState: ConnectionState;
   compatibility: VersionCompatibility;
   running: boolean;
   mode: string;
+  protocol?: ProtocolVersion | null;
+  capabilities?: Record<string, boolean>;
   uptimeSeconds?: number;
   nodeCount?: number;
 }
@@ -59,6 +85,8 @@ export interface RuntimeStatus {
   running: boolean;
   mode: string;
   version: string;
+  protocol?: ProtocolVersion;
+  capabilities?: string[];
   scheduler_running: boolean;
   tasks: TaskCounters;
 }
@@ -66,7 +94,7 @@ export interface RuntimeStatus {
 export interface TaskItem {
   id: string;
   prompt: string;
-  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'unknown';
   created_at?: number;
   result?: any;
   error?: string;

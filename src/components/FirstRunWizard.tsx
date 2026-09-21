@@ -47,9 +47,10 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
     try {
       kingdomAdapter.setBaseUrl(kingdomUrl);
       const isConnected = await kingdomAdapter.reconnect();
-      setKingdomStatus(isConnected ? 'CONNECTED' : 'DISCONNECTED');
+      const kingdomInfo = kingdomAdapter.getKingdomRuntimeInfo();
+      setKingdomStatus(isConnected ? `CONNECTED (${kingdomInfo.connectedKingdomVersion || 'v1TAS'})` : 'STANDBY / OFFLINE MODE');
     } catch (e) {
-      setKingdomStatus('DISCONNECTED');
+      setKingdomStatus('STANDBY / OFFLINE MODE');
     }
   };
 
@@ -303,15 +304,15 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
               <div className="flex items-center space-x-2 pt-2">
                 <span className="text-xs text-slate-400">Connection Status:</span>
                 <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold font-mono uppercase ${
-                  kingdomStatus === 'CONNECTED'
+                  kingdomStatus.startsWith('CONNECTED')
                     ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                     : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                 }`}>
-                  {kingdomStatus === 'CONNECTED' ? 'CONNECTED (v40.1)' : 'STANDBY / OFFLINE MODE'}
+                  {kingdomStatus}
                 </span>
               </div>
 
-              {kingdomStatus !== 'CONNECTED' && (
+              {!kingdomStatus.startsWith('CONNECTED') && (
                 <div className="bg-amber-950/40 border border-amber-500/30 p-3 rounded-xl text-[11px] text-amber-300 flex items-start space-x-2">
                   <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
                   <span>

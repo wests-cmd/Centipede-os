@@ -8,6 +8,7 @@ import {
   KingdomRuntimeInfo,
   MemoryEntry,
   ModelHealth,
+  ProtocolVersion,
   RuntimeStatus,
   SecurityPermissionsResponse,
   SecurityStatus,
@@ -17,12 +18,11 @@ import {
   VersionCompatibilityStatus,
 } from '../types';
 import { capabilityNegotiator, CapabilityNegotiationResult } from './capabilityNegotiator';
-import { KINGDOM_CONTRACT_SPEC } from './contractSpec';
+import { KINGDOM_CONTRACT_SPEC, KINGDOM_COMPATIBILITY_MANIFEST } from './contractSpec';
 import {
   CENTIPEDE_VERSION,
-  EXPECTED_KINGDOM_CONTRACT_VERSION,
-  MIN_KINGDOM_SUPPORTED_VERSION,
-  MAX_KINGDOM_TESTED_VERSION,
+  CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL,
+  KINGDOM_PROTOCOL_MAJOR,
 } from '../version';
 
 export class KingdomApiError extends Error {
@@ -54,15 +54,13 @@ export class KingdomAdapter {
   private maxBackoffDelay = 16000;
   private isReconnecting = false;
 
-  private minSupportedVersion = MIN_KINGDOM_SUPPORTED_VERSION;
-  private maxTestedVersion = MAX_KINGDOM_TESTED_VERSION;
-
   private compatibilityInfo: VersionCompatibility = {
     detectedVersion: null,
-    minSupportedVersion: MIN_KINGDOM_SUPPORTED_VERSION,
-    maxTestedVersion: MAX_KINGDOM_TESTED_VERSION,
+    protocol: null,
+    minSupportedVersion: `Protocol v${KINGDOM_PROTOCOL_MAJOR}.0`,
+    maxTestedVersion: `Protocol v${KINGDOM_PROTOCOL_MAJOR}.x`,
     status: 'UNKNOWN',
-    message: 'Kingdom version not yet checked.',
+    message: 'Kingdom version and protocol not yet discovered.',
   };
 
   private statusListeners: Set<(status: RuntimeStatus | null) => void> = new Set();
@@ -72,6 +70,7 @@ export class KingdomAdapter {
 
   private lastKnownStatus: RuntimeStatus | null = null;
   private lastKnownKingdomVersion: string | null = null;
+  private discoveredCapabilities: Record<string, boolean> = {};
 
   constructor(baseUrl: string = 'http://localhost:8000') {
     this.baseUrl = baseUrl.replace(/\/$/, '');
@@ -101,13 +100,15 @@ export class KingdomAdapter {
     const isOnline = this.connectionState === 'CONNECTED';
     return {
       centipedeVersion: CENTIPEDE_VERSION,
-      expectedKingdomContractVersion: EXPECTED_KINGDOM_CONTRACT_VERSION,
+      expectedKingdomContractVersion: CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL,
       connectedKingdomVersion: isOnline && this.lastKnownStatus ? this.lastKnownStatus.version : null,
       lastKnownKingdomVersion: this.lastKnownKingdomVersion,
       connectionState: this.connectionState,
       compatibility: { ...this.compatibilityInfo },
       running: this.lastKnownStatus?.running || false,
       mode: this.lastKnownStatus?.mode || 'OFFLINE',
+      protocol: this.compatibilityInfo.protocol || this.lastKnownStatus?.protocol || null,
+      capabilities: { ...this.discoveredCapabilities },
     };
   }
 
@@ -148,6 +149,13 @@ export class KingdomAdapter {
     if (status?.version) {
       this.lastKnownKingdomVersion = status.version;
     }
+    if (status?.capabilities) {
+      const capsMap: Record<string, boolean> = {};
+      status.capabilities.forEach((cap) => {
+        capsMap[cap] = true;
+      });
+      this.discoveredCapabilities = capsMap;
+    }
     this.statusListeners.forEach((l) => l(status));
   }
 
@@ -160,46 +168,44 @@ export class KingdomAdapter {
     this.compatibilityListeners.forEach((l) => l(info));
   }
 
-  public checkVersionCompatibility(rawVersion: string): VersionCompatibility {
-    if (!rawVersion) {
+  public checkVersionCompatibility(rawVersion: string, protocolHeader?: ProtocolVersion): VersionCompatibility {
+    if (!rawVersion && !protocolHeader) {
       const info: VersionCompatibility = {
         detectedVersion: null,
-        minSupportedVersion: this.minSupportedVersion,
-        maxTestedVersion: this.maxTestedVersion,
+        protocol: null,
+        minSupportedVersion: `Protocol v${KINGDOM_PROTOCOL_MAJOR}.0`,
+        maxTestedVersion: `Protocol v${KINGDOM_PROTOCOL_MAJOR}.x`,
         status: 'UNKNOWN',
-        message: 'No version header received from Kingdom server.',
+        message: 'No version or protocol header received from Kingdom server.',
       };
       this.notifyCompatibility(info);
       return info;
     }
 
-    const clean = rawVersion.trim().replace(/^v/i, '');
-    const parts = clean.split('.').map((p) => parseInt(p, 10) || 0);
-    const major = parts[0] || 0;
-    const minor = parts[1] || 0;
-
+    const clean = (rawVersion || '').trim().replace(/^v/i, '');
     let status: VersionCompatibilityStatus = 'COMPATIBLE';
-    let message = `Kingdom v${clean} is fully compatible.`;
+    const protMajor = protocolHeader ? protocolHeader.major : KINGDOM_PROTOCOL_MAJOR;
+    const protMinor = protocolHeader ? protocolHeader.minor : 0;
+    let message = `Kingdom v${clean || 'unknown'} (Protocol v${protMajor}.${protMinor}) is compatible.`;
 
-    if (major < 40 || major > 40) {
-      status = 'UNSUPPORTED';
-      message = `Kingdom major version v${clean} is unsupported (Requires v${this.minSupportedVersion}–v${this.maxTestedVersion}).`;
-    } else if (minor > 1) {
-      status = 'COMPATIBLE_WITH_WARNING';
-      message = `Kingdom v${clean} exceeds tested minor range (Tested up to v${this.maxTestedVersion}).`;
+    // Protocol major negotiation
+    if (protMajor !== KINGDOM_PROTOCOL_MAJOR) {
+      status = 'INCOMPATIBLE_PROTOCOL';
+      message = `Kingdom Protocol major v${protMajor} is incompatible with Centipede OS supported Protocol v${KINGDOM_PROTOCOL_MAJOR}.x. Update required.`;
     }
 
     const info: VersionCompatibility = {
-      detectedVersion: clean,
-      minSupportedVersion: this.minSupportedVersion,
-      maxTestedVersion: this.maxTestedVersion,
+      detectedVersion: clean || null,
+      protocol: protocolHeader || { major: protMajor, minor: protMinor },
+      minSupportedVersion: `Protocol v${KINGDOM_PROTOCOL_MAJOR}.0`,
+      maxTestedVersion: `Protocol v${KINGDOM_PROTOCOL_MAJOR}.x`,
       status,
       message,
     };
 
     this.notifyCompatibility(info);
 
-    if (status === 'UNSUPPORTED') {
+    if (status === 'INCOMPATIBLE_PROTOCOL') {
       this.notifyConnection('VERSION_INCOMPATIBLE');
     } else if (this.connectionState === 'VERSION_INCOMPATIBLE') {
       this.notifyConnection('CONNECTED');
@@ -264,7 +270,7 @@ export class KingdomAdapter {
       this.recordSuccess();
       const json = (await res.json()) as T;
 
-      // Capability & Schema Drift Detection
+      // Schema drift validation
       const cleanPath = path.split('?')[0];
       const matchingSpecKey = Object.keys(KINGDOM_CONTRACT_SPEC.endpoints).find((key) => {
         const spec = KINGDOM_CONTRACT_SPEC.endpoints[key];
@@ -304,7 +310,7 @@ export class KingdomAdapter {
     this.currentBackoffDelay = 2000;
     this.isReconnecting = false;
 
-    if (this.compatibilityInfo.status === 'COMPATIBLE' || this.compatibilityInfo.status === 'COMPATIBLE_WITH_WARNING' || this.compatibilityInfo.status === 'UNKNOWN') {
+    if (this.compatibilityInfo.status !== 'INCOMPATIBLE_PROTOCOL') {
       if (this.connectionState !== 'CONNECTED') {
         this.notifyConnection('CONNECTED');
         this.initWebSocket();
@@ -328,9 +334,7 @@ export class KingdomAdapter {
       try {
         const status = await this.get_status();
         this.notifyStatus(status);
-        if (status.version) {
-          this.checkVersionCompatibility(status.version);
-        }
+        this.checkVersionCompatibility(status.version, status.protocol);
       } catch (e) {
         // Handled in recordFailure()
       }
@@ -359,12 +363,10 @@ export class KingdomAdapter {
     try {
       const status = await this.get_status();
       this.notifyStatus(status);
-      if (status.version) {
-        const compat = this.checkVersionCompatibility(status.version);
-        if (compat.status === 'UNSUPPORTED') {
-          this.isReconnecting = false;
-          return false;
-        }
+      const compat = this.checkVersionCompatibility(status.version, status.protocol);
+      if (compat.status === 'INCOMPATIBLE_PROTOCOL') {
+        this.isReconnecting = false;
+        return false;
       }
       this.recordSuccess();
       return true;
@@ -406,9 +408,7 @@ export class KingdomAdapter {
             if (parsed.data) {
               const statusData = parsed.data as RuntimeStatus;
               this.notifyStatus(statusData);
-              if (statusData.version) {
-                this.checkVersionCompatibility(statusData.version);
-              }
+              this.checkVersionCompatibility(statusData.version, statusData.protocol);
             }
           }
         } catch (err) {
@@ -417,7 +417,7 @@ export class KingdomAdapter {
       };
 
       this.ws.onerror = () => {
-        // Socket error handled in onclose
+        // Handled in onclose
       };
 
       this.ws.onclose = () => {
@@ -471,7 +471,19 @@ export class KingdomAdapter {
   }
 
   public async get_task(task_id: string): Promise<TaskItem> {
-    return this.fetchJson<TaskItem>(`/tasks/${encodeURIComponent(task_id)}`);
+    try {
+      return await this.fetchJson<TaskItem>(`/tasks/${encodeURIComponent(task_id)}`);
+    } catch (err) {
+      if (this.connectionState === 'DISCONNECTED') {
+        return {
+          id: task_id,
+          prompt: '',
+          status: 'unknown',
+          error: 'Connection interrupted while retrieving task status.',
+        };
+      }
+      throw err;
+    }
   }
 
   public async list_tasks(status?: string): Promise<TaskItem[]> {
@@ -519,14 +531,6 @@ export class KingdomAdapter {
     return this.fetchJson<any[]>(`/memory/search?query=${encodeURIComponent(query)}&limit=${limit}`);
   }
 
-  public async get_memory_graph(): Promise<any> {
-    return this.fetchJson<any>('/memory/graph');
-  }
-
-  public async create_memory_snapshot(): Promise<{ path: string }> {
-    return this.fetchJson<{ path: string }>('/memory/snapshot', { method: 'POST' });
-  }
-
   public async get_maps(): Promise<string[]> {
     return this.fetchJson<string[]>('/maps');
   }
@@ -544,10 +548,6 @@ export class KingdomAdapter {
 
   public async get_security_status(): Promise<SecurityStatus> {
     return this.fetchJson<SecurityStatus>('/security/status');
-  }
-
-  public async get_security_policies(): Promise<any> {
-    return this.fetchJson<any>('/security/policies');
   }
 
   public async get_permissions(): Promise<SecurityPermissionsResponse> {

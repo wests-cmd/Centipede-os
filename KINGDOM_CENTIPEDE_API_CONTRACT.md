@@ -1,9 +1,8 @@
 # Formal Kingdom ↔ Centipede OS API Contract Specification
 
-**Contract Version**: `1.0.0`
-**Target Kingdom Engine Version**: `v40.1`
-**Minimum Supported Kingdom Version**: `v40.0.0`
-**Maximum Tested Kingdom Version**: `v40.1.9`
+**Contract Version**: `1.4.0`
+**Supported Protocol Version**: `v1.x` (Major Version: `1`, Minor Range: `0–99`)
+**Negotiation Architecture**: Dynamic Handshake & Capability Discovery (`READ → NEGOTIATE → ADAPT → VERIFY → OPERATE`)
 
 ---
 
@@ -35,13 +34,14 @@ To preserve full independence and prevent internal coupling, **Centipede OS must
 ┌─────────────────────────────────────────────────────────┐
 │            Kingdom Internal Engine / Swarm              │
 │       (Runtime Engine, Knights, ZeroTrust, DB)          │
-└─────────────────────────────────────────────────────────┘
+└────────────────────────────┬────────────────────────────┘
 ```
 
 **Boundary Directives**:
 1. No Centipede OS code may import Python files from Kingdom.
 2. No UI component or service in Centipede OS may execute raw `fetch()` calls directly to Kingdom endpoints. All requests must route through `KingdomAdapter`.
 3. Secret credentials, bearer tokens, or internal API keys must never be exposed or embedded in the frontend UI.
+4. Centipede OS discovers running Kingdom release versions dynamically and negotiates protocol/capability compatibility rather than hardcoding Kingdom release version strings into runtime code.
 
 ---
 
@@ -50,14 +50,19 @@ To preserve full independence and prevent internal coupling, **Centipede OS must
 ### 2.1 Runtime Management
 
 #### `GET /status`
-- **Purpose**: Query runtime health, scheduler state, version, and active task counters.
+- **Purpose**: Query runtime health, scheduler state, version, protocol metadata, active capabilities, and task counters.
 - **Request**: `GET /status`
 - **Response Format**:
   ```json
   {
     "running": true,
     "mode": "adaptive",
-    "version": "40.1",
+    "version": "v1TAS",
+    "protocol": {
+      "major": 1,
+      "minor": 4
+    },
+    "capabilities": ["filesystem.read", "process.execute", "distributed_workflows"],
     "scheduler_running": true,
     "tasks": {
       "queued": 0,
@@ -71,7 +76,7 @@ To preserve full independence and prevent internal coupling, **Centipede OS must
 
 #### `POST /start`
 - **Purpose**: Start the Kingdom runtime engine and task scheduler.
-- **Response Format**: `{"status": "started", "running": true, "version": "40.1", ...}`
+- **Response Format**: `{"status": "started", "running": true, "version": "v1TAS", ...}`
 
 #### `POST /stop`
 - **Purpose**: Gracefully stop the Kingdom runtime engine and task scheduler.
@@ -88,40 +93,20 @@ To preserve full independence and prevent internal coupling, **Centipede OS must
 
 #### Task States
 Task objects follow a strict state machine lifecycle:
-`queued` → `running` → `completed` | `failed` | `cancelled`
+`queued` → `running` → `completed` | `failed` | `cancelled` | `unknown`
 
 ```
   ┌─────────┐      ┌─────────┐      ┌───────────┐
   │ queued  ├─────►│ running ├─────►│ completed │
   └────┬────┘      └────┬────┘      └───────────┘
-       │                │
-       ▼                ▼
-  ┌───────────┐    ┌───────────┐
-  │ cancelled │    │  failed   │
-  └───────────┘    └───────────┘
+       │                │                ▲
+       ▼                ▼                │
+  ┌───────────┐    ┌───────────┐    ┌────┴──────┐
+  │ cancelled │    │  failed   │    │  unknown  │
+  └───────────┘    └───────────┘    └───────────┘
 ```
 
-#### `POST /tasks`
-- **Purpose**: Submit a new prompt task to the Kingdom swarm.
-- **Request Payload**: `{"prompt": "task description", "metadata": { "client": "centipede_os" }}`
-- **Response Format (HTTP 201 Created)**:
-  ```json
-  {
-    "id": "uuid-v4-str",
-    "prompt": "task description",
-    "status": "queued",
-    "created_at": 1709485200.0,
-    "metadata": { "client": "centipede_os" }
-  }
-  ```
-
-#### `GET /tasks` & `GET /tasks/{task_id}`
-- **Purpose**: Retrieve list of tasks (filtered by `status` query param) or single task details.
-- **Response Format**: Task object or list of task objects. HTTP 404 if `task_id` does not exist.
-
-#### `POST /tasks/{task_id}/cancel`
-- **Purpose**: Request cancellation of a queued or running task.
-- **Response Format**: Updated task object with `status: "cancelled"`. HTTP 409 if task is already completed/failed.
+*Task Safety Rule*: If Kingdom disappears or disconnects while a task is running, Centipede OS marks the task status as `unknown`. Centipede OS never synthesizes or assumes task completion without explicit, authoritative confirmation from Kingdom.
 
 ---
 
@@ -191,7 +176,7 @@ All errors emitted by `KingdomAdapter` are classified into the following standar
 | `TIMEOUT` | Fetch Timeout | Request exceeded maximum network timeout (10s). |
 | `KINGDOM_OFFLINE` | Connection Error | Kingdom backend server is unreachable or offline. |
 | `ENDPOINT_UNAVAILABLE` | HTTP 503 | Model service or requested backend endpoint is unavailable. |
-| `VERSION_INCOMPATIBLE` | Version Check | Kingdom server major version is outside supported range. |
+| `VERSION_INCOMPATIBLE` | Version Check | Kingdom protocol major version is incompatible. |
 | `TASK_FAILED` | Task State | Execution of submitted task failed in runtime engine. |
 | `TASK_CANCELLED` | Task State | Task was cancelled prior to or during execution. |
 | `SERVER_ERROR` | HTTP 500 | Internal execution exception inside Kingdom engine. |
@@ -201,49 +186,48 @@ All user-visible error messages undergo **Error Masking** to strip Python traceb
 
 ---
 
-## 4. Version Compatibility Mechanism
+## 4. Protocol & Capability Compatibility Mechanism
 
 ```
                      ┌──────────────────────────────────────────────┐
-                     │          Kingdom Version Verification        │
+                     │          Kingdom Protocol Handshake          │
                      └──────────────────────┬───────────────────────┘
                                             │
                ┌────────────────────────────┼────────────────────────────┐
                │                            │                            │
                ▼                            ▼                            ▼
-      Major < 40                   40.0.0 <= v <= 40.1.9             Major > 40
+      Protocol Major != 1            Protocol Major == 1          Unknown Capability
 ┌───────────────────────────┐  ┌───────────────────────────┐  ┌───────────────────────────┐
-│       UNSUPPORTED         │  │        COMPATIBLE         │  │        UNSUPPORTED        │
-│ (INCOMPATIBLE_TOO_OLD)    │  │                           │  │  (INCOMPATIBLE_TOO_NEW)   │
+│   INCOMPATIBLE_PROTOCOL   │  │        COMPATIBLE         │  │       IGNORED SAFELY      │
+│  (Fails Closed Safely)    │  │ (Dynamic Capability Map) │  │  (No Crash / No Failure)  │
 └───────────────────────────┘  └───────────────────────────┘  └───────────────────────────┘
 ```
 
-- **Minimum Supported**: `v40.0.0`
-- **Maximum Tested**: `v40.1.9`
+- **Supported Protocol**: Major Version `1` (Minor Versions `0`–`99`)
 - **Statuses**:
-  - `COMPATIBLE`: Server version is within `v40.0.0`–`v40.1.9`.
-  - `COMPATIBLE_WITH_WARNING`: Minor/patch version exceeds tested range but major version matches `40`.
-  - `UNSUPPORTED`: Major version differs (e.g. `v39.x` or `v41.x`). Triggers `VERSION_INCOMPATIBLE` connection state.
-  - `UNKNOWN`: Version header not yet received.
+  - `COMPATIBLE`: Protocol major matches expected protocol major version `1`.
+  - `COMPATIBLE_WITH_REDUCED_CAPABILITIES`: Required protocol connects, but optional capability is missing or disabled.
+  - `INCOMPATIBLE_PROTOCOL`: Protocol major version differs (e.g. Protocol `v2.x`). Triggers `VERSION_INCOMPATIBLE` connection state and blocks privileged operations fail-closed.
+  - `UNKNOWN`: Metadata or protocol response not yet received.
 
 ---
 
 ## 5. Capability Negotiation Specification (`src/api/capabilityNegotiator.ts`)
 
-Centipede OS evaluates capabilities against Kingdom runtime info and version headers:
+Centipede OS evaluates capabilities against Kingdom runtime info and metadata:
 
-- `SUPPORTED`: Capability exists and is fully supported by active Kingdom runtime version.
-- `UNSUPPORTED`: Capability is not supported by current Kingdom engine version.
+- `SUPPORTED`: Capability exists and is fully supported by active Kingdom runtime and protocol.
+- `UNSUPPORTED`: Optional capability is not supported by current Kingdom node. Feature degrades gracefully.
 - `DEGRADED`: Kingdom is offline, disconnected, or unreachable; privileged operations are blocked fail-closed.
-- `INCOMPATIBLE`: Major Kingdom version mismatch detected.
-- `UNKNOWN`: Capability or version header is unverified.
-- `REQUIRES_UPDATE`: Kingdom version requires Centipede OS update to operate capability safely.
+- `INCOMPATIBLE`: Protocol major mismatch or missing mandatory required capability.
+- `UNKNOWN`: Capability or protocol header is unverified.
+- `REQUIRES_UPDATE`: Kingdom protocol requires Centipede OS update to operate capability safely.
 
 *Mandatory ZeroTrust Directives*: Capability negotiation determines protocol and compatibility state; it **never** grants authorization or bypasses ZeroTrust checks.
 
 ---
 
-## 5. Security Boundary & Non-Bypass Directives
+## 6. Security Boundary & Non-Bypass Directives
 
 1. **Non-Bypass Enforcement**: Centipede OS must **never** attempt to bypass Kingdom ZeroTrust security checks or alter security policies directly.
 2. **Controlled AI Pipeline**:

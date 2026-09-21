@@ -21,12 +21,14 @@ Centipede OS (Desktop Shell & Views)
         ↓
   KingdomAdapter (src/api/kingdomAdapter.ts)
         ↓  (HTTP REST / WebSockets)
-  Kingdom API (v40.1)
+  Kingdom API (Dynamic Handshake & Capability Discovery)
         ↓
   Kingdom Runtime Engine / Swarm / ZeroTrust
 ```
 
 Centipede OS communicates with Kingdom **strictly through `KingdomAdapter`**. No internal Kingdom Python modules are imported or directly coupled.
+
+Centipede OS discovers the running Kingdom version dynamically (`READ → NEGOTIATE → ADAPT → VERIFY → OPERATE`), negotiating protocol versions and capability sets rather than relying on hardcoded release ceilings.
 
 ---
 
@@ -85,11 +87,11 @@ The adapter implements the currently supported Kingdom integration surface docum
 - **Universal Search System (`src/search/`)**: Multi-source aggregator (`SearchAggregator`) searching across Applications, Files, Kingdom Tasks, Vector Memory, AI Maps, and Web. Features path traversal defenses (`..`, `/etc`, `/proc`, `/sys`, `/root` blocked), untrusted external web data tagging (`isUntrustedData: true`), result provenance, and Search-Action execution separation.
 - **Verified Tool System (`src/tools/`)**: Locked ToolRegistry, ToolExecutor, 20 verified tool definitions, parameter input schema validation, execution timeout controls (10s), idempotency keys, and tool composition chain depth limits (`maxChainDepth = 5`).
 - **Centipede AI Core Pipeline (`src/ai/`)**: Governed pipeline (User Input → IntentParser → ContextManager → Planner → PermissionGate → ActionExecutor → ResultProcessor). ZeroTrust permission gate enforces non-bypassable approvals; model text outputs carry zero authority.
-- **Formal API Contract (`KINGDOM_CENTIPEDE_API_CONTRACT.md`)**: Frozen, documented, versioned interface contract (`v1.0.0`) for Kingdom v40.1.
-- **Kingdom Integration Adapter (`KingdomAdapter`)**: Full typed TS client covering all Kingdom REST & WS endpoints.
+- **Formal API Contract (`KINGDOM_CENTIPEDE_API_CONTRACT.md`)**: Frozen, documented, versioned interface contract.
+- **Kingdom Integration Adapter (`KingdomAdapter`)**: Full typed TS client covering all Kingdom REST & WS endpoints with dynamic protocol compatibility negotiation.
 - **Connection State Machine**: 6 distinct states (`CONNECTING`, `CONNECTED`, `DISCONNECTED`, `AUTHENTICATION_FAILED`, `VERSION_INCOMPATIBLE`, `ERROR`).
 - **Categorized Error Engine**: 12 explicit error codes (`INVALID_REQUEST`, `AUTHENTICATION_FAILED`, `AUTHORIZATION_DENIED`, `NOT_FOUND`, `TIMEOUT`, `KINGDOM_OFFLINE`, `ENDPOINT_UNAVAILABLE`, `VERSION_INCOMPATIBLE`, `TASK_FAILED`, `TASK_CANCELLED`, `SERVER_ERROR`, `UNKNOWN_ERROR`).
-- **Version Compatibility Engine**: Supported versions `40.0.0`–`40.1.9`. Statuses: `COMPATIBLE`, `COMPATIBLE_WITH_WARNING`, `UNSUPPORTED`, `UNKNOWN`.
+- **Version Compatibility Engine**: Dynamic protocol major/minor negotiation (`Protocol v1.x`). Statuses: `COMPATIBLE`, `COMPATIBLE_WITH_REDUCED_CAPABILITIES`, `UNKNOWN_CAPABILITY`, `INCOMPATIBLE_PROTOCOL`, `AUTHENTICATION_FAILED`, `CONTRACT_MISMATCH`, `KINGDOM_UNAVAILABLE`, `MAINTENANCE`.
 - **Controlled Backoff Reconnection**: Exponential backoff retries (2s → 4s → 8s → 16s cap) preventing aggressive request loops when offline.
 - **ZeroTrust Security Governance**: Non-bypassable approval workflow for privileged capabilities (`filesystem.delete`, `process.execute`, etc.).
 - **Live Event Dispatcher**: Real-time event consumption via `/ws` WebSocket stream.
@@ -116,7 +118,7 @@ The adapter implements the currently supported Kingdom integration surface docum
 | `CONNECTED` | Active connection verified with `/status` and WebSocket stream connected | Green badge |
 | `DISCONNECTED` | Kingdom server offline or network unreachable | Red badge + warning banner |
 | `AUTHENTICATION_FAILED` | HTTP 401 returned on security endpoints | Amber badge + auth warning |
-| `VERSION_INCOMPATIBLE` | Detected Kingdom version outside supported range | Purple badge + alert banner |
+| `VERSION_INCOMPATIBLE` | Detected Kingdom protocol version outside supported protocol range | Purple badge + alert banner |
 | `ERROR` | Unexpected transport or JSON parsing error | Red badge |
 
 ---

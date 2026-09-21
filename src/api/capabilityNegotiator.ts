@@ -1,5 +1,5 @@
-import { KINGDOM_CONTRACT_SPEC } from './contractSpec';
-import { KingdomRuntimeInfo, RuntimeStatus } from '../types';
+import { KINGDOM_CONTRACT_SPEC, KINGDOM_COMPATIBILITY_MANIFEST } from './contractSpec';
+import { KingdomRuntimeInfo, ProtocolVersion } from '../types';
 
 export type CapabilityNegotiationStatus =
   | 'SUPPORTED'
@@ -17,8 +17,7 @@ export interface CapabilityNegotiationResult {
 }
 
 export class CapabilityNegotiator {
-  private minSupportedVersion = KINGDOM_CONTRACT_SPEC.minSupportedKingdomVersion; // '40.0.0'
-  private maxTestedVersion = KINGDOM_CONTRACT_SPEC.maxTestedKingdomVersion; // '40.1.9'
+  private protocolMajor = KINGDOM_COMPATIBILITY_MANIFEST.protocolMajor; // 1
 
   public evaluateCapability(
     capability: string,
@@ -36,63 +35,54 @@ export class CapabilityNegotiator {
       return {
         capability,
         status: 'INCOMPATIBLE',
-        reason: `Kingdom version ${kingdomRuntime.connectedKingdomVersion || 'unknown'} is incompatible.`,
+        reason: `Kingdom protocol version is incompatible.`,
       };
     }
 
-    if (!KINGDOM_CONTRACT_SPEC.capabilities[capability]) {
+    // Check protocol major compatibility
+    if (kingdomRuntime.protocol) {
+      if (kingdomRuntime.protocol.major !== this.protocolMajor) {
+        return {
+          capability,
+          status: 'INCOMPATIBLE',
+          reason: `Kingdom protocol major v${kingdomRuntime.protocol.major} is incompatible with Centipede OS protocol v${this.protocolMajor}.`,
+        };
+      }
+    }
+
+    // Check runtime capabilities if supplied by Kingdom
+    if (kingdomRuntime.capabilities) {
+      const isAvailable = kingdomRuntime.capabilities[capability];
+      if (isAvailable === false) {
+        const isRequired = KINGDOM_COMPATIBILITY_MANIFEST.requiredCapabilities.includes(capability);
+        if (isRequired) {
+          return {
+            capability,
+            status: 'INCOMPATIBLE',
+            reason: `Mandatory capability "${capability}" is disabled or unsupported by Kingdom.`,
+          };
+        }
+        return {
+          capability,
+          status: 'UNSUPPORTED',
+          reason: `Optional capability "${capability}" is unavailable on current Kingdom node. Feature degraded.`,
+        };
+      }
+    }
+
+    const knownSpec = KINGDOM_CONTRACT_SPEC.capabilities[capability];
+    if (!knownSpec && (!kingdomRuntime.capabilities || !(capability in kingdomRuntime.capabilities))) {
       return {
         capability,
         status: 'UNKNOWN',
-        reason: `Capability "${capability}" is not recognized in current contract specification.`,
-      };
-    }
-
-    const version = kingdomRuntime.connectedKingdomVersion;
-    if (!version) {
-      return {
-        capability,
-        status: 'UNKNOWN',
-        reason: 'Kingdom version header missing or unverified.',
-      };
-    }
-
-    // Evaluate semver version logic
-    const clean = version.trim().replace(/^v/i, '');
-    const parts = clean.split('.').map((p) => parseInt(p, 10) || 0);
-    const major = parts[0] || 0;
-    const minor = parts[1] || 0;
-
-    if (major < 40) {
-      return {
-        capability,
-        status: 'INCOMPATIBLE',
-        reason: `Kingdom major version v${clean} is older than minimum supported v${this.minSupportedVersion}.`,
-        requiredMinVersion: this.minSupportedVersion,
-      };
-    }
-
-    if (major > 40) {
-      return {
-        capability,
-        status: 'REQUIRES_UPDATE',
-        reason: `Kingdom major version v${clean} requires Centipede OS update.`,
-      };
-    }
-
-    // Major is 40
-    if (minor > 1) {
-      return {
-        capability,
-        status: 'SUPPORTED',
-        reason: `Kingdom v${clean} supports "${capability}" (Exceeds tested minor range v${this.maxTestedVersion}).`,
+        reason: `Capability "${capability}" is not recognized in contract specification or Kingdom metadata.`,
       };
     }
 
     return {
       capability,
       status: 'SUPPORTED',
-      reason: `Capability "${capability}" is fully supported on Kingdom v${clean}.`,
+      reason: `Capability "${capability}" is fully supported and negotiated.`,
     };
   }
 

@@ -13,7 +13,7 @@ export const FileManager: React.FC = () => {
   ];
 
   const fileContents: Record<string, string> = {
-    'KINGDOM_INTEGRATION.md': '# Kingdom Integration Guide\n\nCentipede OS connects to Kingdom via REST API & WebSockets.\nContract Version: v40.1\nSecurity: ZeroTrust Enabled.',
+    'KINGDOM_INTEGRATION.md': '# Kingdom Integration Guide\n\nCentipede OS connects to Kingdom via REST API & WebSockets.\nProtocol & Capability Discovery: Dynamic Negotiation\nSecurity: ZeroTrust Enabled.',
     'configs/runtime.yaml': 'mode: adaptive\nscheduler: enabled\nsecurity: zero_trust\nauto_connect: true',
     'logs/audit.log': '[2026-03-06T17:00:00Z] decision=ALLOWED actor=admin cap=model.inference\n[2026-03-06T17:01:00Z] decision=REQUIRES_APPROVAL actor=centipede cap=filesystem.delete',
     'memory/snapshots/latest.json': '{\n  "version": "1.0",\n  "entries_count": 42,\n  "graph": { "nodes": [], "edges": [] }\n}',
