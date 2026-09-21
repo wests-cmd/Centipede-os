@@ -1,5 +1,5 @@
 import { execSync } from 'child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, statSync } from 'fs';
 import { join } from 'path';
 import { syncSha256 } from '../src/security/cryptoUtils';
 import packageJson from '../package.json';
@@ -13,7 +13,20 @@ console.log(`===========================================================`);
 console.log(`  CENTIPEDE OS RELEASE BUILDER — v${version}`);
 console.log(`===========================================================`);
 
-// 1. Ensure clean dist build
+// 1. Tag / Version Consistency Validation
+const expectedTag = `v${version}`;
+const currentRef = process.env.GITHUB_REF || '';
+
+if (currentRef.startsWith('refs/tags/')) {
+  const actualTag = currentRef.replace('refs/tags/', '');
+  if (actualTag !== expectedTag) {
+    console.error(`\n[RELEASE BUILD ERROR] Tag/Version mismatch! Tag is '${actualTag}' but package.json version is '${version}' (expected '${expectedTag}'). Aborting release.`);
+    process.exit(1);
+  }
+  console.log(`[VERIFIED] Git Tag '${actualTag}' matches package.json version '${version}'.`);
+}
+
+// 2. Ensure clean dist build
 console.log('\n--- 1. Building Production Web Bundle ---');
 execSync('bun run build', { stdio: 'inherit' });
 
@@ -22,7 +35,7 @@ if (!existsSync(distDir)) {
   process.exit(1);
 }
 
-// 2. Prepare release directory
+// 3. Prepare release directory
 if (!existsSync(releaseDir)) {
   mkdirSync(releaseDir, { recursive: true });
 }
@@ -35,14 +48,19 @@ try {
   // Git unavailable fallback
 }
 
-// 3. Create Web Desktop Bundle Archive
+// 4. Create Web Desktop Bundle Archive
 const bundleName = `centipede-os-${version}-desktop-web-bundle.tar.gz`;
 const bundlePath = join(releaseDir, bundleName);
 
 console.log(`\n--- 2. Archiving Release Bundle: ${bundleName} ---`);
 execSync(`tar -czf "${bundlePath}" -C "${rootDir}" dist`, { stdio: 'inherit' });
 
-// 4. Calculate Artifact Checksums & Metrics
+if (!existsSync(bundlePath) || statSync(bundlePath).size === 0) {
+  console.error(`Build Error: Release artifact '${bundleName}' is missing or empty!`);
+  process.exit(1);
+}
+
+// 5. Calculate Artifact Checksums & Metrics
 console.log('\n--- 3. Generating SHA-256 Checksums ---');
 const bundleBuffer = readFileSync(bundlePath);
 const bundleSha256 = syncSha256(new Uint8Array(bundleBuffer));
@@ -53,7 +71,7 @@ const sha256sumsPath = join(releaseDir, 'SHA256SUMS');
 writeFileSync(sha256sumsPath, sha256sumsContent);
 console.log(`Wrote ${sha256sumsPath}`);
 
-// 5. Generate Machine-Readable Release Manifest
+// 6. Generate Machine-Readable Release Manifest
 console.log('\n--- 4. Generating Machine-Readable Release Manifest ---');
 const releaseManifest = {
   product: 'Centipede OS',
