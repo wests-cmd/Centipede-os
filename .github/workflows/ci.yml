@@ -1,0 +1,37 @@
+name: "Centipede OS Continuous Integration"
+
+on:
+  push:
+    branches:
+      - main
+      - 'jules-*'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    name: Typecheck, Test & Build Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.2.2
+
+      - name: Setup Bun Environment
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Static Type Check
+        run: bun x tsc --noEmit
+
+      - name: Run Unit & Security Test Suite
+        run: bun test
+
+      - name: Verify Release Build Execution
+        run: bun run build:release
