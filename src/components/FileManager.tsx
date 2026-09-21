@@ -25,8 +25,8 @@ export const FileManager: React.FC = () => {
       <div className="flex items-center space-x-3 mb-2">
         <Folder className="w-7 h-7 text-cyan-400" />
         <div>
-          <h2 className="text-2xl font-bold text-white">File Manager Foundation</h2>
-          <p className="text-slate-400 text-sm">System filesystem explorer and virtual storage inspector</p>
+          <h2 className="text-2xl font-bold text-white">Sandboxed File Inspector</h2>
+          <p className="text-slate-400 text-sm">Inspect sandboxed system configuration files and audit logs</p>
         </div>
       </div>
 
@@ -76,8 +76,8 @@ export const FileManager: React.FC = () => {
           </div>
 
           <div className="mt-4 pt-3 border-t border-slate-700/60 text-xs text-slate-400 flex justify-between">
-            <span>Status: Read Only</span>
-            <span>Security Check: Verified Safe</span>
+            <span>Sandboxed View (Read Only)</span>
+            <span className="text-emerald-400 font-mono">ZeroTrust Capability Guard Enforced</span>
           </div>
         </div>
       </div>
