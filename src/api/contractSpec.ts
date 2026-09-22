@@ -1,6 +1,8 @@
 /**
- * Machine-Readable Kingdom ↔ Centipede OS API Contract Specification
+ * Machine-Readable Kingdom ↔ Centipede OS API Contract & Compatibility Specification
  */
+import { KingdomCompatibilityManifest } from '../types';
+import { KINGDOM_PROTOCOL_MAJOR, KINGDOM_PROTOCOL_MIN_MINOR } from '../version';
 
 export interface ContractEndpointSpec {
   path: string;
@@ -13,19 +15,52 @@ export interface ContractEndpointSpec {
 
 export interface KingdomContractSpec {
   contractVersion: string;
-  targetKingdomEngineVersion: string;
-  minSupportedKingdomVersion: string;
-  maxTestedKingdomVersion: string;
+  protocolMajor: number;
+  minProtocolMinor: number;
   endpoints: Record<string, ContractEndpointSpec>;
-  capabilities: Record<string, { description: string; riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' }>;
+  capabilities: Record<string, { description: string; riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'; required?: boolean }>;
   errorCodes: string[];
 }
 
+export const KINGDOM_COMPATIBILITY_MANIFEST: KingdomCompatibilityManifest = {
+  protocolMajor: KINGDOM_PROTOCOL_MAJOR,
+  minProtocolMinor: KINGDOM_PROTOCOL_MIN_MINOR,
+  requiredCapabilities: [
+    'filesystem.read',
+    'process.execute',
+  ],
+  optionalCapabilities: [
+    'filesystem.write',
+    'filesystem.delete',
+    'system.admin',
+    'docker.execute',
+    'node.register',
+    'distributed_workflows',
+    'advanced_memory',
+  ],
+  taskSafetyContract: {
+    disconnectBehavior: 'UNKNOWN_STATE',
+  },
+  errorContract: [
+    'INVALID_REQUEST',
+    'AUTHENTICATION_FAILED',
+    'AUTHORIZATION_DENIED',
+    'NOT_FOUND',
+    'TIMEOUT',
+    'KINGDOM_OFFLINE',
+    'ENDPOINT_UNAVAILABLE',
+    'VERSION_INCOMPATIBLE',
+    'TASK_FAILED',
+    'TASK_CANCELLED',
+    'SERVER_ERROR',
+    'UNKNOWN_ERROR',
+  ],
+};
+
 export const KINGDOM_CONTRACT_SPEC: KingdomContractSpec = {
-  contractVersion: '1.0.0',
-  targetKingdomEngineVersion: '40.1.0',
-  minSupportedKingdomVersion: '40.0.0',
-  maxTestedKingdomVersion: '40.1.9',
+  contractVersion: '1.4.0',
+  protocolMajor: KINGDOM_PROTOCOL_MAJOR,
+  minProtocolMinor: KINGDOM_PROTOCOL_MIN_MINOR,
   endpoints: {
     get_status: {
       path: '/status',
@@ -169,26 +204,13 @@ export const KINGDOM_CONTRACT_SPEC: KingdomContractSpec = {
     },
   },
   capabilities: {
-    'filesystem.read': { description: 'Read files', riskLevel: 'LOW' },
-    'filesystem.write': { description: 'Write files', riskLevel: 'MEDIUM' },
-    'filesystem.delete': { description: 'Delete files', riskLevel: 'HIGH' },
-    'process.execute': { description: 'Execute process', riskLevel: 'HIGH' },
-    'system.admin': { description: 'System administration', riskLevel: 'CRITICAL' },
-    'docker.execute': { description: 'Container execution', riskLevel: 'HIGH' },
-    'node.register': { description: 'Register remote node', riskLevel: 'MEDIUM' },
+    'filesystem.read': { description: 'Read files', riskLevel: 'LOW', required: true },
+    'filesystem.write': { description: 'Write files', riskLevel: 'MEDIUM', required: false },
+    'filesystem.delete': { description: 'Delete files', riskLevel: 'HIGH', required: false },
+    'process.execute': { description: 'Execute process', riskLevel: 'HIGH', required: true },
+    'system.admin': { description: 'System administration', riskLevel: 'CRITICAL', required: false },
+    'docker.execute': { description: 'Container execution', riskLevel: 'HIGH', required: false },
+    'node.register': { description: 'Register remote node', riskLevel: 'MEDIUM', required: false },
   },
-  errorCodes: [
-    'INVALID_REQUEST',
-    'AUTHENTICATION_FAILED',
-    'AUTHORIZATION_DENIED',
-    'NOT_FOUND',
-    'TIMEOUT',
-    'KINGDOM_OFFLINE',
-    'ENDPOINT_UNAVAILABLE',
-    'VERSION_INCOMPATIBLE',
-    'TASK_FAILED',
-    'TASK_CANCELLED',
-    'SERVER_ERROR',
-    'UNKNOWN_ERROR',
-  ],
+  errorCodes: KINGDOM_COMPATIBILITY_MANIFEST.errorContract,
 };

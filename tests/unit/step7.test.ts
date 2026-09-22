@@ -72,9 +72,9 @@ describe('Step 7 — Platform Harness, Docker, API & Security Test Suite', () =>
 
   it('Test G — Kingdom Version Incompatibility Fails Closed', () => {
     const adapter = new KingdomAdapter('http://127.0.0.1:8000');
-    const oldVersionStatus = adapter.checkVersionCompatibility('39.0.0');
+    const oldVersionStatus = adapter.checkVersionCompatibility('39.0.0', { major: 2, minor: 0 });
 
-    expect(oldVersionStatus.status).toBe('UNSUPPORTED');
+    expect(oldVersionStatus.status).toBe('INCOMPATIBLE_PROTOCOL');
     expect(oldVersionStatus.status === 'COMPATIBLE').toBe(false);
   });
 

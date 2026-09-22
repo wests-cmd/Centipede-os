@@ -186,7 +186,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter }) => {
             className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-blue-500"
           />
           <p className="text-xs text-slate-400">
-            Specify the backend host and port for Kingdom v40.1 API server. WebSocket endpoint will be derived as <span className="font-mono text-slate-300">{url.replace(/^http/, 'ws')}/ws</span>.
+            Specify the backend host and port for Kingdom API server. WebSocket endpoint will be derived as <span className="font-mono text-slate-300">{url.replace(/^http/, 'ws')}/ws</span>.
           </p>
         </div>
 

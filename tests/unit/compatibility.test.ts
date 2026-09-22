@@ -8,7 +8,7 @@ describe('Kingdom ↔ Centipede Compatibility & Adversarial Security Suite', () 
     const adapter = new KingdomAdapter('http://127.0.0.1:8000');
 
     // Online compatible
-    const compatResult = adapter.checkVersionCompatibility('40.1.0');
+    const compatResult = adapter.checkVersionCompatibility('40.1.0', { major: 1, minor: 4 });
     expect(compatResult.status).toBe('COMPATIBLE');
 
     const evalSupported = adapter.negotiateCapability('filesystem.read');
@@ -17,20 +17,21 @@ describe('Kingdom ↔ Centipede Compatibility & Adversarial Security Suite', () 
     // Test capabilityNegotiator direct evaluation
     const onlineRuntime = {
       centipedeVersion: '1.0.0',
-      expectedKingdomContractVersion: '40.1.0',
-      connectedKingdomVersion: '40.1.0',
-      lastKnownKingdomVersion: '40.1.0',
+      expectedKingdomContractVersion: 'Protocol v1.0+',
+      connectedKingdomVersion: '40.2.0',
+      lastKnownKingdomVersion: '40.2.0',
       connectionState: 'CONNECTED' as const,
       compatibility: compatResult,
       running: true,
       mode: 'adaptive',
+      protocol: { major: 1, minor: 4 },
     };
 
     const nav1 = capabilityNegotiator.evaluateCapability('filesystem.read', onlineRuntime);
     expect(nav1.status).toBe('SUPPORTED');
 
-    // Incompatible old version
-    const oldRuntime = { ...onlineRuntime, connectedKingdomVersion: '39.5.0' };
+    // Incompatible protocol version
+    const oldRuntime = { ...onlineRuntime, protocol: { major: 2, minor: 0 } };
     const navOld = capabilityNegotiator.evaluateCapability('filesystem.read', oldRuntime);
     expect(navOld.status).toBe('INCOMPATIBLE');
 
@@ -65,13 +66,14 @@ describe('Kingdom ↔ Centipede Compatibility & Adversarial Security Suite', () 
     // Forged capability claims do not bypass ZeroTrust
     const forgedRuntime = {
       centipedeVersion: '1.0.0',
-      expectedKingdomContractVersion: '40.1.0',
-      connectedKingdomVersion: '40.1.0',
-      lastKnownKingdomVersion: '40.1.0',
+      expectedKingdomContractVersion: 'Protocol v1.0+',
+      connectedKingdomVersion: '40.2.0',
+      lastKnownKingdomVersion: '40.2.0',
       connectionState: 'CONNECTED' as const,
       compatibility: adapter.getCompatibilityInfo(),
       running: true,
       mode: 'adaptive',
+      protocol: { major: 1, minor: 4 },
     };
 
     // Even if negotiator says SUPPORTED, adapter does not grant authority!
@@ -85,16 +87,17 @@ describe('Kingdom ↔ Centipede Compatibility & Adversarial Security Suite', () 
   });
 
   it('4. Security Adversarial Scenario 6–20: Degraded Mode & Fail-Closed Boundaries', () => {
-    // Protocol downgrade attempt
+    // Protocol downgrade attempt with mismatched protocol major
     const downgradeCompat = capabilityNegotiator.evaluateCapability('filesystem.delete', {
       centipedeVersion: '1.0.0',
-      expectedKingdomContractVersion: '40.1.0',
+      expectedKingdomContractVersion: 'Protocol v1.0+',
       connectedKingdomVersion: '1.0.0',
       lastKnownKingdomVersion: '1.0.0',
       connectionState: 'CONNECTED',
-      compatibility: { detectedVersion: '1.0.0', minSupportedVersion: '40.0.0', maxTestedVersion: '40.1.9', status: 'UNSUPPORTED', message: '' },
+      compatibility: { detectedVersion: '1.0.0', minSupportedVersion: 'Protocol v1.0', maxTestedVersion: 'Protocol v1.x', status: 'INCOMPATIBLE_PROTOCOL', message: '' },
       running: true,
       mode: 'adaptive',
+      protocol: { major: 0, minor: 9 },
     });
 
     expect(downgradeCompat.status).toBe('INCOMPATIBLE');
@@ -115,8 +118,8 @@ describe('Kingdom ↔ Centipede Compatibility & Adversarial Security Suite', () 
     }
 
     // Verify version file single source of truth
-    const { CENTIPEDE_VERSION, EXPECTED_KINGDOM_CONTRACT_VERSION } = await import('../../src/version');
+    const { CENTIPEDE_VERSION, CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL } = await import('../../src/version');
     expect(CENTIPEDE_VERSION).toBe('1.0.0');
-    expect(EXPECTED_KINGDOM_CONTRACT_VERSION).toBe('40.1.0');
+    expect(CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL).toBe('v1.0+');
   });
 });
