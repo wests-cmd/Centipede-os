@@ -1,10 +1,17 @@
 export type ConnectionState =
-  | 'CONNECTING'
-  | 'CONNECTED'
   | 'DISCONNECTED'
+  | 'DISCOVERING'
+  | 'AUTHENTICATING'
+  | 'NEGOTIATING'
+  | 'VALIDATING'
+  | 'CONNECTED'
+  | 'DEGRADED'
+  | 'RECONNECTING'
+  | 'INCOMPATIBLE'
   | 'AUTHENTICATION_FAILED'
-  | 'VERSION_INCOMPATIBLE'
-  | 'ERROR';
+  | 'ERROR'
+  | 'CONNECTING'
+  | 'VERSION_INCOMPATIBLE';
 
 export type VersionCompatibilityStatus =
   | 'COMPATIBLE'
@@ -38,6 +45,13 @@ export interface ProtocolVersion {
   minor: number;
 }
 
+export interface HeartbeatDiagnostics {
+  lastHeartbeat: number | null;
+  latencyMs: number;
+  reconnectAttempt: number;
+  nextReconnectMs: number | null;
+}
+
 export interface VersionCompatibility {
   detectedVersion: string | null;
   protocol?: ProtocolVersion | null;
@@ -61,10 +75,11 @@ export interface KingdomCompatibilityManifest {
 export interface KingdomRuntimeInfo {
   centipedeVersion: string; // Centipede OS App Version (e.g., "1.0.0")
   expectedKingdomContractVersion: string; // Contract baseline representation (e.g., "Protocol v1.0+")
-  connectedKingdomVersion: string | null; // Live Kingdom release version from /status (e.g., "40.2.0")
+  connectedKingdomVersion: string | null; // Live Kingdom release version from /status (e.g., "v1TAS")
   lastKnownKingdomVersion: string | null; // Last recorded version if currently offline
   connectionState: ConnectionState;
   compatibility: VersionCompatibility;
+  diagnostics?: HeartbeatDiagnostics;
   running: boolean;
   mode: string;
   protocol?: ProtocolVersion | null;
@@ -131,7 +146,7 @@ export interface SecurityStatus {
   mode: string;
   registered_nodes: number;
   pending_approvals_count: number;
-  audit_logs_count: number;
+  audit_logs_count?: number;
 }
 
 export interface SecurityNode {

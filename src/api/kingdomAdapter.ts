@@ -2,6 +2,7 @@ import {
   ApprovalRequest,
   AuditLogEntry,
   ConnectionState,
+  HeartbeatDiagnostics,
   KnightItem,
   KnightsResponse,
   KingdomErrorCode,
@@ -54,6 +55,13 @@ export class KingdomAdapter {
   private maxBackoffDelay = 16000;
   private isReconnecting = false;
 
+  private diagnostics: HeartbeatDiagnostics = {
+    lastHeartbeat: null,
+    latencyMs: 0,
+    reconnectAttempt: 0,
+    nextReconnectMs: null,
+  };
+
   private compatibilityInfo: VersionCompatibility = {
     detectedVersion: null,
     protocol: null,
@@ -105,6 +113,7 @@ export class KingdomAdapter {
       lastKnownKingdomVersion: this.lastKnownKingdomVersion,
       connectionState: this.connectionState,
       compatibility: { ...this.compatibilityInfo },
+      diagnostics: { ...this.diagnostics },
       running: this.lastKnownStatus?.running || false,
       mode: this.lastKnownStatus?.mode || 'OFFLINE',
       protocol: this.compatibilityInfo.protocol || this.lastKnownStatus?.protocol || null,
@@ -206,9 +215,7 @@ export class KingdomAdapter {
     this.notifyCompatibility(info);
 
     if (status === 'INCOMPATIBLE_PROTOCOL') {
-      this.notifyConnection('VERSION_INCOMPATIBLE');
-    } else if (this.connectionState === 'VERSION_INCOMPATIBLE') {
-      this.notifyConnection('CONNECTED');
+      this.notifyConnection('INCOMPATIBLE');
     }
 
     return info;
@@ -226,6 +233,7 @@ export class KingdomAdapter {
     const url = `${this.baseUrl}${path}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const startMs = Date.now();
 
     try {
       const res = await fetch(url, {
@@ -238,6 +246,8 @@ export class KingdomAdapter {
       });
 
       clearTimeout(timeoutId);
+      this.diagnostics.latencyMs = Date.now() - startMs;
+      this.diagnostics.lastHeartbeat = Date.now();
 
       if (res.status === 400 || res.status === 422) {
         const errText = await res.text();
@@ -309,9 +319,11 @@ export class KingdomAdapter {
     this.consecutiveFailures = 0;
     this.currentBackoffDelay = 2000;
     this.isReconnecting = false;
+    this.diagnostics.reconnectAttempt = 0;
+    this.diagnostics.nextReconnectMs = null;
 
     if (this.compatibilityInfo.status !== 'INCOMPATIBLE_PROTOCOL') {
-      if (this.connectionState !== 'CONNECTED') {
+      if (this.connectionState !== 'CONNECTED' && this.connectionState !== 'NEGOTIATING' && this.connectionState !== 'VALIDATING') {
         this.notifyConnection('CONNECTED');
         this.initWebSocket();
       }
@@ -350,10 +362,15 @@ export class KingdomAdapter {
     }
   }
 
+  /**
+   * Explicit Connection Handshake:
+   * DISCOVERING -> AUTHENTICATING -> NEGOTIATING -> VALIDATING -> CONNECTED / DEGRADED / INCOMPATIBLE
+   */
   public async reconnect(): Promise<boolean> {
     if (this.isReconnecting) return false;
     this.isReconnecting = true;
-    this.notifyConnection('CONNECTING');
+    this.diagnostics.reconnectAttempt++;
+    this.notifyConnection('DISCOVERING');
 
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
@@ -361,17 +378,46 @@ export class KingdomAdapter {
     }
 
     try {
+      // Step 1: DISCOVERING & Step 2: AUTHENTICATING
+      this.notifyConnection('AUTHENTICATING');
       const status = await this.get_status();
       this.notifyStatus(status);
+
+      // Step 3: NEGOTIATING
+      this.notifyConnection('NEGOTIATING');
       const compat = this.checkVersionCompatibility(status.version, status.protocol);
       if (compat.status === 'INCOMPATIBLE_PROTOCOL') {
+        this.notifyConnection('INCOMPATIBLE');
         this.isReconnecting = false;
         return false;
       }
+
+      // Step 4: VALIDATING Required Capabilities
+      this.notifyConnection('VALIDATING');
+      const runtimeInfo = this.getKingdomRuntimeInfo();
+      let missingRequired = false;
+      for (const reqCap of KINGDOM_COMPATIBILITY_MANIFEST.requiredCapabilities) {
+        const evalRes = capabilityNegotiator.evaluateCapability(reqCap, runtimeInfo);
+        if (evalRes.status === 'INCOMPATIBLE' || evalRes.status === 'UNSUPPORTED') {
+          missingRequired = true;
+          break;
+        }
+      }
+
+      if (missingRequired) {
+        this.notifyConnection('DEGRADED');
+        this.isReconnecting = false;
+        return false;
+      }
+
+      // Step 5: CONNECTED
       this.recordSuccess();
+      this.notifyConnection('CONNECTED');
       return true;
     } catch (e) {
       this.recordFailure();
+      this.diagnostics.nextReconnectMs = Date.now() + this.currentBackoffDelay;
+      this.notifyConnection('RECONNECTING');
       this.reconnectTimer = setTimeout(() => {
         this.currentBackoffDelay = Math.min(this.currentBackoffDelay * 2, this.maxBackoffDelay);
         this.isReconnecting = false;
@@ -474,7 +520,7 @@ export class KingdomAdapter {
     try {
       return await this.fetchJson<TaskItem>(`/tasks/${encodeURIComponent(task_id)}`);
     } catch (err) {
-      if (this.connectionState === 'DISCONNECTED') {
+      if (this.connectionState === 'DISCONNECTED' || this.connectionState === 'RECONNECTING') {
         return {
           id: task_id,
           prompt: '',

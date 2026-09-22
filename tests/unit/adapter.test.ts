@@ -28,10 +28,28 @@ test('KingdomAdapter Unit Tests & Version Verification', async () => {
   }
 });
 
-test('Kingdom Dynamic Capability & Reconnect Resilience Matrix', async () => {
+test('Kingdom Dynamic Capability, Handshake & Reconnect Resilience Matrix', async () => {
   const adapter = new KingdomAdapter('http://127.0.0.1:8000');
 
-  // 1. Unknown / Future capability addition ignored safely
+  // 1. Connection Handshake state tracking
+  const statesObserved: string[] = [];
+  const unsub = adapter.subscribeConnection((state) => {
+    statesObserved.push(state);
+  });
+
+  // Reconnect when offline transitions to DISCOVERING -> RECONNECTING
+  await adapter.reconnect();
+  expect(statesObserved).toContain('DISCOVERING');
+  expect(statesObserved).toContain('AUTHENTICATING');
+  expect(statesObserved).toContain('RECONNECTING');
+  unsub();
+
+  // 2. Heartbeat Diagnostics tracking
+  const info = adapter.getKingdomRuntimeInfo();
+  expect(info.diagnostics).toBeDefined();
+  expect(info.diagnostics?.latencyMs).toBeGreaterThanOrEqual(0);
+
+  // 3. Unknown / Future capability addition ignored safely
   const runtimeWithUnknownCap = {
     centipedeVersion: '1.0.0',
     expectedKingdomContractVersion: 'v1.0+',
@@ -48,13 +66,13 @@ test('Kingdom Dynamic Capability & Reconnect Resilience Matrix', async () => {
   const unknownCapResult = capabilityNegotiator.evaluateCapability('quantum_scheduler', runtimeWithUnknownCap);
   expect(unknownCapResult.status).toBe('SUPPORTED');
 
-  // 2. Disconnect during task query returns UNKNOWN state instead of false SUCCESS
+  // 4. Disconnect during task query returns UNKNOWN state instead of false SUCCESS
   adapter.disconnect();
   const taskResult = await adapter.get_task('task-123-interrupted');
   expect(taskResult.status).toBe('unknown');
   expect(taskResult.error).toContain('Connection interrupted');
 
-  // 3. Reconnect triggers rediscovery and renegotiation
+  // 5. Reconnect triggers rediscovery and renegotiation
   adapter.disconnect();
   expect(adapter.getConnectionState()).toBe('DISCONNECTED');
 });

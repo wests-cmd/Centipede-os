@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { KingdomAdapter } from '../api/kingdomAdapter';
 import { ApprovalRequest, ConnectionState, KnightItem, ModelHealth, RuntimeStatus, VersionCompatibility } from '../types';
 import { KingdomUpdateCenter } from './KingdomUpdateCenter';
-import { AlertCircle, AlertTriangle, Cpu, Play, Power, RefreshCw, Server, ShieldAlert, Zap } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Cpu, Play, Power, RefreshCw, Server, ShieldAlert, Zap, Activity } from 'lucide-react';
 
 interface KingdomStatusPanelProps {
   adapter: KingdomAdapter;
@@ -92,12 +92,12 @@ export const KingdomStatusPanel: React.FC<KingdomStatusPanelProps> = ({
 
   const handleReconnect = async () => {
     setLoadingAction(true);
-    setMessage('Initiating controlled connection retry to Kingdom API...');
+    setMessage('Initiating controlled handshake & connection retry to Kingdom API...');
     const ok = await adapter.reconnect();
     if (ok) {
-      setMessage('Successfully connected to Kingdom API!');
+      setMessage('Successfully connected and negotiated with Kingdom API!');
     } else {
-      setMessage('Reconnection attempt failed. Ensure Kingdom backend is online at ' + adapter.getBaseUrl());
+      setMessage('Reconnection handshake failed. Ensure Kingdom backend is online at ' + adapter.getBaseUrl());
     }
     setLoadingAction(false);
   };
@@ -106,14 +106,20 @@ export const KingdomStatusPanel: React.FC<KingdomStatusPanelProps> = ({
     switch (connectionState) {
       case 'CONNECTED':
         return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40';
+      case 'DISCOVERING':
+      case 'AUTHENTICATING':
+      case 'NEGOTIATING':
+      case 'VALIDATING':
       case 'CONNECTING':
+      case 'RECONNECTING':
         return 'bg-amber-500/20 text-amber-400 border-amber-500/40 animate-pulse';
-      case 'DISCONNECTED':
-        return 'bg-red-500/20 text-red-400 border-red-500/40';
+      case 'DEGRADED':
+        return 'bg-amber-600/20 text-amber-300 border-amber-600/40';
+      case 'INCOMPATIBLE':
       case 'VERSION_INCOMPATIBLE':
         return 'bg-purple-500/20 text-purple-400 border-purple-500/40';
       case 'AUTHENTICATION_FAILED':
-        return 'bg-amber-600/20 text-amber-300 border-amber-600/40';
+        return 'bg-red-600/20 text-red-300 border-red-600/40';
       default:
         return 'bg-red-500/20 text-red-400 border-red-500/40';
     }
@@ -121,15 +127,15 @@ export const KingdomStatusPanel: React.FC<KingdomStatusPanelProps> = ({
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      {/* Version Incompatibility Banner */}
+      {/* Version Incompatibility / Handshake Banner */}
       {compatInfo.status !== 'COMPATIBLE' && compatInfo.status !== 'UNKNOWN' && (
         <div className="bg-purple-950/80 border border-purple-500/60 p-4 rounded-2xl flex items-center space-x-3 text-purple-200 shadow-xl">
           <ShieldAlert className="w-6 h-6 text-purple-400 flex-shrink-0" />
           <div className="text-xs">
-            <div className="font-bold text-sm text-white">Kingdom Version Compatibility Alert</div>
+            <div className="font-bold text-sm text-white">Kingdom Protocol Compatibility Alert</div>
             <div>{compatInfo.message}</div>
             <div className="text-[10px] text-purple-400 mt-1 font-mono">
-              Minimum Supported: v{compatInfo.minSupportedVersion} • Maximum Tested: v{compatInfo.maxTestedVersion}
+              Supported Protocol Major: v{compatInfo.minSupportedVersion}
             </div>
           </div>
         </div>
@@ -143,13 +149,13 @@ export const KingdomStatusPanel: React.FC<KingdomStatusPanelProps> = ({
           </div>
           <div>
             <div className="flex items-center space-x-3">
-              <h2 className="text-2xl font-bold text-white">Kingdom Runtime Status</h2>
+              <h2 className="text-2xl font-bold text-white">Kingdom Handshake & Runtime Status</h2>
               <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${getStatusBadge()}`}>
-                {connectionState}
+                ● {connectionState}
               </span>
             </div>
             <p className="text-slate-400 text-sm mt-1">
-              API Base URL: <span className="text-slate-200 font-mono">{adapter.getBaseUrl()}</span>
+              API Endpoint: <span className="text-slate-200 font-mono">{adapter.getBaseUrl()}</span>
             </p>
           </div>
         </div>
@@ -161,7 +167,7 @@ export const KingdomStatusPanel: React.FC<KingdomStatusPanelProps> = ({
             className="flex items-center space-x-2 bg-slate-700 hover:bg-slate-600 text-white font-medium px-4 py-2 rounded-xl text-sm transition-colors border border-slate-600"
           >
             <RefreshCw className={`w-4 h-4 ${loadingAction ? 'animate-spin' : ''}`} />
-            <span>Reconnect</span>
+            <span>Reconnect Handshake</span>
           </button>
 
           {status?.running ? (
@@ -192,7 +198,7 @@ export const KingdomStatusPanel: React.FC<KingdomStatusPanelProps> = ({
         </div>
       )}
 
-      {/* Grid Metrics */}
+      {/* Grid Metrics & Diagnostics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
           <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Engine State</div>
@@ -212,26 +218,16 @@ export const KingdomStatusPanel: React.FC<KingdomStatusPanelProps> = ({
               ? `v${runtimeInfo.lastKnownKingdomVersion} (Offline)`
               : 'Offline'}
           </div>
-          <div className="text-xs text-slate-400 mt-2">Contract Status: {compatInfo.status}</div>
+          <div className="text-xs text-slate-400 mt-2">Protocol: {runtimeInfo.protocol ? `v${runtimeInfo.protocol.major}.${runtimeInfo.protocol.minor}` : 'v1.x'}</div>
         </div>
 
         <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
-          <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Operating Mode</div>
-          <div className="text-2xl font-bold text-purple-400 mt-2 capitalize">{mode}</div>
-          <div className="flex space-x-2 mt-2">
-            {['adaptive', 'lightweight'].map((m) => (
-              <button
-                key={m}
-                onClick={() => handleModeChange(m)}
-                disabled={mode === m || connectionState !== 'CONNECTED'}
-                className={`text-[10px] px-2 py-0.5 rounded uppercase font-bold border ${
-                  mode === m ? 'bg-purple-600 border-purple-400 text-white' : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'
-                }`}
-              >
-                {m}
-              </button>
-            ))}
+          <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Heartbeat Latency</div>
+          <div className="text-2xl font-bold text-emerald-400 mt-2 flex items-center space-x-1">
+            <Activity className="w-5 h-5 text-emerald-400" />
+            <span>{runtimeInfo.diagnostics?.latencyMs || 0}ms</span>
           </div>
+          <div className="text-xs text-slate-400 mt-2">Retries: {runtimeInfo.diagnostics?.reconnectAttempt || 0}</div>
         </div>
 
         <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
