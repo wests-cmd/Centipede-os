@@ -3,6 +3,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, statSync } from 'fs
 import { join } from 'path';
 import { syncSha256 } from '../src/security/cryptoUtils';
 import packageJson from '../package.json';
+import { KINGDOM_PROTOCOL_MAJOR, CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL } from '../src/version';
+import { KINGDOM_COMPATIBILITY_MANIFEST, KINGDOM_CONTRACT_SPEC } from '../src/api/contractSpec';
 
 const rootDir = process.cwd();
 const releaseDir = join(rootDir, 'release');
@@ -79,9 +81,11 @@ const releaseManifest = {
   releaseChannel: 'production',
   buildTimestamp: new Date().toISOString(),
   gitCommit,
-  expectedKingdomContractVersion: '40.1.0',
-  minimumKingdomSupportedVersion: '40.0.0',
-  maximumKingdomTestedVersion: '40.1.9',
+  protocol: CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL,
+  protocolMajor: KINGDOM_PROTOCOL_MAJOR,
+  contractVersion: KINGDOM_CONTRACT_SPEC.contractVersion,
+  requiredCapabilities: KINGDOM_COMPATIBILITY_MANIFEST.requiredCapabilities,
+  optionalCapabilities: KINGDOM_COMPATIBILITY_MANIFEST.optionalCapabilities,
   artifacts: [
     {
       filename: bundleName,
@@ -92,10 +96,11 @@ const releaseManifest = {
     },
   ],
   deploymentProfiles: {
-    Commander: 'Full orchestration, swarm management & ZeroTrust authorization',
-    Knight: 'Worker node executing assigned tasks & container workloads',
-    Scout: 'Lightweight environment & capability discovery',
-    Ultralight: 'Base install < 5.0 GB for Live USB & VM targets',
+    Commander: { status: 'AVAILABLE', description: 'Full orchestration, swarm management & ZeroTrust authorization' },
+    Knight: { status: 'AVAILABLE', description: 'Worker node executing assigned tasks & container workloads' },
+    Scout: { status: 'AVAILABLE', description: 'Lightweight environment & capability discovery' },
+    Ultralight: { status: 'AVAILABLE', description: 'Base install < 5.0 GB for Live USB & VM targets' },
+    LiveUSB_ISO: { status: 'PLANNED', description: 'Bare-metal bootable ISO (Planned OS Kernel Milestone)' },
   },
 };
 
