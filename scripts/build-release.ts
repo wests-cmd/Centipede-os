@@ -30,7 +30,12 @@ if (currentRef.startsWith('refs/tags/')) {
 
 // 2. Ensure clean dist build
 console.log('\n--- 1. Building Production Web Bundle ---');
-execSync('bun run build', { stdio: 'inherit' });
+const nodeBinPath = join(rootDir, 'node_modules', '.bin');
+const envWithPath = {
+  ...process.env,
+  PATH: `${nodeBinPath}:${process.env.PATH || ''}`,
+};
+execSync('bun run build', { stdio: 'inherit', env: envWithPath });
 
 if (!existsSync(distDir)) {
   console.error('Build Error: dist/ directory not found after build!');
