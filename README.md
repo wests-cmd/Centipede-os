@@ -156,7 +156,7 @@ If an update or workflow fails, Centipede OS preserves your data:
 # Install dependencies
 bun install
 
-# Run unit, adversarial & compatibility test suites (105 tests across 15 suites)
+# Run unit, adversarial & compatibility test suites (130 tests across 23 files)
 bun test
 
 # Run contract verification against live Kingdom server

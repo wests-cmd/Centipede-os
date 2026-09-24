@@ -117,7 +117,7 @@ export class DeviceTrustManager {
 
     this.sessionTokenIndex.set(sessionToken, device);
     this.pendingPairingCodes.delete(pairingCode);
-    return { success: true, sessionToken };
+    return { success: true, sessionToken, deviceId: device.deviceId };
   }
 
   public validateSessionToken(sessionToken: string): { valid: boolean; device?: TrustedDevice; error?: string } {

@@ -5,6 +5,8 @@ services:
   kingdom-engine:
     image: python:3.11-slim
     container_name: centipede-kingdom-engine
+    working_dir: /app
+    command: python -u /app/scripts/kingdom-server.py
     environment:
       - PORT=8000
       - ZERO_TRUST_MODE=true
@@ -18,6 +20,7 @@ services:
       timeout: 5s
       retries: 3
     volumes:
+      - ./scripts/kingdom-server.py:/app/scripts/kingdom-server.py:ro
       - kingdom-data:/app/data
     restart: unless-stopped
 
@@ -29,7 +32,7 @@ services:
     container_name: centipede-commander
     environment:
       - PORT=3000
-      - CENTIPEDE_PROFILE=FULL_CENTIPEDE
+      - CENTIPEDE_PROFILE=COMMANDER
       - KINGDOM_API_URL=http://kingdom-engine:8000
       - OLLAMA_API_URL=http://ollama-model:11434
     networks:

@@ -54,6 +54,61 @@ export class CircuitBreaker {
   }
 }
 
+const isNodeOrBun = typeof process !== 'undefined' && process.versions && (process.versions.node || process.versions.bun);
+
+let nodeFs: any = null;
+let nodePath: any = null;
+let nodeChildProcess: any = null;
+
+if (typeof window === 'undefined' && typeof process !== 'undefined' && process.versions) {
+  try {
+    const req = typeof require !== 'undefined' ? require : null;
+    if (req) {
+      nodeFs = req('fs');
+      nodePath = req('path');
+      nodeChildProcess = req('child_process');
+    }
+  } catch (e) {
+    // Web bundler fallback
+  }
+}
+
+const ALLOWED_PROCESS_COMMANDS = ['echo', 'ls', 'pwd', 'whoami', 'date', 'node -v', 'bun -v', 'uname'];
+
+function getSandboxDir(): string {
+  if (nodePath) {
+    return nodePath.resolve(process.cwd(), 'sandbox');
+  }
+  return './sandbox';
+}
+
+export function getSafeSandboxPath(userInputPath: string): string {
+  if (!nodePath) throw new Error('Node path module unavailable.');
+  if (!userInputPath || typeof userInputPath !== 'string') {
+    throw new Error('INVALID_PATH: Path must be a non-empty string.');
+  }
+  const sandboxDir = getSandboxDir();
+  const cleaned = userInputPath.replace(/\0/g, '');
+  const resolved = nodePath.resolve(sandboxDir, cleaned);
+
+  if (!resolved.startsWith(sandboxDir + nodePath.sep) && resolved !== sandboxDir) {
+    throw new Error(`PATH_TRAVERSAL_DETECTED: Target path "${userInputPath}" resolves outside sandbox boundary "${sandboxDir}".`);
+  }
+
+  if (nodeFs && nodeFs.existsSync(resolved)) {
+    try {
+      const real = nodeFs.realpathSync(resolved);
+      if (!real.startsWith(sandboxDir + nodePath.sep) && real !== sandboxDir) {
+        throw new Error(`SYMLINK_ESCAPE_DETECTED: Real target path "${real}" escapes sandbox boundary "${sandboxDir}".`);
+      }
+    } catch (err: any) {
+      if (err.message.startsWith('SYMLINK_ESCAPE_DETECTED')) throw err;
+    }
+  }
+
+  return resolved;
+}
+
 export class ToolExecutor {
   private adapter: KingdomAdapter;
   private maxChainDepth = 5;
@@ -158,7 +213,6 @@ export class ToolExecutor {
 
     // Canonical Execution Authorization Context Verification
     if (isMutatingOrPrivileged) {
-      // Must have valid JIT grant or trigger approval workflow
       if (!req.grantId) {
         if (requiresHumanApproval) {
           let approvalId = req.approvalId || `appr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
@@ -318,8 +372,12 @@ export class ToolExecutor {
 
       this.circuitBreaker.recordSuccess(tool.toolId);
 
-      // Explicit verification state classification
-      const verificationState: VerificationState = tool.toolId.startsWith('filesystem.') ? 'SIMULATED' : 'VERIFIED';
+      const verificationState: VerificationState =
+        data && typeof data === 'object' && data.mode === 'REAL_SANDBOX'
+          ? 'VERIFIED'
+          : (tool.toolId.startsWith('filesystem.') || tool.toolId.startsWith('process.'))
+          ? 'SIMULATED'
+          : 'VERIFIED';
 
       const result: ToolExecutionResult = {
         invocationId: req.id,
@@ -352,7 +410,6 @@ export class ToolExecutor {
         idempotencyKey,
       };
 
-      // Record to Dead-Letter Queue for reconciliation
       const dlqId = `dlq_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
       this.deadLetterQueue.set(dlqId, {
         deadLetterId: dlqId,
@@ -423,12 +480,77 @@ export class ToolExecutor {
         return this.adapter.list_approvals();
       case 'security.approval_create':
         return this.adapter.create_approval(params.capability, params.operation);
-      case 'filesystem.read':
+      case 'filesystem.read': {
+        if (isNodeOrBun && nodeFs && nodePath) {
+          const safePath = getSafeSandboxPath(params.path);
+          if (!nodeFs.existsSync(safePath)) {
+            throw new Error(`FILE_NOT_FOUND: Sandbox file "${params.path}" does not exist.`);
+          }
+          const stat = nodeFs.statSync(safePath);
+          if (stat.isDirectory()) {
+            throw new Error(`IS_DIRECTORY: Target path "${params.path}" is a directory.`);
+          }
+          const content = nodeFs.readFileSync(safePath, 'utf8');
+          return { path: params.path, content, size: content.length, mode: 'REAL_SANDBOX' };
+        }
         return { path: params.path, content: 'Sandbox file content sample', mode: 'SIMULATED' };
-      case 'filesystem.write':
+      }
+      case 'filesystem.write': {
+        if (isNodeOrBun && nodeFs && nodePath) {
+          const safePath = getSafeSandboxPath(params.path);
+          const parentDir = nodePath.dirname(safePath);
+          if (!nodeFs.existsSync(parentDir)) {
+            nodeFs.mkdirSync(parentDir, { recursive: true });
+          }
+          const content = params.content || '';
+          const tempPath = `${safePath}.tmp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+          nodeFs.writeFileSync(tempPath, content, 'utf8');
+          nodeFs.renameSync(tempPath, safePath);
+          const bytes = Buffer.byteLength(content, 'utf8');
+          return { path: params.path, status: 'written', bytes, mode: 'REAL_SANDBOX' };
+        }
         return { path: params.path, status: 'written', bytes: 1024, mode: 'SIMULATED' };
-      case 'filesystem.delete_restricted':
-        return { path: params.target, status: 'deleted', mode: 'SIMULATED' };
+      }
+      case 'filesystem.delete_restricted': {
+        const targetPath = params.target || params.path;
+        if (isNodeOrBun && nodeFs && nodePath) {
+          const safePath = getSafeSandboxPath(targetPath);
+          if (!nodeFs.existsSync(safePath)) {
+            throw new Error(`FILE_NOT_FOUND: Target "${targetPath}" does not exist in sandbox.`);
+          }
+          nodeFs.rmSync(safePath, { recursive: true, force: true });
+          return { path: targetPath, status: 'deleted', mode: 'REAL_SANDBOX' };
+        }
+        return { path: targetPath, status: 'deleted', mode: 'SIMULATED' };
+      }
+      case 'process.execute_restricted': {
+        const rawCmd = (params.command || '').trim();
+        if (!rawCmd) {
+          throw new Error('INVALID_COMMAND: Empty command provided.');
+        }
+        if (isNodeOrBun && nodeChildProcess) {
+          const isAllowed = ALLOWED_PROCESS_COMMANDS.some((allowed) => rawCmd.startsWith(allowed));
+          if (!isAllowed) {
+            throw new Error(`COMMAND_NOT_ALLOWED: Command "${rawCmd}" is not in the restricted execution allowlist.`);
+          }
+          const sandboxDir = getSandboxDir();
+          if (nodeFs && !nodeFs.existsSync(sandboxDir)) {
+            nodeFs.mkdirSync(sandboxDir, { recursive: true });
+          }
+          const output = nodeChildProcess.execSync(rawCmd, {
+            cwd: sandboxDir,
+            timeout: 5000,
+            encoding: 'utf8',
+          });
+          return { command: rawCmd, stdout: (output || '').trim(), exitCode: 0, mode: 'REAL_SANDBOX' };
+        }
+        return {
+          command: rawCmd,
+          status: 'PLANNED_IN_BROWSER',
+          mode: 'SIMULATED',
+          message: 'Restricted process execution requires Node/Bun host environment.',
+        };
+      }
       default:
         throw new Error(`Tool execution dispatch not found for "${toolId}".`);
     }
