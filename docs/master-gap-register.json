@@ -1,0 +1,177 @@
+{
+  "product": "Centipede OS",
+  "version": "1.0.0",
+  "lastAudited": "2026-03-06T18:00:00Z",
+  "subsystems": [
+    {
+      "id": "GAP-01",
+      "category": "UI / Visual",
+      "subsystem": "Centipede World Visual & Home",
+      "currentState": "VERIFIED",
+      "risk": "LOW",
+      "securityImpact": "Low",
+      "status": "VERIFIED",
+      "remainingWork": "None. Canvas 2D procedural Earth + Centipede animation with quality & reduced-motion controls."
+    },
+    {
+      "id": "GAP-02",
+      "category": "AI / Agent",
+      "subsystem": "Segmentor AI Pipeline",
+      "currentState": "VERIFIED",
+      "risk": "HIGH",
+      "securityImpact": "Critical",
+      "status": "VERIFIED",
+      "remainingWork": "None. Governed pipeline (IntentParser -> Context -> Planner -> PermissionGate -> ActionExecutor -> ResultProcessor) enforces fail-closed execution."
+    },
+    {
+      "id": "GAP-03",
+      "category": "Security",
+      "subsystem": "ZeroTrust Permission Gate & JIT Grants",
+      "currentState": "VERIFIED",
+      "risk": "CRITICAL",
+      "securityImpact": "Critical",
+      "status": "VERIFIED",
+      "remainingWork": "None. Atomic single-use grants with parameter hash verification (computeParameterHash)."
+    },
+    {
+      "id": "GAP-04",
+      "category": "API / Adapter",
+      "subsystem": "Kingdom Protocol Adapter & Handshake",
+      "currentState": "VERIFIED",
+      "risk": "HIGH",
+      "securityImpact": "High",
+      "status": "VERIFIED",
+      "remainingWork": "None. Dynamic Protocol v1.x handshake and capability negotiation (READ -> NEGOTIATE -> ADAPT -> VERIFY -> OPERATE)."
+    },
+    {
+      "id": "GAP-05",
+      "category": "Tools",
+      "subsystem": "Verified Tool Executor",
+      "currentState": "VERIFIED",
+      "risk": "HIGH",
+      "securityImpact": "Critical",
+      "status": "VERIFIED",
+      "remainingWork": "None. Canonical ExecutionAuthorizationContext validation and compound idempotency keys."
+    },
+    {
+      "id": "GAP-06",
+      "category": "Workflows",
+      "subsystem": "Bounded Autonomous Workflow Engine",
+      "currentState": "VERIFIED",
+      "risk": "MEDIUM",
+      "securityImpact": "High",
+      "status": "VERIFIED",
+      "remainingWork": "None. Multi-dimensional execution budgets, SHA-256 state signatures, and DRAFT default state."
+    },
+    {
+      "id": "GAP-07",
+      "category": "Skills",
+      "subsystem": "Trusted Skill Ecosystem",
+      "currentState": "VERIFIED",
+      "risk": "MEDIUM",
+      "securityImpact": "High",
+      "status": "VERIFIED",
+      "remainingWork": "None. Skill manifests with SHA-256 artifact checksum verification and capability expansion diffing."
+    },
+    {
+      "id": "GAP-08",
+      "category": "Memory",
+      "subsystem": "Memory & User Knowledge Store",
+      "currentState": "VERIFIED",
+      "risk": "LOW",
+      "securityImpact": "Medium",
+      "status": "VERIFIED",
+      "remainingWork": "None. MemoryStore hierarchy (SYSTEM_AUTHORITY > USER_CONFIRMED > MODEL_INFERENCE) with forget workflows."
+    },
+    {
+      "id": "GAP-09",
+      "category": "Search",
+      "subsystem": "Universal Search Aggregator",
+      "currentState": "VERIFIED",
+      "risk": "LOW",
+      "securityImpact": "Medium",
+      "status": "VERIFIED",
+      "remainingWork": "None. Permission-bounded aggregator with path traversal defense and Search-Action separation."
+    },
+    {
+      "id": "GAP-10",
+      "category": "Platform",
+      "subsystem": "Profile Selector & Hardware Auto-Detector",
+      "currentState": "VERIFIED",
+      "risk": "LOW",
+      "securityImpact": "Low",
+      "status": "VERIFIED",
+      "remainingWork": "None. Real browser/Node hardware API detection (navigator.hardwareConcurrency, navigator.deviceMemory, navigator.storage.estimate())."
+    },
+    {
+      "id": "GAP-11",
+      "category": "Storage",
+      "subsystem": "Storage Pressure Engine",
+      "currentState": "VERIFIED",
+      "risk": "LOW",
+      "securityImpact": "Medium",
+      "status": "VERIFIED",
+      "remainingWork": "None. 5 pressure states (NORMAL, INFORMATIONAL_WARNING, WARNING, CRITICAL, EMERGENCY) blocking mutating actions <5% free space."
+    },
+    {
+      "id": "GAP-12",
+      "category": "Network",
+      "subsystem": "Mobile Companion QR Pairing & Revocation",
+      "currentState": "VERIFIED",
+      "risk": "MEDIUM",
+      "securityImpact": "High",
+      "status": "VERIFIED",
+      "remainingWork": "None. CSPRNG pairing PINs, session tokens, and instant device access revocation."
+    },
+    {
+      "id": "GAP-13",
+      "category": "Release",
+      "subsystem": "Two-Stage CI/CD & Release Builder",
+      "currentState": "VERIFIED",
+      "risk": "MEDIUM",
+      "securityImpact": "High",
+      "status": "VERIFIED",
+      "remainingWork": "None. Byte-exact archive SHA-256 checksums matching system sha256sum byte-for-byte."
+    },
+    {
+      "id": "GAP-14",
+      "category": "Setup",
+      "subsystem": "First-Run Setup Wizard & Desktop Launcher",
+      "currentState": "VERIFIED",
+      "risk": "LOW",
+      "securityImpact": "Low",
+      "status": "VERIFIED",
+      "remainingWork": "None. 6-step guided wizard and scripts/start-centipede.ts launcher."
+    },
+    {
+      "id": "GAP-15",
+      "category": "Docker",
+      "subsystem": "Swarm Multi-Node Stack",
+      "currentState": "VERIFIED",
+      "risk": "LOW",
+      "securityImpact": "Medium",
+      "status": "VERIFIED",
+      "remainingWork": "None. Production docker-compose.yml for Commander, Knight, and Scout."
+    },
+    {
+      "id": "GAP-16",
+      "category": "Recovery",
+      "subsystem": "Update Center & State Rollback",
+      "currentState": "VERIFIED",
+      "risk": "MEDIUM",
+      "securityImpact": "High",
+      "status": "VERIFIED",
+      "remainingWork": "None. Version verification post-update with automatic rollback on failure."
+    },
+    {
+      "id": "GAP-17",
+      "category": "OS Kernel",
+      "subsystem": "Bare-Metal Bootable ISO / Live USB",
+      "currentState": "PLANNED",
+      "risk": "LOW",
+      "securityImpact": "Low",
+      "status": "PLANNED",
+      "remainingWork": "Targeted for future Linux kernel packaging milestone as documented in docs/INSTALLATION_GUIDE.md."
+    }
+  ]
+}
