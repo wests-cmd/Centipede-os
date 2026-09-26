@@ -647,4 +647,22 @@ describe('Master Security Invariants 1–14 Test Suite', () => {
     expect(check.valid).toBe(false);
     expect(check.error).toContain('GRANT_EXPIRED');
   });
+
+  it('Sentinel Security Test — CSPRNG Grant ID Generation Verification', () => {
+    const grant1 = capabilityGrantEngine.issueJustInTimeGrant('agent_sec', 'filesystem.read', '/tmp/doc1.txt');
+    const grant2 = capabilityGrantEngine.issueJustInTimeGrant('agent_sec', 'filesystem.read', '/tmp/doc2.txt');
+
+    // Verify format: grant_<timestamp>_<16 hex chars from CSPRNG 8 bytes>
+    expect(grant1.grantId).toMatch(/^grant_\d+_[0-9a-f]{16}$/);
+    expect(grant2.grantId).toMatch(/^grant_\d+_[0-9a-f]{16}$/);
+
+    // Verify cryptographic randomness and uniqueness across multiple grants
+    const grantIds = new Set<string>();
+    for (let i = 0; i < 50; i++) {
+      const g = capabilityGrantEngine.issueJustInTimeGrant('agent_sec', 'filesystem.read', `/tmp/doc_${i}.txt`);
+      expect(grantIds.has(g.grantId)).toBe(false);
+      grantIds.add(g.grantId);
+    }
+    expect(grantIds.size).toBe(50);
+  });
 });

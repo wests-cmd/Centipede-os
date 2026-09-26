@@ -129,3 +129,16 @@ export function syncSha256(input: string | Uint8Array): string {
 
   return hex;
 }
+
+/**
+ * Universal cross-runtime CSPRNG hex string generator.
+ * Generates cryptographically secure random bytes in browser, Node, and Bun environments.
+ */
+export function generateSecureRandomHex(bytes = 16): string {
+  if (typeof globalThis !== 'undefined' && globalThis.crypto && typeof globalThis.crypto.getRandomValues === 'function') {
+    const array = new Uint8Array(bytes);
+    globalThis.crypto.getRandomValues(array);
+    return Array.from(array, (b) => b.toString(16).padStart(2, '0')).join('');
+  }
+  throw new Error('CSPRNG_UNAVAILABLE: globalThis.crypto.getRandomValues is not supported in this runtime environment.');
+}
