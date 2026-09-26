@@ -5,18 +5,23 @@ import { KingdomAdapter } from '../../src/api/kingdomAdapter';
 describe('Kingdom Docker & HTTP Server Integration Test Suite', () => {
   let serverProcess: ChildProcess | null = null;
   let adapter: KingdomAdapter;
+  const TEST_PORT = '8088';
 
   beforeAll(async () => {
-    adapter = new KingdomAdapter('http://localhost:8000');
-    try {
-      await adapter.get_status();
-    } catch (_) {
-      serverProcess = spawn('python3', ['scripts/kingdom-server.py'], {
-        env: { ...process.env, PORT: '8000' },
-        stdio: 'ignore',
-      });
-      await new Promise((r) => setTimeout(r, 1200));
-    }
+    serverProcess = spawn('python3', ['scripts/kingdom-server.py'], {
+      env: { ...process.env, PORT: TEST_PORT },
+      stdio: 'ignore',
+    });
+    await new Promise((r) => setTimeout(r, 1200));
+
+    adapter = new KingdomAdapter(`http://localhost:${TEST_PORT}`);
+
+    // Register test node
+    await fetch(`http://localhost:${TEST_PORT}/nodes/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nodeId: 'commander-1', name: 'commander-1', role: 'COMMANDER' }),
+    });
   });
 
   afterAll(() => {

@@ -183,6 +183,11 @@ export interface AuditLogEntry {
   approval_id?: string;
 }
 
+export interface AuditLogResponse {
+  audit_logs: AuditLogEntry[];
+  total_count?: number;
+}
+
 export interface SystemEvent {
   type?: string;
   event?: string;

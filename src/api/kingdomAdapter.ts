@@ -1,6 +1,7 @@
 import {
   ApprovalRequest,
   AuditLogEntry,
+  AuditLogResponse,
   ConnectionState,
   HeartbeatDiagnostics,
   KnightItem,
@@ -655,14 +656,14 @@ export class KingdomAdapter {
     });
   }
 
-  public async get_audit(limit = 100, actor?: string, decision?: string, capability?: string): Promise<AuditLogEntry[]> {
+  public async get_audit(limit = 100, actor?: string, decision?: string, capability?: string): Promise<AuditLogResponse> {
     const params = new URLSearchParams();
     params.set('limit', limit.toString());
     if (actor) params.set('actor', actor);
     if (decision) params.set('decision', decision);
     if (capability) params.set('capability', capability);
 
-    return this.fetchJson<AuditLogEntry[]>(`/security/audit?${params.toString()}`);
+    return this.fetchJson<AuditLogResponse>(`/security/audit?${params.toString()}`);
   }
 }
 

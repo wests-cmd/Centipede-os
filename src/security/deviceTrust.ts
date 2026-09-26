@@ -13,6 +13,13 @@ export interface TrustedDevice {
   lastSeenAt?: number;
 }
 
+export interface PairingConfirmationResult {
+  success: boolean;
+  sessionToken?: string;
+  deviceId?: string;
+  error?: string;
+}
+
 function generateSecureRandomHex(bytes = 16): string {
   if (typeof globalThis !== 'undefined' && globalThis.crypto && globalThis.crypto.getRandomValues) {
     const array = new Uint8Array(bytes);
@@ -73,7 +80,7 @@ export class DeviceTrustManager {
     };
   }
 
-  public confirmPairing(pairingCode: string): { success: boolean; sessionToken?: string; error?: string } {
+  public confirmPairing(pairingCode: string): PairingConfirmationResult {
     this.cleanupExpired();
 
     if (!pairingCode || typeof pairingCode !== 'string' || !/^\d{6}$/.test(pairingCode)) {

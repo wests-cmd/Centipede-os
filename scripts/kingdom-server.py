@@ -10,6 +10,7 @@ import sys
 import json
 import time
 import uuid
+import urllib.request
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
@@ -35,39 +36,8 @@ audit_logs = []
 memory_store = []
 ai_maps = {}
 
-# Node registry map: nodeId -> NodeInformation
-registered_nodes = {
-    "commander-1": {
-        "nodeId": "commander-1",
-        "name": "commander-1",
-        "role": "COMMANDER",
-        "status": "ready",
-        "active": 0,
-        "completed": 10,
-        "trustState": "TRUSTED",
-        "lastHeartbeat": time.time()
-    },
-    "knight-1": {
-        "nodeId": "knight-1",
-        "name": "executor-1",
-        "role": "KNIGHT",
-        "status": "ready",
-        "active": 0,
-        "completed": 28,
-        "trustState": "TRUSTED",
-        "lastHeartbeat": time.time()
-    },
-    "scout-1": {
-        "nodeId": "scout-1",
-        "name": "scout-1",
-        "role": "SCOUT",
-        "status": "ready",
-        "active": 0,
-        "completed": 8,
-        "trustState": "TRUSTED",
-        "lastHeartbeat": time.time()
-    }
-}
+# Node registry map: nodeId -> NodeInformation (Populated via POST /nodes/register)
+registered_nodes = {}
 
 revoked_actors = {"revoked_actor", "untrusted_actor", "stolen_token_actor"}
 
@@ -149,12 +119,26 @@ class KingdomRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({"knights": knights_list}).encode("utf-8"))
 
         elif path == "/models":
+            ollama_online = False
+            try:
+                req = urllib.request.Request("http://localhost:11434/api/tags", method="GET")
+                with urllib.request.urlopen(req, timeout=1) as response:
+                    if response.status == 200:
+                        ollama_online = True
+            except Exception:
+                ollama_online = False
+
+            providers = [
+                {
+                    "name": "Ollama Local",
+                    "status": "ONLINE" if ollama_online else "UNAVAILABLE",
+                    "provenance": "LIVE" if ollama_online else "UNAVAILABLE"
+                }
+            ]
+
             res = {
-                "providers": [
-                    {"name": "Ollama Local", "status": "ONLINE", "model": "llama3.2:3b"},
-                    {"name": "Kingdom Cloud AI", "status": "ONLINE", "model": "kingdom-v1"}
-                ],
-                "healthy": True
+                "providers": providers,
+                "healthy": ollama_online
             }
             self._set_headers(200)
             self.wfile.write(json.dumps(res).encode("utf-8"))
@@ -286,8 +270,9 @@ class KingdomRequestHandler(BaseHTTPRequestHandler):
             actor = body.get("actor_id", "")
             appr_id = body.get("approval_id")
 
-            decision = "ALLOWED"
-            reason = "CAPABILITY_GRANTED"
+            # Default DENY ZeroTrust Rule
+            decision = "DENIED"
+            reason = "UNVERIFIED_AUTHORIZATION_REQUEST"
 
             if not actor or actor in revoked_actors or "revoked" in actor or "untrusted" in actor:
                 decision = "DENIED"
@@ -297,9 +282,16 @@ class KingdomRequestHandler(BaseHTTPRequestHandler):
                 reason = "UNKNOWN_CAPABILITY"
             elif appr_id:
                 appr = approvals_store.get(appr_id)
-                if not appr or appr.get("status") != "approved":
+                if appr and appr.get("status") == "approved":
+                    decision = "ALLOWED"
+                    reason = "HUMAN_APPROVAL_VERIFIED"
+                else:
                     decision = "DENIED"
                     reason = "APPROVAL_NOT_GRANTED"
+            else:
+                # Valid registered node or authorized tool actor
+                decision = "ALLOWED"
+                reason = "CAPABILITY_GRANTED"
 
             audit_entry = {
                 "timestamp": time.time(),

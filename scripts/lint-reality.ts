@@ -4,9 +4,11 @@ import { join } from 'path';
 
 const rootDir = process.cwd();
 const srcDir = join(rootDir, 'src');
+const scriptsDir = join(rootDir, 'scripts');
 
+// REALITY-LINT-ALLOW: reason = "Linter pattern definition"
 const SUSPICIOUS_PATTERNS = [
-  { pattern: /\b(fake|mock|demo)\b/i, name: 'Fake / Mock Identifier' },
+  { pattern: /\b(fake|mock|demo)\b/i, name: 'Fake / Mock Identifier' }, // REALITY-LINT-ALLOW: reason = "Linter regex pattern"
   { pattern: /setTimeout\s*\(\s*[^,]+,\s*(1000|1200|1500|2000)\s*\)/, name: 'Timer-based Success Simulation' },
 ];
 
@@ -21,7 +23,7 @@ function scanDirectory(dir: string) {
     const stat = statSync(fullPath);
     if (stat.isDirectory()) {
       scanDirectory(fullPath);
-    } else if (stat.isFile() && (fullPath.endsWith('.ts') || fullPath.endsWith('.tsx'))) {
+    } else if (stat.isFile() && (fullPath.endsWith('.ts') || fullPath.endsWith('.tsx') || fullPath.endsWith('.py'))) {
       totalFilesChecked++;
       const content = readFileSync(fullPath, 'utf8');
       const lines = content.split('\n');
@@ -35,7 +37,7 @@ function scanDirectory(dir: string) {
         for (const rule of SUSPICIOUS_PATTERNS) {
           if (rule.pattern.test(line)) {
             // Ignore type definitions, interface definitions, imports, comments, or standard JSX attributes
-            if (line.includes('type ') || line.includes('interface ') || line.includes('import ') || line.includes('//') || line.includes('placeholder=')) {
+            if (line.includes('type ') || line.includes('interface ') || line.includes('import ') || line.includes('//') || line.includes('#') || line.includes('placeholder=')) {
               continue;
             }
             console.error(`[REALITY LINT VIOLATION] ${rule.name} found in ${fullPath.replace(rootDir, '')}:${index + 1}`);
@@ -53,6 +55,7 @@ console.log(` CENTIPEDE OS STATIC REALITY LINTER`);
 console.log(`===========================================================`);
 
 scanDirectory(srcDir);
+scanDirectory(scriptsDir);
 
 console.log(`\nFiles Checked: ${totalFilesChecked}`);
 console.log(`Allowed Exemptions: ${allowedExceptions.length}`);

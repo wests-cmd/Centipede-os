@@ -25,11 +25,11 @@ export const PermissionsApprovalView: React.FC<PermissionsApprovalViewProps> = (
       const [pRes, aRes, auditRes] = await Promise.all([
         adapter.get_permissions().catch(() => ({ nodes: [] })),
         adapter.list_approvals().catch(() => []),
-        adapter.get_audit(20).catch(() => []),
+        adapter.get_audit(20).catch(() => ({ audit_logs: [] })),
       ]);
       setNodes(pRes.nodes || []);
       setApprovals(aRes || []);
-      setAuditLogs(auditRes || []);
+      setAuditLogs(Array.isArray(auditRes) ? auditRes : auditRes?.audit_logs || []);
     } catch (err) {
       // Handled
     } finally {
