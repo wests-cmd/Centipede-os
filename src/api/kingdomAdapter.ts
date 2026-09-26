@@ -20,6 +20,18 @@ import {
 } from '../types';
 import { capabilityNegotiator, CapabilityNegotiationResult } from './capabilityNegotiator';
 import { KINGDOM_CONTRACT_SPEC, KINGDOM_COMPATIBILITY_MANIFEST } from './contractSpec';
+
+// Pre-compiled endpoint regex cache for schema drift checking
+const ENDPOINT_REGEX_CACHE: { key: string; method: string; regex: RegExp }[] = Object.keys(
+  KINGDOM_CONTRACT_SPEC.endpoints
+).map((key) => {
+  const spec = KINGDOM_CONTRACT_SPEC.endpoints[key];
+  return {
+    key,
+    method: spec.method || 'GET',
+    regex: new RegExp('^' + spec.path.replace(/\{[^}]+\}/g, '[^/]+') + '$'),
+  };
+});
 import {
   CENTIPEDE_VERSION,
   CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL,
@@ -280,15 +292,12 @@ export class KingdomAdapter {
       this.recordSuccess();
       const json = (await res.json()) as T;
 
-      // Schema drift validation
+      // Schema drift validation with cached endpoint regex
       const cleanPath = path.split('?')[0];
-      const matchingSpecKey = Object.keys(KINGDOM_CONTRACT_SPEC.endpoints).find((key) => {
-        const spec = KINGDOM_CONTRACT_SPEC.endpoints[key];
-        const specPathRegex = new RegExp('^' + spec.path.replace(/\{[^}]+\}/g, '[^/]+') + '$');
-        const specMethod = spec.method || 'GET';
-        const reqMethod = options.method || 'GET';
-        return specMethod === reqMethod && specPathRegex.test(cleanPath);
-      });
+      const reqMethod = options.method || 'GET';
+      const matchingSpecKey = ENDPOINT_REGEX_CACHE.find(({ method, regex }) => {
+        return method === reqMethod && regex.test(cleanPath);
+      })?.key;
 
       if (matchingSpecKey && json && typeof json === 'object') {
         const validation = capabilityNegotiator.validateResponseSchema(matchingSpecKey, json as Record<string, any>);

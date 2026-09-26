@@ -15,8 +15,13 @@ function canonicalizeObject(obj: any): any {
   return sortedObj;
 }
 
+const EMPTY_PARAMS_HASH = syncSha256('{}');
+
 export function computeParameterHash(params: Record<string, any> = {}): string {
-  const canonicalJson = JSON.stringify(canonicalizeObject(params || {}));
+  if (!params || Object.keys(params).length === 0) {
+    return EMPTY_PARAMS_HASH;
+  }
+  const canonicalJson = JSON.stringify(canonicalizeObject(params));
   return syncSha256(canonicalJson);
 }
 

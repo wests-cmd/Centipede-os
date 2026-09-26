@@ -38,6 +38,11 @@ describe('Kingdom ↔ Centipede Compatibility & Adversarial Security Suite', () 
     // Unknown capability
     const navUnknown = capabilityNegotiator.evaluateCapability('fake.capability', onlineRuntime);
     expect(navUnknown.status).toBe('UNKNOWN');
+
+    // Protocol minor version lower than required min minor triggers REQUIRES_UPDATE
+    const outdatedMinorRuntime = { ...onlineRuntime, protocol: { major: 1, minor: -1 } };
+    const navRequiresUpdate = capabilityNegotiator.evaluateCapability('filesystem.read', outdatedMinorRuntime);
+    expect(navRequiresUpdate.status).toBe('REQUIRES_UPDATE');
   });
 
   it('2. Schema Drift Detection', () => {
