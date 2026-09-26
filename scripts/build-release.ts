@@ -101,11 +101,16 @@ const releaseManifest = {
     },
   ],
   deploymentProfiles: {
-    Commander: { status: 'AVAILABLE', description: 'Full orchestration, swarm management & ZeroTrust authorization' },
-    Knight: { status: 'AVAILABLE', description: 'Worker node executing assigned tasks & container workloads' },
-    Scout: { status: 'AVAILABLE', description: 'Lightweight environment & capability discovery' },
-    Ultralight: { status: 'AVAILABLE', description: 'Base install < 5.0 GB for Live USB & VM targets' },
-    LiveUSB_ISO: { status: 'PLANNED', description: 'Bare-metal bootable ISO (Planned OS Kernel Milestone)' },
+    Desktop_Web_Bundle: { status: 'AVAILABLE', description: 'Cross-platform desktop workstation web bundle with First-Run Setup Wizard' },
+    Docker_Compose_Swarm: { status: 'AVAILABLE', description: 'Multi-container Docker Compose stack featuring Commander, Knight, Scout & Kingdom Engine' },
+    Phone: { status: 'AVAILABLE', description: 'Mobile Companion Web Client with QR PIN pairing & session revocation' },
+    Linux_Full: { status: 'AVAILABLE', description: 'Linux Workstation Full Centipede orchestration & execution profile' },
+    Linux_Slim: { status: 'AVAILABLE', description: 'Linux Knight worker / Scout discovery profile' },
+    Windows_Full: { status: 'AVAILABLE', description: 'Windows Workstation Full Centipede profile' },
+    Windows_Slim: { status: 'AVAILABLE', description: 'Windows Knight worker profile' },
+    macOS_Full: { status: 'AVAILABLE', description: 'macOS Workstation Full Centipede profile' },
+    macOS_Slim: { status: 'AVAILABLE', description: 'macOS Knight worker profile' },
+    LiveUSB_ISO: { status: 'PLANNED', description: 'Bare-metal bootable ArchISO (Planned OS Kernel Milestone)' },
   },
 };
 

@@ -19,11 +19,17 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter }) => {
 
   const profileRec = platformDetector.getProfileRecommendation({
     cpuCores: detectedCores,
+    cpuCoresProvenance: 'LOCAL_DETECTED',
     totalMemoryMb: detectedRamMb,
+    totalMemoryMbProvenance: 'LOCAL_DETECTED',
     availableMemoryMb: Math.round(detectedRamMb * 0.5),
+    availableMemoryMbProvenance: 'LOCAL_DETECTED',
     storageTotalGb: 128,
+    storageTotalGbProvenance: 'LOCAL_DETECTED',
     storageAvailableGb: 64,
+    storageAvailableGbProvenance: 'LOCAL_DETECTED',
     gpuAvailable: false,
+    gpuProvenance: 'UNAVAILABLE',
   });
 
   const handleSave = (e: React.FormEvent) => {

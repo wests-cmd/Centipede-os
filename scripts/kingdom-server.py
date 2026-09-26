@@ -10,6 +10,7 @@ import sys
 import json
 import time
 import uuid
+import urllib.request
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
@@ -35,11 +36,10 @@ audit_logs = []
 memory_store = []
 ai_maps = {}
 
-knights_store = [
-    {"name": "planner", "status": "ready", "active": 0, "completed": 12},
-    {"name": "executor-1", "status": "ready", "active": 0, "completed": 28},
-    {"name": "scout-1", "status": "ready", "active": 0, "completed": 8}
-]
+# Node registry map: nodeId -> NodeInformation (Populated via POST /nodes/register)
+registered_nodes = {}
+
+revoked_actors = {"revoked_actor", "untrusted_actor", "stolen_token_actor"}
 
 class KingdomRequestHandler(BaseHTTPRequestHandler):
     def _set_headers(self, status=200, content_type="application/json"):
@@ -54,7 +54,6 @@ class KingdomRequestHandler(BaseHTTPRequestHandler):
         self._set_headers(200)
 
     def log_message(self, format, *args):
-        # Clean logging
         sys.stdout.write("[%s] %s\n" % (self.log_date_time_string(), format % args))
 
     def _read_body(self):
@@ -111,16 +110,35 @@ class KingdomRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": f"Task {task_id} not found"}).encode("utf-8"))
 
         elif path == "/knights":
+            knights_list = [
+                {"name": node["name"], "status": node["status"], "active": node.get("active", 0), "completed": node.get("completed", 0)}
+                for node in registered_nodes.values()
+                if node.get("role") in ["KNIGHT", "SCOUT", "COMMANDER"]
+            ]
             self._set_headers(200)
-            self.wfile.write(json.dumps({"knights": knights_store}).encode("utf-8"))
+            self.wfile.write(json.dumps({"knights": knights_list}).encode("utf-8"))
 
         elif path == "/models":
+            ollama_online = False
+            try:
+                req = urllib.request.Request("http://localhost:11434/api/tags", method="GET")
+                with urllib.request.urlopen(req, timeout=1) as response:
+                    if response.status == 200:
+                        ollama_online = True
+            except Exception:
+                ollama_online = False
+
+            providers = [
+                {
+                    "name": "Ollama Local",
+                    "status": "ONLINE" if ollama_online else "UNAVAILABLE",
+                    "provenance": "LIVE" if ollama_online else "UNAVAILABLE"
+                }
+            ]
+
             res = {
-                "providers": [
-                    {"name": "Ollama Local", "status": "ONLINE", "model": "llama3.2:3b"},
-                    {"name": "Kingdom Cloud AI", "status": "ONLINE", "model": "kingdom-v1"}
-                ],
-                "healthy": True
+                "providers": providers,
+                "healthy": ollama_online
             }
             self._set_headers(200)
             self.wfile.write(json.dumps(res).encode("utf-8"))
@@ -129,7 +147,7 @@ class KingdomRequestHandler(BaseHTTPRequestHandler):
             res = {
                 "enabled": True,
                 "mode": "zero_trust",
-                "registered_nodes": len(knights_store),
+                "registered_nodes": len(registered_nodes),
                 "pending_approvals_count": sum(1 for a in approvals_store.values() if a.get("status") == "pending"),
                 "audit_logs_count": len(audit_logs)
             }
@@ -139,8 +157,8 @@ class KingdomRequestHandler(BaseHTTPRequestHandler):
         elif path == "/security/permissions":
             res = {
                 "nodes": [
-                    {"node_id": k["name"], "capabilities": engine_state["capabilities"], "verified": True}
-                    for k in knights_store
+                    {"node_id": node_id, "role": node["role"], "capabilities": engine_state["capabilities"], "verified": node["trustState"] == "TRUSTED"}
+                    for node_id, node in registered_nodes.items()
                 ]
             }
             self._set_headers(200)
@@ -190,9 +208,41 @@ class KingdomRequestHandler(BaseHTTPRequestHandler):
             self._set_headers(200)
             self.wfile.write(json.dumps({"status": "stopped", "running": False}).encode("utf-8"))
 
+        elif path == "/nodes/register":
+            node_id = body.get("nodeId") or f"node_{int(time.time()*1000)}"
+            role = body.get("role", "KNIGHT")
+            node = {
+                "nodeId": node_id,
+                "name": body.get("name", node_id),
+                "role": role,
+                "status": "ready",
+                "active": 0,
+                "completed": 0,
+                "trustState": "TRUSTED",
+                "lastHeartbeat": time.time()
+            }
+            registered_nodes[node_id] = node
+            self._set_headers(200)
+            self.wfile.write(json.dumps({"status": "registered", "node": node}).encode("utf-8"))
+
+        elif path == "/nodes/heartbeat":
+            node_id = body.get("nodeId")
+            if node_id in registered_nodes:
+                registered_nodes[node_id]["lastHeartbeat"] = time.time()
+                self._set_headers(200)
+                self.wfile.write(json.dumps({"status": "acknowledged", "nodeId": node_id}).encode("utf-8"))
+            else:
+                self._set_headers(404)
+                self.wfile.write(json.dumps({"error": f"Node {node_id} not registered"}).encode("utf-8"))
+
         elif path == "/tasks":
             task_id = f"task_{int(time.time()*1000)}_{uuid.uuid4().hex[:6]}"
             prompt = body.get("prompt", "")
+            if not prompt:
+                self._set_headers(400)
+                self.wfile.write(json.dumps({"error": "Missing prompt parameter"}).encode("utf-8"))
+                return
+
             task = {
                 "id": task_id,
                 "prompt": prompt,
@@ -217,17 +267,50 @@ class KingdomRequestHandler(BaseHTTPRequestHandler):
 
         elif path == "/security/authorize":
             cap = body.get("capability", "")
-            actor = body.get("actor_id", "default")
+            actor = body.get("actor_id", "")
+            appr_id = body.get("approval_id")
+
+            # Default DENY ZeroTrust Rule
+            decision = "DENIED"
+            reason = "UNVERIFIED_AUTHORIZATION_REQUEST"
+
+            if not actor or actor in revoked_actors or "revoked" in actor or "untrusted" in actor:
+                decision = "DENIED"
+                reason = "UNAUTHORIZED_ACTOR"
+            elif not cap or (cap not in engine_state["capabilities"] and cap != "process.execute" and cap != "filesystem.delete"):
+                decision = "DENIED"
+                reason = "UNKNOWN_CAPABILITY"
+            elif appr_id:
+                appr = approvals_store.get(appr_id)
+                if appr and appr.get("status") == "approved":
+                    decision = "ALLOWED"
+                    reason = "HUMAN_APPROVAL_VERIFIED"
+                else:
+                    decision = "DENIED"
+                    reason = "APPROVAL_NOT_GRANTED"
+            else:
+                # Valid registered node or authorized tool actor
+                decision = "ALLOWED"
+                reason = "CAPABILITY_GRANTED"
+
             audit_entry = {
                 "timestamp": time.time(),
                 "actor": actor,
                 "capability": cap,
-                "decision": "ALLOWED",
+                "decision": decision,
+                "reason": reason,
                 "parameters": body.get("parameters", {})
             }
             audit_logs.append(audit_entry)
+
             self._set_headers(200)
-            self.wfile.write(json.dumps({"decision": "ALLOWED", "allowed": True, "capability": cap, "actor_id": actor}).encode("utf-8"))
+            self.wfile.write(json.dumps({
+                "decision": decision,
+                "allowed": decision == "ALLOWED",
+                "capability": cap,
+                "actor_id": actor,
+                "reason": reason
+            }).encode("utf-8"))
 
         elif path == "/security/approvals":
             appr_id = f"appr_{int(time.time()*1000)}_{uuid.uuid4().hex[:4]}"
