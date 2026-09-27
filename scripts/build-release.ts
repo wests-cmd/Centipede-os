@@ -55,31 +55,57 @@ try {
   // Git unavailable fallback
 }
 
-// 4. Create Web Desktop Bundle Archive
-const bundleName = `centipede-os-${version}-desktop-web-bundle.tar.gz`;
-const bundlePath = join(releaseDir, bundleName);
+// 4. Create Dual Release Archives: Slim and Full
+// A. Slim Release Bundle (Core runtime only, on-demand component acquisition)
+const slimBundleName = `centipede-os-${version}-slim-web-bundle.tar.gz`;
+const slimBundlePath = join(releaseDir, slimBundleName);
 
-console.log(`\n--- 2. Archiving Release Bundle: ${bundleName} ---`);
-execSync(`tar -czf "${bundlePath}" -C "${rootDir}" dist`, { stdio: 'inherit' });
+// B. Full Release Bundle (Pre-packaged local runtime, Docker Swarm stack, scripts & configs)
+const fullBundleName = `centipede-os-${version}-full-bundle.tar.gz`;
+const fullBundlePath = join(releaseDir, fullBundleName);
 
-if (!existsSync(bundlePath) || statSync(bundlePath).size === 0) {
-  console.error(`Build Error: Release artifact '${bundleName}' is missing or empty!`);
+// Legacy bundle alias for backwards compatibility
+const legacyBundleName = `centipede-os-${version}-desktop-web-bundle.tar.gz`;
+const legacyBundlePath = join(releaseDir, legacyBundleName);
+
+console.log(`\n--- 2. Archiving Slim Release Bundle: ${slimBundleName} ---`);
+execSync(`tar -czf "${slimBundlePath}" -C "${rootDir}" dist`, { stdio: 'inherit' });
+execSync(`cp "${slimBundlePath}" "${legacyBundlePath}"`);
+
+console.log(`\n--- 3. Archiving Full Release Bundle: ${fullBundleName} ---`);
+execSync(`tar -czf "${fullBundlePath}" -C "${rootDir}" dist docker-compose.yml package.json scripts docs`, { stdio: 'inherit' });
+
+if (!existsSync(slimBundlePath) || statSync(slimBundlePath).size === 0) {
+  console.error(`Build Error: Slim release artifact '${slimBundleName}' is missing or empty!`);
+  process.exit(1);
+}
+
+if (!existsSync(fullBundlePath) || statSync(fullBundlePath).size === 0) {
+  console.error(`Build Error: Full release artifact '${fullBundleName}' is missing or empty!`);
   process.exit(1);
 }
 
 // 5. Calculate Artifact Checksums & Metrics
-console.log('\n--- 3. Generating SHA-256 Checksums ---');
-const bundleBuffer = readFileSync(bundlePath);
-const bundleSha256 = syncSha256(new Uint8Array(bundleBuffer));
-const bundleSize = statSync(bundlePath).size;
+console.log('\n--- 4. Generating SHA-256 Checksums ---');
+const slimBuffer = readFileSync(slimBundlePath);
+const slimSha256 = syncSha256(new Uint8Array(slimBuffer));
+const slimSize = statSync(slimBundlePath).size;
 
-const sha256sumsContent = `${bundleSha256}  ${bundleName}\n`;
+const fullBuffer = readFileSync(fullBundlePath);
+const fullSha256 = syncSha256(new Uint8Array(fullBuffer));
+const fullSize = statSync(fullBundlePath).size;
+
+const legacyBuffer = readFileSync(legacyBundlePath);
+const legacySha256 = syncSha256(new Uint8Array(legacyBuffer));
+const legacySize = statSync(legacyBundlePath).size;
+
+const sha256sumsContent = `${slimSha256}  ${slimBundleName}\n${fullSha256}  ${fullBundleName}\n${legacySha256}  ${legacyBundleName}\n`;
 const sha256sumsPath = join(releaseDir, 'SHA256SUMS');
 writeFileSync(sha256sumsPath, sha256sumsContent);
 console.log(`Wrote ${sha256sumsPath}`);
 
 // 6. Generate Machine-Readable Release Manifest
-console.log('\n--- 4. Generating Machine-Readable Release Manifest ---');
+console.log('\n--- 5. Generating Machine-Readable Release Manifest ---');
 const releaseManifest = {
   product: 'Centipede OS',
   centipedeVersion: version,
@@ -93,11 +119,31 @@ const releaseManifest = {
   optionalCapabilities: KINGDOM_COMPATIBILITY_MANIFEST.optionalCapabilities,
   artifacts: [
     {
-      filename: bundleName,
-      targetProfile: 'Desktop Web App / Commander / Knight',
+      filename: slimBundleName,
+      type: 'SLIM',
+      description: 'Ultralight minimal runtime bundle. On-demand package acquisition during setup wizard.',
+      targetProfile: 'Scout / Light Workstation / Web App',
       platform: 'Cross-Platform (Web / Node / Bun)',
-      sizeBytes: bundleSize,
-      sha256: bundleSha256,
+      sizeBytes: slimSize,
+      sha256: slimSha256,
+    },
+    {
+      filename: fullBundleName,
+      type: 'FULL',
+      description: 'Full pre-packaged release with multi-node Docker Swarm stack, local scripts, and setup wizard.',
+      targetProfile: 'Full Centipede / Commander / Swarm Cluster',
+      platform: 'Cross-Platform (Docker / Node / Bun)',
+      sizeBytes: fullSize,
+      sha256: fullSha256,
+    },
+    {
+      filename: legacyBundleName,
+      type: 'LEGACY_ALIAS',
+      description: 'Backwards-compatible alias for Desktop Web Bundle.',
+      targetProfile: 'Desktop Web App',
+      platform: 'Cross-Platform (Web / Node / Bun)',
+      sizeBytes: legacySize,
+      sha256: legacySha256,
     },
   ],
   deploymentProfiles: {
@@ -121,6 +167,8 @@ console.log(`Wrote ${manifestPath}`);
 console.log(`\n===========================================================`);
 console.log(`  RELEASE BUILD SUCCESSFUL`);
 console.log(`  Version: v${version}`);
-console.log(`  Artifact: ${bundleName} (${(bundleSize / 1024).toFixed(1)} KB)`);
-console.log(`  SHA-256: ${bundleSha256}`);
+console.log(`  Slim Artifact: ${slimBundleName} (${(slimSize / 1024).toFixed(1)} KB)`);
+console.log(`  Full Artifact: ${fullBundleName} (${(fullSize / 1024).toFixed(1)} KB)`);
+console.log(`  Slim SHA-256: ${slimSha256}`);
+console.log(`  Full SHA-256: ${fullSha256}`);
 console.log(`===========================================================`);

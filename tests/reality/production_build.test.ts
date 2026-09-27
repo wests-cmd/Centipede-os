@@ -5,27 +5,37 @@ import { join } from 'path';
 describe('Reality Regression Suite — Production Build & Artifact Truth', () => {
   const rootDir = process.cwd();
   const releaseDir = join(rootDir, 'release');
-  const bundlePath = join(releaseDir, 'centipede-os-1.0.0-desktop-web-bundle.tar.gz');
+  const slimBundlePath = join(releaseDir, 'centipede-os-1.0.0-slim-web-bundle.tar.gz');
+  const fullBundlePath = join(releaseDir, 'centipede-os-1.0.0-full-bundle.tar.gz');
+  const legacyBundlePath = join(releaseDir, 'centipede-os-1.0.0-desktop-web-bundle.tar.gz');
   const manifestPath = join(releaseDir, 'release-manifest.json');
   const checksumPath = join(releaseDir, 'SHA256SUMS');
 
-  it('1. Release artifact bundle exists and is non-empty', () => {
-    expect(existsSync(bundlePath)).toBe(true);
-    expect(statSync(bundlePath).size).toBeGreaterThan(1000);
+  it('1. Release artifact bundles exist and are non-empty (Slim & Full)', () => {
+    expect(existsSync(slimBundlePath)).toBe(true);
+    expect(statSync(slimBundlePath).size).toBeGreaterThan(1000);
+
+    expect(existsSync(fullBundlePath)).toBe(true);
+    expect(statSync(fullBundlePath).size).toBeGreaterThan(1000);
+
+    expect(existsSync(legacyBundlePath)).toBe(true);
+    expect(statSync(legacyBundlePath).size).toBeGreaterThan(1000);
   });
 
-  it('2. Release manifest exists and matches version 1.0.0', () => {
+  it('2. Release manifest exists and registers version 1.0.0 with Slim and Full profiles', () => {
     expect(existsSync(manifestPath)).toBe(true);
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
     expect(manifest.product).toBe('Centipede OS');
     expect(manifest.centipedeVersion).toBe('1.0.0');
-    expect(manifest.artifacts[0].filename).toContain('centipede-os-1.0.0');
+    expect(manifest.artifacts.some((a: any) => a.filename.includes('slim'))).toBe(true);
+    expect(manifest.artifacts.some((a: any) => a.filename.includes('full'))).toBe(true);
   });
 
-  it('3. Checksums register contains valid SHA256 entry', () => {
+  it('3. Checksums register contains valid SHA256 entries for Slim and Full bundles', () => {
     expect(existsSync(checksumPath)).toBe(true);
     const checksums = readFileSync(checksumPath, 'utf8');
-    expect(checksums).toContain('centipede-os-1.0.0-desktop-web-bundle.tar.gz');
-    expect(checksums.split(' ')[0].length).toBe(64);
+    expect(checksums).toContain('centipede-os-1.0.0-slim-web-bundle.tar.gz');
+    expect(checksums).toContain('centipede-os-1.0.0-full-bundle.tar.gz');
+    expect(checksums.split('\n')[0].split(' ')[0].length).toBe(64);
   });
 });

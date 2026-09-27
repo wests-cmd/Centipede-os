@@ -11,7 +11,8 @@
 
 | Subsystem | Version Identifier | Status | Specification / Contract |
 |---|---|---|---|
-| **Centipede OS** | `1.0.0` | `RELEASE READY` | `package.json`, `src/version.ts` |
+| **Centipede OS Slim Release** | `1.0.0` | `RELEASE READY` | `centipede-os-1.0.0-slim-web-bundle.tar.gz` |
+| **Centipede OS Full Release** | `1.0.0` | `RELEASE READY` | `centipede-os-1.0.0-full-bundle.tar.gz` |
 | **Kingdom Product** | `v1TAS` | `SEPARATE PRODUCT IDENTITY` | `KINGDOM_CENTIPEDE_API_CONTRACT.md` |
 | **Kingdom Protocol** | Major `1`, Minor `4` | `SUPPORTED & VERIFIED` | Dynamic Protocol Handshake |
 | **Release Tag** | `v1.0.0` | `VERIFIED` | `.github/workflows/release.yml` |
