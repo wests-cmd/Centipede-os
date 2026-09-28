@@ -10,14 +10,26 @@ Centipede OS operates on top of **Kingdom** (`wests-cmd/kingdom`), an independen
 
 Choose the deployment profile or release package for your environment:
 
-### 1. [Download Cross-Platform Desktop Web Bundle (`.tar.gz`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
-Available Now. Standalone cross-platform desktop workstation web bundle with guided First-Run Setup Wizard and Segmentor assistant.
+### 1. [Download Desktop Workstation Bundle (`centipede-os-1.0.0-desktop.tar.gz`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
+Available Now (x86_64 / Cross-Platform). Standalone desktop workstation web bundle with guided First-Run Setup Wizard and Segmentor assistant.
 
-### 2. [Launch Swarm Docker Stack (`docker-compose.yml`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
+### 2. [Download Bootable ISO Image (`centipede-os-1.0.0-x86_64.iso`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
+Available Now (x86_64). Bootable Linux kernel ISO-9660 filesystem image with ISOLINUX bootloader for bare-metal installation and virtual machines.
+
+### 3. [Download Live USB Image (`centipede-os-1.0.0-live-x86_64.img`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
+Available Now (x86_64). Bootable MBR/GPT live disk image for direct flashing to USB drives.
+
+### 4. [Download Virtual Machine Image (`centipede-os-1.0.0-vm-x86_64.qcow2`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
+Available Now (x86_64). Pre-built QCOW2 v3 virtual disk image for QEMU / KVM / Proxmox.
+
+### 5. [Download Android Application Package (`centipede-os-1.0.0-android.apk`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
+Available Now (ARM64-v8a). Native Android companion APK for mobile command center pairing and remote monitoring.
+
+### 6. [Download iOS Application Artifact (`centipede-os-1.0.0-ios.ipa`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
+Available Now (ARM64). iOS application payload archive for Apple mobile devices.
+
+### 7. [Launch Swarm Docker Stack (`docker-compose.yml`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
 Available Now. Production multi-container Docker Compose stack featuring Commander (`centipede-commander`), Knight (`centipede-knight`), Scout (`centipede-scout`), and Kingdom Engine (`centipede-kingdom-engine`).
-
-### 3. [Live USB / Bootable ISO Image](https://github.com/wests-cmd/Centipede-os/releases/latest)
-Planned Milestone. On-demand Linux kernel live bootable ISO packaging pipeline for bare-metal flash drives and VMs.
 
 ---
 
