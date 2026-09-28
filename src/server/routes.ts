@@ -62,8 +62,7 @@ export class ApiRouter {
     }
 
     if (req.path === '/api/v1/mobile/revoke' && req.method === 'POST') {
-      const targetDeviceId = req.body?.deviceId || auth.device?.deviceId || '';
-      const revoked = deviceTrustManager.revokeDevice(targetDeviceId);
+      const revoked = deviceTrustManager.revokeDevice(req.body?.deviceId || '');
       return { status: 200, data: { revoked } };
     }
 
