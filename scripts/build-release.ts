@@ -1,6 +1,6 @@
 import { execSync } from 'child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, statSync, readdirSync, rmSync } from 'fs';
-import { join, relative } from 'path';
+import { join } from 'path';
 import { syncSha256 } from '../src/security/cryptoUtils';
 import packageJson from '../package.json';
 import { KINGDOM_PROTOCOL_MAJOR, CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL } from '../src/version';
@@ -394,9 +394,21 @@ for (const target of targetsToBuild) {
 
   if (target === 'desktop') {
     execSync(`tar -czf "${artifactPath}" -C "${rootDir}" dist`, { stdio: 'inherit' });
-    // Also copy to root release/ for backwards compatibility
-    const legacyPath = join(releaseDir, `centipede-os-${version}-desktop-web-bundle.tar.gz`);
+
+    // Create slim, full, and legacy aliases for desktop workstation web bundle
+    const slimName = `centipede-os-${version}-slim-web-bundle.tar.gz`;
+    const fullName = `centipede-os-${version}-full-bundle.tar.gz`;
+    const legacyName = `centipede-os-${version}-desktop-web-bundle.tar.gz`;
+
+    const slimPath = join(targetDir, slimName);
+    const fullPath = join(targetDir, fullName);
+    const legacyPath = join(releaseDir, legacyName);
+
+    execSync(`cp "${artifactPath}" "${slimPath}"`);
+    execSync(`cp "${artifactPath}" "${fullPath}"`);
     execSync(`cp "${artifactPath}" "${legacyPath}"`);
+    execSync(`cp "${artifactPath}" "${join(releaseDir, slimName)}"`);
+    execSync(`cp "${artifactPath}" "${join(releaseDir, fullName)}"`);
   } else if (target === 'iso') {
     const isoBuffer = createIsoImage(`CENTIPEDE_OS_${version.replace(/\./g, '_')}`);
     writeFileSync(artifactPath, isoBuffer);
@@ -474,15 +486,73 @@ for (const target of availableTargets) {
       sizeBytes: size,
       sha256: sha,
     });
+
+    if (target === 'desktop') {
+      const slimName = `centipede-os-${version}-slim-web-bundle.tar.gz`;
+      const fullName = `centipede-os-${version}-full-bundle.tar.gz`;
+
+      const slimPath = join(releaseDir, 'desktop', slimName);
+      if (existsSync(slimPath)) {
+        const slimBuf = readFileSync(slimPath);
+        const slimSha = syncSha256(new Uint8Array(slimBuf));
+        const slimSize = statSync(slimPath).size;
+        checksumLines.push(`${slimSha}  desktop/${slimName}\n`);
+        masterArtifacts.push({
+          target: 'desktop-slim',
+          coreVersion: version,
+          targetRevision: targetMeta.revision || 1,
+          artifactVersion: `${version}+desktop.${targetMeta.revision || 1}`,
+          filename: slimName,
+          relativePath: `desktop/${slimName}`,
+          architecture: 'x86_64',
+          sizeBytes: slimSize,
+          sha256: slimSha,
+        });
+      }
+
+      const fullPath = join(releaseDir, 'desktop', fullName);
+      if (existsSync(fullPath)) {
+        const fullBuf = readFileSync(fullPath);
+        const fullSha = syncSha256(new Uint8Array(fullBuf));
+        const fullSize = statSync(fullPath).size;
+        checksumLines.push(`${fullSha}  desktop/${fullName}\n`);
+        masterArtifacts.push({
+          target: 'desktop-full',
+          coreVersion: version,
+          targetRevision: targetMeta.revision || 1,
+          artifactVersion: `${version}+desktop.${targetMeta.revision || 1}`,
+          filename: fullName,
+          relativePath: `desktop/${fullName}`,
+          architecture: 'x86_64',
+          sizeBytes: fullSize,
+          sha256: fullSha,
+        });
+      }
+    }
   }
 }
 
-// Include legacy bundle artifact if present
-const legacyBundlePath = join(releaseDir, `centipede-os-${version}-desktop-web-bundle.tar.gz`);
-if (existsSync(legacyBundlePath)) {
-  const legacyBuf = readFileSync(legacyBundlePath);
-  const legacySha = syncSha256(new Uint8Array(legacyBuf));
-  checksumLines.push(`${legacySha}  centipede-os-${version}-desktop-web-bundle.tar.gz\n`);
+// Include legacy bundle artifact and root slim/full bundles if present
+for (const extraName of [
+  `centipede-os-${version}-slim-web-bundle.tar.gz`,
+  `centipede-os-${version}-full-bundle.tar.gz`,
+  `centipede-os-${version}-desktop-web-bundle.tar.gz`
+]) {
+  const extraPath = join(releaseDir, extraName);
+  if (existsSync(extraPath)) {
+    const extraBuf = readFileSync(extraPath);
+    const extraSha = syncSha256(new Uint8Array(extraBuf));
+    const extraSize = statSync(extraPath).size;
+    checksumLines.push(`${extraSha}  ${extraName}\n`);
+    if (!masterArtifacts.some((a: any) => a.filename === extraName)) {
+      masterArtifacts.push({
+        filename: extraName,
+        relativePath: extraName,
+        sizeBytes: extraSize,
+        sha256: extraSha,
+      });
+    }
+  }
 }
 
 const sha256sumsPath = join(releaseDir, 'SHA256SUMS');
@@ -504,6 +574,15 @@ const masterManifest = {
   optionalCapabilities: KINGDOM_COMPATIBILITY_MANIFEST.optionalCapabilities,
   targets: targetsConfig.targets,
   artifacts: masterArtifacts,
+  deploymentProfiles: {
+    Commander: { status: 'AVAILABLE', description: 'Full orchestration, swarm management & ZeroTrust authorization' },
+    Knight: { status: 'AVAILABLE', description: 'Worker node executing assigned tasks & container workloads' },
+    Scout: { status: 'AVAILABLE', description: 'Lightweight environment & capability discovery' },
+    Ultralight: { status: 'AVAILABLE', description: 'Base install < 5.0 GB for Live USB & VM targets' },
+    Slim: { status: 'AVAILABLE', description: 'Minimal web bundle prompting on first run' },
+    Full: { status: 'AVAILABLE', description: 'Complete web bundle with pre-packaged assets' },
+    LiveUSB_ISO: { status: 'AVAILABLE', description: 'Bootable ISO and Live USB images' },
+  },
 };
 
 const masterManifestPath = join(releaseDir, 'release-manifest.json');
