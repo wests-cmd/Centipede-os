@@ -99,8 +99,7 @@ async function runContractVerification() {
   console.log('[PASS] Deny Operation: ID =', denied.id, 'New Status =', denied.status);
 
   const auditLogs = await onlineAdapter.get_audit(5);
-  const count = Array.isArray(auditLogs) ? auditLogs.length : auditLogs.audit_logs?.length ?? 0;
-  console.log('[PASS] Immutable Audit Logs Count =', count);
+  console.log('[PASS] Immutable Audit Logs Count =', auditLogs.length);
 
   // 6. Error Model Categorization & Error Masking
   console.log('\n--- 6. ERROR MODEL CATEGORIZATION ---');
