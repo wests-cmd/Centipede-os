@@ -10,26 +10,17 @@ Centipede OS operates on top of **Kingdom** (`wests-cmd/kingdom`), an independen
 
 Choose the deployment profile or release package for your environment:
 
-### 1. [Download Desktop Workstation Bundle (`centipede-os-1.0.0-desktop.tar.gz`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
-Available Now (x86_64 / Cross-Platform). Standalone desktop workstation web bundle with guided First-Run Setup Wizard and Segmentor assistant.
+### 1. [Download Slim Release Bundle (`centipede-os-1.0.0-slim-web-bundle.tar.gz`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
+Available Now. Ultralight minimal runtime bundle. Prompts during the First-Run Setup Wizard to download optional packages and models on demand.
 
-### 2. [Download Bootable ISO Image (`centipede-os-1.0.0-x86_64.iso`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
-Available Now (x86_64). Bootable Linux kernel ISO-9660 filesystem image with ISOLINUX bootloader for bare-metal installation and virtual machines.
+### 2. [Download Full Release Bundle (`centipede-os-1.0.0-full-bundle.tar.gz`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
+Available Now. Pre-packaged local runtime containing all core components, multi-node Swarm Docker stack (`docker-compose.yml`), local scripts, and setup wizard.
 
-### 3. [Download Live USB Image (`centipede-os-1.0.0-live-x86_64.img`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
-Available Now (x86_64). Bootable MBR/GPT live disk image for direct flashing to USB drives.
-
-### 4. [Download Virtual Machine Image (`centipede-os-1.0.0-vm-x86_64.qcow2`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
-Available Now (x86_64). Pre-built QCOW2 v3 virtual disk image for QEMU / KVM / Proxmox.
-
-### 5. [Download Android Application Package (`centipede-os-1.0.0-android.apk`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
-Available Now (ARM64-v8a). Native Android companion APK for mobile command center pairing and remote monitoring.
-
-### 6. [Download iOS Application Artifact (`centipede-os-1.0.0-ios.ipa`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
-Available Now (ARM64). iOS application payload archive for Apple mobile devices.
-
-### 7. [Launch Swarm Docker Stack (`docker-compose.yml`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
+### 3. [Launch Swarm Docker Stack (`docker-compose.yml`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
 Available Now. Production multi-container Docker Compose stack featuring Commander (`centipede-commander`), Knight (`centipede-knight`), Scout (`centipede-scout`), and Kingdom Engine (`centipede-kingdom-engine`).
+
+### 4. [Live USB / Bootable ISO Image](https://github.com/wests-cmd/Centipede-os/releases/latest)
+Planned Milestone. On-demand Linux kernel live bootable ISO packaging pipeline for bare-metal flash drives and VMs.
 
 ---
 
@@ -168,7 +159,7 @@ If an update or workflow fails, Centipede OS preserves your data:
 # Install dependencies
 bun install
 
-# Run unit, adversarial & compatibility test suites (105 tests across 15 suites)
+# Run unit, adversarial & compatibility test suites (130 tests across 23 files)
 bun test
 
 # Run contract verification against live Kingdom server
