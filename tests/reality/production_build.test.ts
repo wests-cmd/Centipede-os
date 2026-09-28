@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
 
+import { execSync } from 'child_process';
+
 describe('Reality Regression Suite — Production Build & Artifact Truth', () => {
   const rootDir = process.cwd();
   const releaseDir = join(rootDir, 'release');
@@ -12,6 +14,10 @@ describe('Reality Regression Suite — Production Build & Artifact Truth', () =>
   const checksumPath = join(releaseDir, 'SHA256SUMS');
 
   it('1. Release artifact bundles exist and are non-empty (Slim & Full)', () => {
+    if (!existsSync(slimBundlePath) || !existsSync(fullBundlePath)) {
+      execSync('bun run build:release', { stdio: 'inherit' });
+    }
+
     expect(existsSync(slimBundlePath)).toBe(true);
     expect(statSync(slimBundlePath).size).toBeGreaterThan(1000);
 

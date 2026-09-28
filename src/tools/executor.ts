@@ -73,7 +73,7 @@ if (typeof window === 'undefined' && typeof process !== 'undefined' && process.v
   }
 }
 
-const ALLOWED_PROCESS_COMMANDS = ['echo', 'ls', 'pwd', 'whoami', 'date', 'node -v', 'bun -v', 'uname'];
+const ALLOWED_PROCESS_BINARIES = ['echo', 'ls', 'pwd', 'whoami', 'date', 'node', 'bun', 'uname'];
 
 function getSandboxDir(): string {
   if (nodePath) {
@@ -528,16 +528,30 @@ export class ToolExecutor {
         if (!rawCmd) {
           throw new Error('INVALID_COMMAND: Empty command provided.');
         }
+
+        // Strict Shell Metacharacter Injection Defense
+        if (/[;&|`$><\n\r]/g.test(rawCmd)) {
+          throw new Error('SHELL_INJECTION_DETECTED: Command contains dangerous shell metacharacters.');
+        }
+
+        const tokens = rawCmd.split(/\s+/);
+        const baseBinary = tokens[0];
+
+        if (!ALLOWED_PROCESS_BINARIES.includes(baseBinary)) {
+          throw new Error(`COMMAND_NOT_ALLOWED: Binary "${baseBinary}" is not in the restricted execution allowlist.`);
+        }
+
+        // Additional argument safety for node/bun (only version flags allowed)
+        if ((baseBinary === 'node' || baseBinary === 'bun') && tokens.length > 1 && tokens[1] !== '-v' && tokens[1] !== '--version') {
+          throw new Error(`COMMAND_NOT_ALLOWED: "${baseBinary}" is restricted to version checks ("-v" or "--version").`);
+        }
+
         if (isNodeOrBun && nodeChildProcess) {
-          const isAllowed = ALLOWED_PROCESS_COMMANDS.some((allowed) => rawCmd.startsWith(allowed));
-          if (!isAllowed) {
-            throw new Error(`COMMAND_NOT_ALLOWED: Command "${rawCmd}" is not in the restricted execution allowlist.`);
-          }
           const sandboxDir = getSandboxDir();
           if (nodeFs && !nodeFs.existsSync(sandboxDir)) {
             nodeFs.mkdirSync(sandboxDir, { recursive: true });
           }
-          const output = nodeChildProcess.execSync(rawCmd, {
+          const output = nodeChildProcess.execFileSync(baseBinary, tokens.slice(1), {
             cwd: sandboxDir,
             timeout: 5000,
             encoding: 'utf8',

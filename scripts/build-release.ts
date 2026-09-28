@@ -42,8 +42,11 @@ if (!existsSync(distDir)) {
   process.exit(1);
 }
 
-// 3. Prepare release directory
-if (!existsSync(releaseDir)) {
+// 3. Prepare clean release directory (self-clean stale artifacts)
+if (existsSync(releaseDir)) {
+  console.log('\n--- Cleaning Stale Release Artifacts ---');
+  execSync(`rm -rf "${releaseDir}"/*`);
+} else {
   mkdirSync(releaseDir, { recursive: true });
 }
 
@@ -163,6 +166,30 @@ const releaseManifest = {
 const manifestPath = join(releaseDir, 'release-manifest.json');
 writeFileSync(manifestPath, JSON.stringify(releaseManifest, null, 2));
 console.log(`Wrote ${manifestPath}`);
+
+// 7. Self-Verification Pass (Byte-for-byte post-build validation)
+console.log('\n--- 6. Self-Verification Pass ---');
+const verifySlimBuffer = readFileSync(slimBundlePath);
+const verifySlimSha256 = syncSha256(new Uint8Array(verifySlimBuffer));
+if (verifySlimSha256 !== slimSha256) {
+  console.error(`Self-Verification Failure: Slim bundle hash changed during write!`);
+  process.exit(1);
+}
+
+const verifyFullBuffer = readFileSync(fullBundlePath);
+const verifyFullSha256 = syncSha256(new Uint8Array(verifyFullBuffer));
+if (verifyFullSha256 !== fullSha256) {
+  console.error(`Self-Verification Failure: Full bundle hash changed during write!`);
+  process.exit(1);
+}
+
+const manifestVerification = JSON.parse(readFileSync(manifestPath, 'utf8'));
+if (manifestVerification.centipedeVersion !== version) {
+  console.error(`Self-Verification Failure: Manifest version mismatch!`);
+  process.exit(1);
+}
+
+console.log(`[VERIFIED] Post-build self-verification passed. Checksums and manifest match artifact bytes.`);
 
 console.log(`\n===========================================================`);
 console.log(`  RELEASE BUILD SUCCESSFUL`);
