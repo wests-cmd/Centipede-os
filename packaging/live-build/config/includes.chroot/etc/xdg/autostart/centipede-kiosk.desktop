@@ -2,6 +2,6 @@
 Type=Application
 Name=Centipede
 Comment=Start the Centipede browser desktop
-Exec=chromium --no-first-run --disable-infobars --kiosk http://127.0.0.1:3000
+Exec=/usr/local/bin/centipede-kiosk
 Terminal=false
 X-GNOME-Autostart-enabled=true

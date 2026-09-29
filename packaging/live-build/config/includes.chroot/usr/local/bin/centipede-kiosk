@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eu
+mkdir -p "$HOME/.cache"
+exec >>"$HOME/.cache/centipede-kiosk.log" 2>&1
+echo "Waiting for local Centipede web service"
+attempt=0
+until python3 -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:3000/", timeout=2).close()'; do
+  attempt=$((attempt + 1))
+  if [ "$attempt" -ge 60 ]; then
+    echo "Centipede web service did not become ready"
+    exit 1
+  fi
+  sleep 2
+done
+echo "Starting Chromium kiosk"
+exec chromium --no-first-run --disable-infobars --disable-gpu --kiosk http://127.0.0.1:3000
