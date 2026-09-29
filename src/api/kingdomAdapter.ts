@@ -1,6 +1,7 @@
 import {
   ApprovalRequest,
   AuditLogEntry,
+  AuditLogResponse,
   ConnectionState,
   HeartbeatDiagnostics,
   KnightItem,
@@ -20,18 +21,6 @@ import {
 } from '../types';
 import { capabilityNegotiator, CapabilityNegotiationResult } from './capabilityNegotiator';
 import { KINGDOM_CONTRACT_SPEC, KINGDOM_COMPATIBILITY_MANIFEST } from './contractSpec';
-
-// Pre-compiled endpoint regex cache for schema drift checking
-const ENDPOINT_REGEX_CACHE: { key: string; method: string; regex: RegExp }[] = Object.keys(
-  KINGDOM_CONTRACT_SPEC.endpoints
-).map((key) => {
-  const spec = KINGDOM_CONTRACT_SPEC.endpoints[key];
-  return {
-    key,
-    method: spec.method || 'GET',
-    regex: new RegExp('^' + spec.path.replace(/\{[^}]+\}/g, '[^/]+') + '$'),
-  };
-});
 import {
   CENTIPEDE_VERSION,
   CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL,
@@ -292,12 +281,15 @@ export class KingdomAdapter {
       this.recordSuccess();
       const json = (await res.json()) as T;
 
-      // Schema drift validation with cached endpoint regex
+      // Schema drift validation
       const cleanPath = path.split('?')[0];
-      const reqMethod = options.method || 'GET';
-      const matchingSpecKey = ENDPOINT_REGEX_CACHE.find(({ method, regex }) => {
-        return method === reqMethod && regex.test(cleanPath);
-      })?.key;
+      const matchingSpecKey = Object.keys(KINGDOM_CONTRACT_SPEC.endpoints).find((key) => {
+        const spec = KINGDOM_CONTRACT_SPEC.endpoints[key];
+        const specPathRegex = new RegExp('^' + spec.path.replace(/\{[^}]+\}/g, '[^/]+') + '$');
+        const specMethod = spec.method || 'GET';
+        const reqMethod = options.method || 'GET';
+        return specMethod === reqMethod && specPathRegex.test(cleanPath);
+      });
 
       if (matchingSpecKey && json && typeof json === 'object') {
         const validation = capabilityNegotiator.validateResponseSchema(matchingSpecKey, json as Record<string, any>);
@@ -664,14 +656,14 @@ export class KingdomAdapter {
     });
   }
 
-  public async get_audit(limit = 100, actor?: string, decision?: string, capability?: string): Promise<AuditLogEntry[]> {
+  public async get_audit(limit = 100, actor?: string, decision?: string, capability?: string): Promise<AuditLogResponse> {
     const params = new URLSearchParams();
     params.set('limit', limit.toString());
     if (actor) params.set('actor', actor);
     if (decision) params.set('decision', decision);
     if (capability) params.set('capability', capability);
 
-    return this.fetchJson<AuditLogEntry[]>(`/security/audit?${params.toString()}`);
+    return this.fetchJson<AuditLogResponse>(`/security/audit?${params.toString()}`);
   }
 }
 
