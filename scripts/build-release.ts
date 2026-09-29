@@ -107,8 +107,14 @@ const sha256sumsPath = join(releaseDir, 'SHA256SUMS');
 writeFileSync(sha256sumsPath, sha256sumsContent);
 console.log(`Wrote ${sha256sumsPath}`);
 
-// 6. Generate Machine-Readable Release Manifest
-console.log('\n--- 5. Generating Machine-Readable Release Manifest ---');
+// 6. Read Authoritative Target Configuration and Generate Release Manifest
+console.log('\n--- 5. Reading Checked-in Target Configuration & Manifest Generation ---');
+const targetsSpecPath = join(rootDir, 'release', 'targets.json');
+let targetsSpec: any = {};
+if (existsSync(targetsSpecPath)) {
+  targetsSpec = JSON.parse(readFileSync(targetsSpecPath, 'utf8'));
+}
+
 const releaseManifest = {
   product: 'Centipede OS',
   centipedeVersion: version,
@@ -120,6 +126,7 @@ const releaseManifest = {
   contractVersion: KINGDOM_CONTRACT_SPEC.contractVersion,
   requiredCapabilities: KINGDOM_COMPATIBILITY_MANIFEST.requiredCapabilities,
   optionalCapabilities: KINGDOM_COMPATIBILITY_MANIFEST.optionalCapabilities,
+  targetsSpec: targetsSpec.targets || {},
   artifacts: [
     {
       filename: slimBundleName,
