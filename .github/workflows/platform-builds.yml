@@ -197,24 +197,21 @@ jobs:
   os-images:
     name: Debian live ISO, USB image, and QEMU disk
     runs-on: ubuntu-24.04
-    container: debian:bookworm
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      - name: Install Bun download prerequisites
+      - name: Install Debian Bookworm live-build and image tools
         run: |
-          apt-get update
-          apt-get install -y ca-certificates unzip
+          sudo apt-get update
+          sudo apt-get install -y ca-certificates curl debootstrap debian-archive-keyring qemu-utils qemu-system-x86 file unzip
+          curl --fail --silent --show-error --location https://deb.debian.org/debian/pool/main/l/live-build/live-build_20230502_all.deb --output "$RUNNER_TEMP/live-build_20230502_all.deb"
+          sudo apt-get install -y "$RUNNER_TEMP/live-build_20230502_all.deb"
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      - name: Install live-image tools
-        run: |
-          apt-get update
-          apt-get install -y ca-certificates git live-build debootstrap debian-archive-keyring qemu-utils qemu-system-x86 file nodejs npm
       - run: bun install --frozen-lockfile
       - name: Build bootable images
-        run: bash scripts/build-live-image.sh
+        run: sudo -E bash scripts/build-live-image.sh
       - name: Validate image outputs
         run: |
           VERSION=$(node -p "require('./package.json').version")
