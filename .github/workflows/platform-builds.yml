@@ -227,12 +227,43 @@ jobs:
           qemu-img check "release/vm/$VM"
           sha256sum release/iso/* release/live-usb/* release/vm/*.qcow2 > release/platform-SHA256SUMS
           QEMU_STATUS=0
-          timeout 120s qemu-system-x86_64 -machine pc,accel=tcg -cpu max -smp 2 -m 4096 -cdrom "release/iso/$ISO" -boot order=d -display none -serial stdio -monitor none -no-reboot > /tmp/centipede-vm-serial.log 2>&1 || QEMU_STATUS=$?
+          QEMU_MONITOR=/tmp/centipede-qemu-monitor.sock
+          rm -f "$QEMU_MONITOR" /tmp/centipede-vm-screen.ppm /tmp/centipede-vm-serial.log
+          timeout 120s qemu-system-x86_64 -machine pc,accel=tcg -cpu max -smp 2 -m 4096 -cdrom "release/iso/$ISO" -boot order=d -display none -serial stdio -monitor "unix:$QEMU_MONITOR,server,nowait" -no-reboot > /tmp/centipede-vm-serial.log 2>&1 &
+          QEMU_PID=$!
+          for attempt in $(seq 1 30); do
+            [ -S "$QEMU_MONITOR" ] && break
+            sleep 1
+          done
+          sleep 45
+          python3 - "$QEMU_MONITOR" <<'PY'
+          import socket, sys, time
+          sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+          sock.settimeout(5)
+          sock.connect(sys.argv[1])
+          time.sleep(0.5)
+          try: sock.recv(4096)
+          except TimeoutError: pass
+          sock.sendall(b"screendump /tmp/centipede-vm-screen.ppm\\n")
+          time.sleep(2)
+          try: print(sock.recv(4096).decode("utf-8", "replace"))
+          except TimeoutError: pass
+          sock.close()
+          PY
+          wait "$QEMU_PID" || QEMU_STATUS=$?
           cat /tmp/centipede-vm-serial.log
           test "$QEMU_STATUS" -eq 0 -o "$QEMU_STATUS" -eq 124
+          test -s /tmp/centipede-vm-screen.ppm
           grep -Eiq 'Linux version|live-boot' /tmp/centipede-vm-serial.log
       - if: always()
         uses: actions/upload-artifact@v4
+        with:
+          name: centipede-qemu-boot-diagnostic
+          path: |
+            /tmp/centipede-vm-screen.ppm
+            /tmp/centipede-vm-serial.log
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
         with:
           name: centipede-iso-live-usb-vm
           path: |
@@ -240,7 +271,7 @@ jobs:
             release/live-usb/
             release/vm/
             release/platform-SHA256SUMS
-          if-no-files-found: warn
+          if-no-files-found: error
 
   docker:
     name: Build and smoke-test Docker image
