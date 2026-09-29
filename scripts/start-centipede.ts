@@ -5,7 +5,7 @@ import packageJson from '../package.json';
 
 const rootDir = process.cwd();
 const dataDir = join(rootDir, 'data');
-const version = packageJson.version || '1.0.0';
+const version = packageJson.version;
 
 console.log(`===========================================================`);
 console.log(`  CENTIPEDE OS ONE-CLICK LAUNCHER — v${version}`);
@@ -40,14 +40,14 @@ fetch(`${kingdomUrl}/status`, { signal: AbortSignal.timeout(2000) })
   .catch(() => {
     console.log(`[STANDBY] Kingdom Swarm backend is offline at ${kingdomUrl}.`);
     console.log(`          Centipede OS desktop will operate in local standby mode.`);
-    console.log(`          You can launch Kingdom backend anytime with: python -m kingdom\n`);
+    console.log(`          Configure KINGDOM_API_URL for a separately deployed Kingdom service.\n`);
   })
   .finally(() => {
     // 4. Launch Centipede OS Web Desktop Interface
     console.log('--- Launching Centipede OS Desktop Environment ---');
     console.log('URL: http://localhost:3000\n');
 
-    const dev = spawn('bun', ['run', 'dev'], { stdio: 'inherit', cwd: rootDir });
+    const dev = spawn('bun', ['run', 'dev', '--', '--host', '127.0.0.1', '--port', '3000'], { stdio: 'inherit', cwd: rootDir });
 
     dev.on('error', (err) => {
       console.error(`Failed to launch Centipede OS: ${err.message}`);

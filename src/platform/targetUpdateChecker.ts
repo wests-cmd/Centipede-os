@@ -70,13 +70,13 @@ export class TargetUpdateChecker {
     const targetInfo = latestManifest.targets?.[target];
     const targetArtifact = latestManifest.artifacts?.find((a: any) => a.target === target);
 
-    if (!targetInfo || !targetArtifact) {
+    if (!targetInfo || !targetArtifact || typeof latestManifest.coreVersion !== 'string') {
       return { updateAvailable: false, isCoreUpdate: false, metadata: null };
     }
 
     const latestRevision = targetInfo.revision || 1;
-    const latestCoreVersion = latestManifest.coreVersion || '1.0.0';
-    const latestArtifactVersion = `${latestCoreVersion}+${target.replace('-', '')}.${latestRevision}`;
+    const latestCoreVersion = latestManifest.coreVersion;
+    const latestArtifactVersion = `${latestCoreVersion}+${target}.${latestRevision}`;
 
     const isCoreUpdate = parsedCurrent ? parsedCurrent.coreVersion !== latestCoreVersion : false;
     const isTargetUpdate = parsedCurrent ? parsedCurrent.revision < latestRevision : false;

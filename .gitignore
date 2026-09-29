@@ -1,6 +1,14 @@
 node_modules
 dist
-release
+release/*
+!release/targets.json
+build
+android/.gradle
+android/build
+android/app/build
+ios/App/build
+ios/DerivedData
+ios/App/App/public
 test-results
 data
 coverage

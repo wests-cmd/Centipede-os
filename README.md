@@ -1,42 +1,20 @@
-# [Centipede OS](https://github.com/wests-cmd/Centipede-os) — The ZeroTrust AI Desktop Operating System
+# [Centipede OS](https://github.com/wests-cmd/Centipede-os) — The AI Desktop Web Application
 
-**[Centipede OS](https://github.com/wests-cmd/Centipede-os)** is an easy-to-use, secure operating system designed to give you an intelligent AI assistant (**Segmentor**) that can perform real-world tasks on your computer while keeping your files, credentials, and privacy completely safe.
+**[Centipede OS](https://github.com/wests-cmd/Centipede-os)** provides a browser-based desktop application with an AI assistant (**Segmentor**), platform packaging for Debian live images and native WebView clients, and an integration layer for a separately deployed Kingdom service. Platform build workflows are implemented but need successful CI runs before any stable image claims. Security and Kingdom execution behavior depend on the configured external Kingdom deployment.
 
-Centipede OS operates on top of **Kingdom** (`wests-cmd/kingdom`), an independent security engine that ensures AI models can never perform dangerous or unauthorized actions without your permission.
-
----
-
-# Download Centipede OS
-
-Choose the deployment profile or release package for your environment:
-
-### 1. [Download Desktop Workstation Bundle (`centipede-os-1.0.0-desktop.tar.gz`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
-Available Now (x86_64 / Cross-Platform). Standalone desktop workstation web bundle with guided First-Run Setup Wizard and Segmentor assistant.
-
-### 2. [Download Bootable ISO Image (`centipede-os-1.0.0-x86_64.iso`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
-Available Now (x86_64). Bootable Linux kernel ISO-9660 filesystem image with ISOLINUX bootloader for bare-metal installation and virtual machines.
-
-### 3. [Download Live USB Image (`centipede-os-1.0.0-live-x86_64.img`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
-Available Now (x86_64). Bootable MBR/GPT live disk image for direct flashing to USB drives.
-
-### 4. [Download Virtual Machine Image (`centipede-os-1.0.0-vm-x86_64.qcow2`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
-Available Now (x86_64). Pre-built QCOW2 v3 virtual disk image for QEMU / KVM / Proxmox.
-
-### 5. [Download Android Application Package (`centipede-os-1.0.0-android.apk`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
-Available Now (ARM64-v8a). Native Android companion APK for mobile command center pairing and remote monitoring.
-
-### 6. [Download iOS Application Artifact (`centipede-os-1.0.0-ios.ipa`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
-Available Now (ARM64). iOS application payload archive for Apple mobile devices.
-
-### 7. [Launch Swarm Docker Stack (`docker-compose.yml`)](https://github.com/wests-cmd/Centipede-os/releases/latest)
-Available Now. Production multi-container Docker Compose stack featuring Commander (`centipede-commander`), Knight (`centipede-knight`), Scout (`centipede-scout`), and Kingdom Engine (`centipede-kingdom-engine`).
+Kingdom is a separate project and runtime. This repository contains a client and API contract; it does not bundle the Kingdom service.
 
 ---
 
-### Unsure Which Profile You Need?
-Choose **[Auto-Detect & Recommend Profile](https://github.com/wests-cmd/Centipede-os/releases/latest)** during bootstrap setup. Centipede OS will evaluate your computer's CPU cores, RAM, and disk space to recommend the safest profile automatically.
+# Current release status
 
----
+Centipede `v1.0.0` has a desktop web bundle and platform build workflows for a Debian live ISO/USB image, QEMU VM disk, Android app, iOS app, and Docker image. The OS images launch the web app in a Chromium kiosk session; they do not add host-level Centipede execution or Kingdom. No stable GitHub release is available until all platform builds, signing, and validations pass in CI.
+
+Android and iOS use native Capacitor projects. Android release APKs require an Android signing key; iOS device builds require Apple distribution signing and provisioning. Branch builds produce only debug APK and simulator validation outputs. ISO, USB, VM, and Docker image jobs run on GitHub-hosted Linux runners. See [the ship reality matrix](docs/SHIP_REALITY_MATRIX.md) and [platform build guide](docs/PLATFORM_BUILD_GUIDE.md) for evidence and release prerequisites.
+
+The desktop bundle requires a separately operated Kingdom service for Kingdom-backed actions. The Compose file does not install or implement Kingdom.
+
+Several desktop panels are prototypes or use browser-local/example data. The application does not provide host file access, remote phone pairing, an OS installer, host storage management, or system rollback. Native mobile packages display the same web UI; release builds require platform signing and iOS TestFlight configuration.
 
 ## Quick Navigation
 
@@ -53,58 +31,40 @@ Choose **[Auto-Detect & Recommend Profile](https://github.com/wests-cmd/Centiped
 
 ## What is Centipede OS?
 
-Centipede OS is a modern desktop environment where AI automation and security work together seamlessly:
+Centipede is currently a browser-based desktop application. Its verified live integration is the Kingdom REST API client; other panels may be local prototypes or example data:
 
-- **Intelligent Assistant (Segmentor)**: Ask questions, search your files, organize documents, or run automated routines using simple natural language.
-- **ZeroTrust Security Boundary**: The AI pipeline proposes plans, but **Kingdom** independently checks permissions. The AI model can *never* self-authorize or run raw system commands.
-- **Privacy First**: Your documents, memory graphs, and task histories stay on your local device.
-- **Mobile Companion Command Center**: Monitor your computer's health, review pending approvals, and send commands to Segmentor safely from your phone.
+- **Segmentor UI**: A local intent and permission-gating interface; it does not provide host file or shell access.
+- **Kingdom API client**: The app can query the separately deployed Kingdom API and submit tasks or approval requests. Kingdom deployment and policy must be verified independently.
+- **Browser storage**: Client preferences are stored in browser local storage. Other memory views are not a promise of durable host storage.
+- **Mobile companion prototype**: The pairing and ingestion screens are local simulations, not remote phone connectivity or native mobile applications.
 
 ---
 
 ## Core Concepts Explained
 
 ### What is Kingdom?
-**Kingdom** is the security and execution engine beneath Centipede OS. It holds the sole execution authority for files, tasks, and operating system operations. If Kingdom is offline, no privileged actions occur.
+**Kingdom** is a separately deployed service in the `wests-cmd/kingdom` project. This repository contains the Centipede client and compatibility contract. Deploy and verify Kingdom independently; this web application does not implement or include its execution authority.
 
 ### What is a Knight?
-A **Knight** is an execution worker node inside the Kingdom swarm. Knights handle specific tasks like running background jobs, processing data, or executing approved workflows.
+A **Knight** is a Kingdom worker node. This Centipede repository does not provision Knight nodes.
 
 ### What is a Scout?
-A **Scout** is a discovery node that monitors device capabilities, network interfaces, and system health to report available resources to the swarm.
+A **Scout** is a Kingdom discovery role. The profile selector in this app only stores a browser client preference; it does not deploy a Scout.
 
 ### What is Segmentor (Centipede Assistant)?
-**Segmentor** is your natural language assistant. Segmentor translates your requests ("Find my invoice and archive it") into step-by-step plans, checks for required permissions, and executes approved steps.
+**Segmentor** is the assistant interface in this web app. Protected work requires the external Kingdom API; this app does not execute arbitrary host operations.
 
 ---
 
-## Choosing Your Profile
+## Choosing a deployment
 
-Centipede OS offers profile choices tailored to your hardware:
+Platform build jobs are available in GitHub Actions. Stable-tag publishing runs all platform jobs and fails if any build, required signature, image smoke test, or artifact verification fails. Review [current target status](docs/SHIP_REALITY_MATRIX.md) and [release prerequisites](docs/PLATFORM_BUILD_GUIDE.md).
 
-| Feature / Target | Centipede OS Full Experience | Centipede OS Ultralight (< 5 GB Target) |
-| :--- | :--- | :--- |
-| **Download / ISO Target** | 8–12 GB | **1.8 GB Compressed** |
-| **Base Installed Size** | 30 GB | **3.2 GB Installed** (Leaves 1.8 GB margin under 5 GB) |
-| **Recommended Computer Disk** | 128 GB – 256 GB SSD | **32 GB – 64 GB Disk** |
-| **Included Features** | Full Desktop, Kingdom Runtime, AI Models, Docker Containers, VMs | Essential Desktop, Kingdom Core, Security Gate, Segmentor, Recovery Tools |
-| **Optional Workloads** | Pre-installed | **On-Demand Package Acquisition** (Downloaded only on request) |
+## Mobile companion prototype
 
----
+The pairing screen uses local browser state for demonstration. It does not pair a separate phone or provide mobile monitoring.
 
-## Phone Command Center
-
-You can monitor and command Centipede OS away from your computer using any mobile browser or smartphone:
-
-1. Open **Mobile Companion** in Centipede OS Settings.
-2. Scan the **QR Code** or enter the **6-digit PIN** on your phone.
-3. Your phone becomes a secure authenticated client:
-   - View system health and storage pressure in real time.
-   - Review and approve pending security requests.
-   - Send commands to Segmentor.
-   - Instantly revoke phone access if lost or stolen.
-
-*Security Rule*: Your phone acts as an authenticated client—it **cannot** bypass Kingdom authorization or execute raw host shell commands.
+The mobile companion panel remains a local UI prototype. Native Android/iOS builds package the desktop web application in a native WebView; they do not add remote phone pairing or monitoring.
 
 ---
 
@@ -112,53 +72,51 @@ You can monitor and command Centipede OS away from your computer using any mobil
 
 For detailed non-technical installation steps, see our [Installation Guide](docs/INSTALLATION_GUIDE.md).
 
-### Option A: Desktop Workstation Quick Start (One-Click Launch)
+### Option A: Launch the browser application
 ```bash
 # Clone repository
 git clone https://github.com/wests-cmd/Centipede-os.git
 cd Centipede-os
 
-# Install & launch with one-click script
+# Install dependencies and start the local web application
 bun install
 bun start
 ```
-Open `http://localhost:3000` in your browser to complete the guided 6-step First-Run Setup Wizard.
+Open `http://localhost:3000` in your browser. Kingdom-backed operations require a separately deployed Kingdom service.
 
-### Option B: Run Swarm Docker Stack
+### Option B: Build the desktop web application
 ```bash
 # Clone repository
 git clone https://github.com/wests-cmd/Centipede-os.git
 cd Centipede-os
 
-# Start production multi-node swarm containers
-docker-compose up -d
+ # Build the web application bundle
+npm install
+npm run build
 ```
-Open `http://localhost:3000` in your browser.
+Serve the generated `dist/` directory with a static web server. Kingdom-backed features require a separately configured Kingdom endpoint.
 
 ---
 
 ## Security FAQ
 
-### Q: Can the AI delete my files or execute dangerous commands without asking?
-**No.** Every mutating or high-risk action (such as deleting files or running processes) requires a valid Just-In-Time (JIT) capability grant or explicit human approval.
+### Q: Can this application delete my files or execute system commands?
+This browser application does not have host file or shell access. Kingdom-backed actions are handled by the separately deployed Kingdom service; review that deployment's authorization and policy configuration independently.
 
-### Q: What if an untrusted skill or website tries to trick the AI ("Ignore instructions")?
-**All external text, downloaded files, and web search results are classified as DATA.** Prompt injection text carries **zero authority** and cannot grant permissions.
+### Q: Does this release certify prompt-injection or host security protections?
+No. The UI contains security-related demonstrations, but this release does not certify system-wide isolation, prompt-injection resistance, or Kingdom deployment security.
 
 ### Q: What happens if Kingdom is offline?
-Centipede OS **fails closed**. If Kingdom is disconnected, privileged execution stops safely (`KINGDOM_OFFLINE`).
+Kingdom-backed features cannot run while the service is unavailable. The client reports connection status; availability and fail-closed behavior for execution must be verified in the deployed Kingdom service.
 
-### Q: What if a phone or node is stolen?
-Open the Security Center in Centipede OS desktop shell and click **Revoke**. The device's access token is destroyed instantly.
+### Q: Can I revoke a stolen phone or node here?
+No. The mobile companion is a local prototype and this release does not pair remote phones or nodes.
 
 ---
 
 ## Recovery
 
-If an update or workflow fails, Centipede OS preserves your data:
-- **Atomic Rollback**: `KingdomUpdateCenter` verifies system health before committing updates. If verification fails, the system automatically reverts to the previous release checkpoint.
-- **Persistence Integrity**: Persistent state files are protected by SHA-256 signatures (`computeIntegritySignature`).
-- **Emergency Kill Switch**: Click the red Global Kill Switch in the Desktop Shell or Security Center to halt active executions instantly.
+This browser application does not manage operating-system updates, host storage, rollback, or emergency process termination. Browser-local preferences and demo data are not a backup. Manage the separately deployed Kingdom service using its own operational procedures.
 
 ---
 
@@ -168,7 +126,7 @@ If an update or workflow fails, Centipede OS preserves your data:
 # Install dependencies
 bun install
 
-# Run unit, adversarial & compatibility test suites (105 tests across 15 suites)
+# Run unit and compatibility tests
 bun test
 
 # Run contract verification against live Kingdom server
@@ -181,5 +139,5 @@ bun run test:e2e
 ### Kingdom ↔ Centipede Capability Negotiation & Compatibility
 - **Contract Specification**: `src/api/contractSpec.ts`
 - **Capability Negotiator**: `src/api/capabilityNegotiator.ts`
-- **Expected Version**: `v40.1.0` (Supported: `v40.0.0` – `v40.1.9`)
+- **Compatibility**: Kingdom protocol major `1`, minimum contract version `1.4.0`; runtime Kingdom release versions are discovered dynamically. The protocol and contract identifiers are independent of the Centipede product version.
 - **ZeroTrust Boundary**: Capability negotiation classifies version/capability status (`SUPPORTED`, `UNSUPPORTED`, `DEGRADED`, `INCOMPATIBLE`, `UNKNOWN`, `REQUIRES_UPDATE`), but NEVER acts as an authorization authority. Kingdom remains authoritative.

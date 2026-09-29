@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+systemctl enable centipede-web.service
+systemctl enable lightdm.service

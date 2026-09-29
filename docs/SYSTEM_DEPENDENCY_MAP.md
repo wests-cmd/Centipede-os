@@ -1,3 +1,5 @@
+> **Status:** This is historical or proposed design material, not evidence of a feature or artifact shipped by the current repository. See [SHIP_REALITY_MATRIX.md](SHIP_REALITY_MATRIX.md) and `release/targets.json` for current release gates.
+
 # CENTIPEDE OS SYSTEM DEPENDENCY MAP & END-TO-END JOURNEY AUDIT
 
 ## Executive Summary

@@ -1,3 +1,5 @@
+> **Historical report — superseded for release status.** Claims in this document are not current build/release evidence. The current verified target status is in [SHIP_REALITY_MATRIX.md](SHIP_REALITY_MATRIX.md); the release builder only permits targets marked BUILDABLE in `release/targets.json`. Kingdom protocol/contract compatibility identifiers must not be confused with Kingdom product version numbers.
+
 # CENTIPEDE OS PHASE 10 DOOMSDAY REMEDIATION & FINAL RELEASE GATE REPORT
 
 ## Executive Summary

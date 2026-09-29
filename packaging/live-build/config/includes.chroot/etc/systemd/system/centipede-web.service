@@ -1,0 +1,14 @@
+[Unit]
+Description=Centipede local web application
+After=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/centipede/web
+ExecStart=/usr/bin/python3 -m http.server 3000 --bind 127.0.0.1 --directory /opt/centipede/web
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

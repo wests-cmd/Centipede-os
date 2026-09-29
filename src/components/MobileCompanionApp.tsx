@@ -70,9 +70,9 @@ export const MobileCompanionApp: React.FC = () => {
             <Smartphone className="w-8 h-8" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-white">Mobile Companion & Pairing Center</h2>
+            <h2 className="text-2xl font-bold text-white">Mobile Companion Prototype</h2>
             <p className="text-xs text-slate-400 mt-1">
-              Connect external iOS/Android devices using QR codes and 6-digit PIN authentication.
+              This browser demo simulates pairing locally. It does not connect a remote phone or provide native Android/iOS apps.
             </p>
           </div>
         </div>
