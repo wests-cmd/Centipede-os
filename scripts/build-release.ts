@@ -3,7 +3,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, statSync } from 'fs
 import { join } from 'path';
 import { syncSha256 } from '../src/security/cryptoUtils';
 import packageJson from '../package.json';
-import { KINGDOM_PROTOCOL_MAJOR, CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL } from '../src/version';
+import releaseConfig from '../release/targets.json';
+import { CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL, KINGDOM_PROTOCOL_MAJOR } from '../src/version';
 import { KINGDOM_COMPATIBILITY_MANIFEST, KINGDOM_CONTRACT_SPEC } from '../src/api/contractSpec';
 
 const rootDir = process.cwd();
@@ -59,15 +60,12 @@ try {
 }
 
 // 4. Create Dual Release Archives: Slim and Full
-// A. Slim Release Bundle (Core runtime only, on-demand component acquisition)
 const slimBundleName = `centipede-os-${version}-slim-web-bundle.tar.gz`;
 const slimBundlePath = join(releaseDir, slimBundleName);
 
-// B. Full Release Bundle (Pre-packaged local runtime, Docker Swarm stack, scripts & configs)
 const fullBundleName = `centipede-os-${version}-full-bundle.tar.gz`;
 const fullBundlePath = join(releaseDir, fullBundleName);
 
-// Legacy bundle alias for backwards compatibility
 const legacyBundleName = `centipede-os-${version}-desktop-web-bundle.tar.gz`;
 const legacyBundlePath = join(releaseDir, legacyBundleName);
 

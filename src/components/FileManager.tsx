@@ -25,8 +25,8 @@ export const FileManager: React.FC = () => {
       <div className="flex items-center space-x-3 mb-2">
         <Folder className="w-7 h-7 text-cyan-400" />
         <div>
-          <h2 className="text-2xl font-bold text-white">Sandboxed File Inspector</h2>
-          <p className="text-slate-400 text-sm">Inspect sandboxed system configuration files and audit logs</p>
+          <h2 className="text-2xl font-bold text-white">Sample File Viewer</h2>
+          <p className="text-slate-400 text-sm">Built-in demonstration content only. This view does not read files from your device.</p>
         </div>
       </div>
 
@@ -35,7 +35,7 @@ export const FileManager: React.FC = () => {
         <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-4 space-y-2">
           <div className="flex items-center space-x-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-2">
             <HardDrive className="w-4 h-4 text-cyan-400" />
-            <span>Root System Drive</span>
+            <span>Example File List</span>
           </div>
 
           {files.map((file) => (
@@ -76,8 +76,8 @@ export const FileManager: React.FC = () => {
           </div>
 
           <div className="mt-4 pt-3 border-t border-slate-700/60 text-xs text-slate-400 flex justify-between">
-            <span>Sandboxed View (Read Only)</span>
-            <span className="text-emerald-400 font-mono">ZeroTrust Capability Guard Enforced</span>
+            <span>Built-in demonstration content</span>
+            <span className="text-slate-400 font-mono">No host file access</span>
           </div>
         </div>
       </div>

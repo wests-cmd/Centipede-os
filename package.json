@@ -7,6 +7,7 @@
     "start": "bun scripts/start-centipede.ts",
     "dev": "vite",
     "build": "vite build",
+    "mobile:sync": "bun run build && cap sync",
     "build:release": "bun scripts/build-release.ts",
     "lint:reality": "bun scripts/lint-reality.ts",
     "preview": "vite preview",
@@ -15,11 +16,15 @@
     "test:e2e": "npx playwright test"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2",
     "lucide-react": "^0.469.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
     "@playwright/test": "^1.50.0",
     "@types/node": "^22.10.0",
     "@types/react": "^18.3.18",

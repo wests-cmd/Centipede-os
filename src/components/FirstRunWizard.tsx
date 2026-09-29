@@ -15,7 +15,6 @@ import {
   ArrowLeft,
   Bot,
   Zap,
-  Sliders,
   Check,
 } from 'lucide-react';
 
@@ -29,7 +28,6 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
   const [selectedProfile, setSelectedProfile] = useState<CentipedeProfile>('FULL_CENTIPEDE');
   const [kingdomUrl, setKingdomUrl] = useState<string>('http://localhost:8000');
   const [kingdomStatus, setKingdomStatus] = useState<string>('CHECKING');
-  const [zeroTrustEnabled, setZeroTrustEnabled] = useState<boolean>(true);
   const [deviceName, setDeviceName] = useState<string>('Centipede Workstation');
 
   useEffect(() => {
@@ -73,8 +71,8 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
             C
           </div>
           <div>
-            <h1 className="text-lg font-bold text-white">Centipede OS First-Run Setup</h1>
-            <p className="text-xs text-slate-400">Version v{CENTIPEDE_VERSION} • ZeroTrust Environment Configuration</p>
+            <h1 className="text-lg font-bold text-white">Centipede Desktop Web App Setup</h1>
+            <p className="text-xs text-slate-400">Version v{CENTIPEDE_VERSION} • Browser Application Configuration</p>
           </div>
         </div>
 
@@ -97,26 +95,26 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
             <div className="inline-flex p-4 bg-blue-500/10 border border-blue-500/30 rounded-2xl text-blue-400 mb-2">
               <Bot className="w-12 h-12" />
             </div>
-            <h2 className="text-2xl font-black text-white">Welcome to Centipede OS</h2>
+            <h2 className="text-2xl font-black text-white">Welcome to Centipede</h2>
             <p className="text-sm text-slate-300 max-w-xl mx-auto leading-relaxed">
-              Centipede OS is an AI-first operating environment governed by Segmentor assistant and powered by the distributed Kingdom swarm engine.
+              Centipede is a browser-based desktop application. Kingdom is a separate service that must be deployed and configured independently. This bundle is not a bootable operating system.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left max-w-2xl mx-auto pt-4">
               <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2">
                 <ShieldCheck className="w-5 h-5 text-emerald-400" />
                 <h3 className="text-xs font-bold text-white">ZeroTrust Security</h3>
-                <p className="text-[11px] text-slate-400">AI cannot self-authorize or bypass permission bounds.</p>
+                <p className="text-[11px] text-slate-400">Client checks do not replace authorization by a connected Kingdom service.</p>
               </div>
               <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2">
                 <Server className="w-5 h-5 text-blue-400" />
                 <h3 className="text-xs font-bold text-white">Swarm Runtime</h3>
-                <p className="text-[11px] text-slate-400">Connects seamlessly with Kingdom Commander & Knights.</p>
+                <p className="text-[11px] text-slate-400">Connect to a separately operated Kingdom API. No Kingdom service is bundled.</p>
               </div>
               <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-2">
                 <Zap className="w-5 h-5 text-amber-400" />
-                <h3 className="text-xs font-bold text-white">One-Click Setup</h3>
-                <p className="text-[11px] text-slate-400">Automatic system check and hardware-guided setup.</p>
+                <h3 className="text-xs font-bold text-white">Guided Setup</h3>
+                <p className="text-[11px] text-slate-400">Configure this browser client and review browser-reported device estimates.</p>
               </div>
             </div>
           </div>
@@ -125,8 +123,8 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
         {step === 2 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-bold text-white">System Hardware & Environment Check</h2>
-              <p className="text-xs text-slate-400 mt-1">Verifying platform capabilities, memory, and storage allocation.</p>
+              <h2 className="text-xl font-bold text-white">Browser and Runtime Information</h2>
+              <p className="text-xs text-slate-400 mt-1">These values are reported by the browser or estimated; this is not a host security or installation check.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -141,31 +139,31 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
               <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center space-x-3">
                 <Cpu className="w-6 h-6 text-indigo-400" />
                 <div>
-                  <div className="text-xs font-bold text-white">CPU & Memory</div>
-                  <div className="text-xs text-slate-400">{runtimeInfo?.hardware.cpuCores || 8} CPU Cores • {Math.round((runtimeInfo?.hardware.totalMemoryMb || 16384) / 1024)} GB RAM</div>
+                  <div className="text-xs font-bold text-white">Browser-Reported CPU & Memory</div>
+                  <div className="text-xs text-slate-400">{runtimeInfo?.hardware.cpuCores || 4} logical cores • approximately {Math.round((runtimeInfo?.hardware.totalMemoryMb || 8192) / 1024)} GB RAM</div>
                 </div>
               </div>
 
               <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center space-x-3">
                 <HardDrive className="w-6 h-6 text-emerald-400" />
                 <div>
-                  <div className="text-xs font-bold text-white">Storage Capacity</div>
-                  <div className="text-xs text-slate-400">{runtimeInfo?.hardware.storageAvailableGb || 256} GB Available ({runtimeInfo?.hardware?.storageBreakdown?.storagePressure || 'NORMAL'} Pressure)</div>
+                  <div className="text-xs font-bold text-white">Browser Storage Estimate</div>
+                  <div className="text-xs text-slate-400">Approximately {runtimeInfo?.hardware.storageAvailableGb || 64} GB available to this browser origin</div>
                 </div>
               </div>
 
               <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center space-x-3">
                 <ShieldCheck className="w-6 h-6 text-purple-400" />
                 <div>
-                  <div className="text-xs font-bold text-white">Security Harness</div>
-                  <div className="text-xs text-slate-400">ZeroTrust PermissionGate Active • Non-root Sandbox</div>
+                  <div className="text-xs font-bold text-white">Execution Authority</div>
+                  <div className="text-xs text-slate-400">Kingdom is external; this browser app is not an OS sandbox.</div>
                 </div>
               </div>
             </div>
 
             <div className="bg-blue-950/40 border border-blue-500/30 p-4 rounded-xl text-xs text-blue-300 flex items-center space-x-3">
               <CheckCircle className="w-5 h-5 text-blue-400 flex-shrink-0" />
-              <span>System meets hardware requirements for Centipede OS. Safe to proceed with role selection.</span>
+              <span>Browser information only. This does not verify host hardware requirements, OS isolation, or bootable system support.</span>
             </div>
           </div>
         )}
@@ -173,31 +171,31 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
         {step === 3 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-bold text-white">Select Centipede OS Deployment Role</h2>
-              <p className="text-xs text-slate-400 mt-1">Choose how this computer operates within your Centipede swarm network.</p>
+              <h2 className="text-xl font-bold text-white">Select a Client Profile Label</h2>
+              <p className="text-xs text-slate-400 mt-1">This preference labels the browser client; it does not provision a Kingdom node or OS distribution.</p>
             </div>
 
             <div className="space-y-3">
               {[
                 {
                   id: 'FULL_CENTIPEDE',
-                  title: 'Full Centipede OS (Recommended)',
-                  desc: 'All-in-one desktop workstation acting as Commander, Knight worker, and Scout.',
-                  badge: 'Full Workstation',
+                  title: 'Desktop Client',
+                  desc: 'Use the browser-based desktop interface.',
+                  badge: 'Web App',
                   color: 'border-blue-500 bg-blue-950/20',
                 },
                 {
                   id: 'KNIGHT',
-                  title: 'Knight Node',
-                  desc: 'Dedicated task worker node executing assigned workloads and containers.',
-                  badge: 'Worker Node',
+                  title: 'Worker View',
+                  desc: 'Select a client preference for worker-related views.',
+                  badge: 'Client Preference',
                   color: 'border-emerald-500 bg-emerald-950/20',
                 },
                 {
                   id: 'SCOUT',
-                  title: 'Scout Profile',
-                  desc: 'Ultra-lightweight environment discovery and monitoring agent (< 5.0 GB footprint).',
-                  badge: 'Lightweight Agent',
+                  title: 'Monitoring View',
+                  desc: 'Select a client preference for monitoring views.',
+                  badge: 'Client Preference',
                   color: 'border-amber-500 bg-amber-950/20',
                 },
               ].map((prof) => (
@@ -244,22 +242,14 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
         {step === 4 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-bold text-white">Security & ZeroTrust Configuration</h2>
-              <p className="text-xs text-slate-400 mt-1">Configure security boundaries and human approval gating rules.</p>
+              <h2 className="text-xl font-bold text-white">Security Responsibilities</h2>
+              <p className="text-xs text-slate-400 mt-1">The browser client cannot certify host isolation. Privileged execution must be authorized by the separately deployed Kingdom service.</p>
             </div>
 
             <div className="space-y-3 bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-bold text-white">Enable ZeroTrust Permission Gate</div>
-                  <div className="text-[11px] text-slate-400">All mutating actions require valid JIT capability grant or human approval.</div>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={zeroTrustEnabled}
-                  onChange={(e) => setZeroTrustEnabled(e.target.checked)}
-                  className="w-4 h-4 rounded bg-slate-950 border-slate-700 text-blue-600 focus:ring-blue-500"
-                />
+              <div>
+                <div className="text-xs font-bold text-white">Kingdom Authorization</div>
+                <div className="text-[11px] text-slate-400">Only a running, compatible Kingdom service can authorize protected operations. A disconnected service cannot be replaced by this setup screen.</div>
               </div>
 
               <div className="pt-3 border-t border-slate-800 text-xs text-slate-300 space-y-2">
@@ -278,8 +268,8 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
         {step === 5 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-bold text-white">Kingdom Engine Connection Verification</h2>
-              <p className="text-xs text-slate-400 mt-1">Connect Centipede OS to the distributed Kingdom backend runtime.</p>
+              <h2 className="text-xl font-bold text-white">Connect to Kingdom</h2>
+              <p className="text-xs text-slate-400 mt-1">Check reachability of the separately deployed Kingdom API.</p>
             </div>
 
             <div className="space-y-3 bg-slate-900 border border-slate-800 p-5 rounded-2xl">
@@ -316,7 +306,7 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
                 <div className="bg-amber-950/40 border border-amber-500/30 p-3 rounded-xl text-[11px] text-amber-300 flex items-start space-x-2">
                   <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
                   <span>
-                    Kingdom runtime backend is not running on {kingdomUrl}. Centipede OS will operate in standalone standby mode. You can start Kingdom anytime with <code className="bg-slate-950 px-1 py-0.5 rounded">python -m kingdom</code> or Docker compose.
+                    Kingdom runtime is not reachable at {kingdomUrl}. Kingdom is deployed separately; configure this endpoint to a running Kingdom service before using Kingdom-backed actions.
                   </span>
                 </div>
               )}
@@ -329,9 +319,9 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
             <div className="inline-flex p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-emerald-400 mb-2">
               <CheckCircle className="w-12 h-12" />
             </div>
-            <h2 className="text-2xl font-black text-white">Setup Complete & Health Confirmed</h2>
+            <h2 className="text-2xl font-black text-white">Client Setup Complete</h2>
             <p className="text-sm text-slate-300 max-w-md mx-auto">
-              Centipede OS is configured and ready. You are entering a healthy, ZeroTrust governed environment.
+              The browser client preferences are saved. This does not certify system health or host security.
             </p>
 
             <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl text-left max-w-md mx-auto space-y-2 text-xs font-mono text-slate-300">
@@ -340,7 +330,7 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
                 <span className="text-white font-bold">{deviceName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Deployment Profile:</span>
+                <span className="text-slate-500">Client Profile:</span>
                 <span className="text-cyan-400 font-bold">{selectedProfile}</span>
               </div>
               <div className="flex justify-between">
@@ -348,8 +338,8 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
                 <span className="text-indigo-400">{kingdomUrl}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">System Health:</span>
-                <span className="text-emerald-400 font-bold">HEALTHY (100% Passed)</span>
+                <span className="text-slate-500">Kingdom Connection:</span>
+                <span className={kingdomStatus.startsWith('CONNECTED') ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>{kingdomStatus}</span>
               </div>
             </div>
 
@@ -357,7 +347,7 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
               onClick={handleFinish}
               className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-3 rounded-2xl text-sm transition-all shadow-xl shadow-blue-600/30"
             >
-              Launch Centipede OS Workstation →
+              Open Centipede Desktop App →
             </button>
           </div>
         )}

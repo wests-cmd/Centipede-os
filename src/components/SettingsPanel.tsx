@@ -52,8 +52,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter }) => {
       <div className="flex items-center space-x-3 mb-2">
         <Sliders className="w-7 h-7 text-slate-400" />
         <div>
-          <h2 className="text-2xl font-bold text-white">Centipede OS Settings</h2>
-          <p className="text-slate-400 text-sm">System configuration and Kingdom API connection parameters</p>
+          <h2 className="text-2xl font-bold text-white">Desktop App Settings</h2>
+          <p className="text-slate-400 text-sm">The Kingdom API endpoint is configurable here. Profile and storage displays are illustrative, not host system controls.</p>
         </div>
       </div>
 
@@ -127,8 +127,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter }) => {
           <div className="flex items-center space-x-3">
             <HardDrive className="w-6 h-6 text-blue-400" />
             <div>
-              <h3 className="text-lg font-bold text-white">Centipede OS Storage Manager</h3>
-              <p className="text-xs text-slate-400">Total: 512 GB SSD • Used: 256 GB (50%) • Free: 256 GB (50%)</p>
+              <h3 className="text-lg font-bold text-white">Storage Layout Preview</h3>
+              <p className="text-xs text-slate-400">Illustrative sample values only; this browser app does not measure or manage host disk storage.</p>
             </div>
           </div>
           <span className="px-3 py-1 bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 font-mono text-xs font-semibold rounded-full flex items-center space-x-1.5">
