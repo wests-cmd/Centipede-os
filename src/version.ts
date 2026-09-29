@@ -1,6 +1,6 @@
 import packageJson from '../package.json';
 
-export const CENTIPEDE_VERSION = packageJson.version || '1.0.0';
+export const CENTIPEDE_VERSION = packageJson.version;
 
 /**
  * Protocol-driven Kingdom compatibility specifications.

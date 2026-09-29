@@ -29,7 +29,9 @@ test('KingdomAdapter Unit Tests & Version Verification', async () => {
 });
 
 test('Kingdom Dynamic Capability, Handshake & Reconnect Resilience Matrix', async () => {
-  const adapter = new KingdomAdapter('http://127.0.0.1:8000');
+  // Exercise the retry state deterministically even when a live Kingdom server
+  // is available for the separate integration suite.
+  const adapter = new KingdomAdapter('http://127.0.0.1:9999');
 
   // 1. Connection Handshake state tracking
   const statesObserved: string[] = [];
@@ -37,11 +39,12 @@ test('Kingdom Dynamic Capability, Handshake & Reconnect Resilience Matrix', asyn
     statesObserved.push(state);
   });
 
-  // Reconnect when offline transitions to DISCOVERING -> RECONNECTING
+  // An unavailable service transitions through discovery to retrying.
   await adapter.reconnect();
   expect(statesObserved).toContain('DISCOVERING');
   expect(statesObserved).toContain('AUTHENTICATING');
   expect(statesObserved).toContain('RECONNECTING');
+  adapter.disconnect();
   unsub();
 
   // 2. Heartbeat Diagnostics tracking

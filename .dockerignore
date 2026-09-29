@@ -1,0 +1,17 @@
+.git
+.github
+node_modules
+dist
+release
+build
+android
+ios
+packaging
+docs
+tests
+android/.gradle
+android/app/build
+ios/App/build
+test-results
+coverage
+*.log

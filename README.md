@@ -159,7 +159,7 @@ If an update or workflow fails, Centipede OS preserves your data:
 # Install dependencies
 bun install
 
-# Run unit, adversarial & compatibility test suites (130 tests across 23 files)
+# Run unit, adversarial & compatibility test suites (134 tests across 24 files)
 bun test
 
 # Run contract verification against live Kingdom server
@@ -172,5 +172,5 @@ bun run test:e2e
 ### Kingdom ↔ Centipede Capability Negotiation & Compatibility
 - **Contract Specification**: `src/api/contractSpec.ts`
 - **Capability Negotiator**: `src/api/capabilityNegotiator.ts`
-- **Expected Version**: `v40.1.0` (Supported: `v40.0.0` – `v40.1.9`)
+- **Compatibility**: Kingdom protocol major `1`, minimum contract version `1.4.0`; runtime Kingdom release versions are discovered dynamically. The protocol and contract identifiers are independent of the Centipede product version.
 - **ZeroTrust Boundary**: Capability negotiation classifies version/capability status (`SUPPORTED`, `UNSUPPORTED`, `DEGRADED`, `INCOMPATIBLE`, `UNKNOWN`, `REQUIRES_UPDATE`), but NEVER acts as an authorization authority. Kingdom remains authoritative.

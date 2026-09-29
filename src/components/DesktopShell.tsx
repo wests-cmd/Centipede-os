@@ -248,9 +248,11 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
 
           <div className="border-t border-slate-800 pt-3">
             <div className="bg-slate-950/60 border border-slate-800/80 rounded-xl p-2.5 text-[10px] text-slate-400 space-y-1">
-              <div className="font-bold text-slate-300">ZeroTrust Active</div>
-              <div>Capabilities Gated</div>
-              <div className="text-emerald-400 font-mono">100% Policy Protection</div>
+              <div className="font-bold text-slate-300">Kingdom Authorization</div>
+              <div>Protected actions require the external Kingdom service.</div>
+              <div className={`font-mono ${connectionState === 'CONNECTED' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {connectionState === 'CONNECTED' ? 'Connected' : 'Not connected'}
+              </div>
             </div>
           </div>
         </aside>

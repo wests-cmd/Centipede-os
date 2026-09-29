@@ -3,6 +3,13 @@ dist
 release/*
 !release/targets.json
 !release/target-dependencies.json
+build
+android/.gradle
+android/build
+android/app/build
+ios/App/build
+ios/DerivedData
+ios/App/App/public
 test-results
 data
 coverage
