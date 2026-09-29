@@ -235,7 +235,7 @@ jobs:
             [ -S "$QEMU_MONITOR" ] && break
             sleep 1
           done
-          sleep 45
+          sleep 15
           python3 - "$QEMU_MONITOR" <<'PY'
           import socket, sys, time
           sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -244,10 +244,15 @@ jobs:
           time.sleep(0.5)
           try: sock.recv(4096)
           except TimeoutError: pass
-          sock.sendall(b"screendump /tmp/centipede-vm-screen.ppm\n")
-          time.sleep(2)
-          try: print(sock.recv(4096).decode("utf-8", "replace"))
-          except TimeoutError: pass
+          def command(value):
+              sock.sendall((value + "\n").encode())
+              time.sleep(1)
+              try: print(sock.recv(4096).decode("utf-8", "replace"))
+              except TimeoutError: pass
+          command("screendump /tmp/centipede-vm-menu.ppm")
+          command("sendkey ret")
+          time.sleep(65)
+          command("screendump /tmp/centipede-vm-screen.ppm")
           sock.close()
           PY
           wait "$QEMU_PID" || QEMU_STATUS=$?
@@ -260,6 +265,7 @@ jobs:
         with:
           name: centipede-qemu-boot-diagnostic
           path: |
+            /tmp/centipede-vm-menu.ppm
             /tmp/centipede-vm-screen.ppm
             /tmp/centipede-vm-serial.log
           if-no-files-found: warn

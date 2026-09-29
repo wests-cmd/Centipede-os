@@ -32,7 +32,7 @@ lb config \
   --mirror-binary-security https://security.debian.org/debian-security \
   --firmware-chroot false \
   --security false \
-  --bootappend-live "boot=live components username=centipede hostname=centipede console=ttyS0,115200n8"
+  --bootappend-live "boot=live components username=centipede hostname=centipede console=ttyS0,115200n8 ignore_loglevel"
 lb build
 
 ISO_SOURCE="${BUILD}/live-image-amd64.hybrid.iso"
