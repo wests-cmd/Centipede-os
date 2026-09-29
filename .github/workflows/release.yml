@@ -1,10 +1,24 @@
-name: "Centipede OS Production Release Pipeline"
+name: "Centipede OS Production Multi-Distribution Release Pipeline"
 
 on:
   push:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      target:
+        description: "Release target"
+        required: true
+        type: choice
+        default: "all"
+        options:
+          - all
+          - desktop
+          - iso
+          - live-usb
+          - vm
+          - android
+          - ios
 
 permissions:
   contents: write
@@ -34,17 +48,23 @@ jobs:
       - name: Run Unit & Security Test Suite
         run: bun test
 
-      - name: Build Production Release Artifacts
-        run: bun run build:release
+      - name: Build Multi-Distribution Release Artifacts
+        run: bun scripts/build-release.ts --target=${{ inputs.target || 'all' }}
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         with:
           files: |
-            release/centipede-os-*.tar.gz
+            release/**/*.tar.gz
+            release/**/*.iso
+            release/**/*.img
+            release/**/*.qcow2
+            release/**/*.apk
+            release/**/*.ipa
             release/SHA256SUMS
             release/release-manifest.json
+            release/manifests/*.json
           draft: false
           prerelease: false
           generate_release_notes: true

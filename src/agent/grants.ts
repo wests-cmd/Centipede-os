@@ -1,4 +1,4 @@
-import { syncSha256 } from '../security/cryptoUtils';
+import { generateSecureRandomHex, syncSha256 } from '../security/cryptoUtils';
 
 function canonicalizeObject(obj: any): any {
   if (obj === null || typeof obj !== 'object') {
@@ -15,8 +15,13 @@ function canonicalizeObject(obj: any): any {
   return sortedObj;
 }
 
+const EMPTY_PARAMS_HASH = syncSha256('{}');
+
 export function computeParameterHash(params: Record<string, any> = {}): string {
-  const canonicalJson = JSON.stringify(canonicalizeObject(params || {}));
+  if (!params || Object.keys(params).length === 0) {
+    return EMPTY_PARAMS_HASH;
+  }
+  const canonicalJson = JSON.stringify(canonicalizeObject(params));
   return syncSha256(canonicalJson);
 }
 
@@ -132,7 +137,8 @@ export class CapabilityGrantEngine {
     contextOptions: CapabilityGrantOptions = {}
   ): CapabilityGrant {
     this.purgeExpiredGrants();
-    const grantId = `grant_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    // Security: Use CSPRNG random hex to prevent grant ID prediction or brute-force attacks
+    const grantId = `grant_${Date.now()}_${generateSecureRandomHex(8)}`;
     const grant: CapabilityGrant = {
       grantId,
       agentId,

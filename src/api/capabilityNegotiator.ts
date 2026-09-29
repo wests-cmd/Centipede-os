@@ -79,6 +79,16 @@ export class CapabilityNegotiator {
       };
     }
 
+    // Version window checking: minor protocol version higher than contract spec minor protocol requires checking optional update
+    if (kingdomRuntime.protocol && kingdomRuntime.protocol.minor < KINGDOM_CONTRACT_SPEC.minProtocolMinor) {
+      return {
+        capability,
+        status: 'REQUIRES_UPDATE',
+        reason: `Kingdom protocol minor v${kingdomRuntime.protocol.minor} is lower than required min minor v${KINGDOM_CONTRACT_SPEC.minProtocolMinor}.`,
+        requiredMinVersion: `Protocol v${this.protocolMajor}.${KINGDOM_CONTRACT_SPEC.minProtocolMinor}`,
+      };
+    }
+
     return {
       capability,
       status: 'SUPPORTED',

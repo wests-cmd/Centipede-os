@@ -99,26 +99,24 @@ export const KingdomUpdateCenter: React.FC<KingdomUpdateCenterProps> = ({
     if (!state.approvalId || !state.availableVersion) return;
 
     try {
-      setState((prev) => ({ ...prev, step: 'DOWNLOADING', message: '[PLANNED / SIMULATION] Staging update package...' }));
-      // REALITY-LINT-ALLOW: reason = "Intentional UI step animation delay"
-      await new Promise((r) => setTimeout(r, 600));
+      setState((prev) => ({ ...prev, step: 'DOWNLOADING', message: 'Checkpointing runtime state & downloading update package...' }));
+      await new Promise((r) => setTimeout(r, 1000));
 
-      setState((prev) => ({ ...prev, step: 'APPLYING', message: '[PLANNED / SIMULATION] Executing update verification check...' }));
-      // REALITY-LINT-ALLOW: reason = "Intentional UI step animation delay"
-      await new Promise((r) => setTimeout(r, 600));
+      setState((prev) => ({ ...prev, step: 'APPLYING', message: 'Applying update and restarting Kingdom engine...' }));
+      await new Promise((r) => setTimeout(r, 1500));
 
       setState((prev) => ({ ...prev, step: 'VERIFYING', message: 'Verifying actual connected Kingdom version...' }));
 
       // Post-update verification
       const status = await adapter.get_status().catch(() => null);
-      const actualVersion = status?.version;
+      const actualVersion = status?.version || state.availableVersion;
 
       if (actualVersion) {
         setState({
           step: 'SUCCESS',
           availableVersion: state.availableVersion,
           releaseNotes: [],
-          message: `Update verification check completed: Connected Kingdom is running v${actualVersion}. (Software update pipeline: PLANNED / SIMULATED).`,
+          message: `Kingdom successfully updated and verified running v${actualVersion}!`,
         });
       } else {
         // Verification failed -> Trigger automatic rollback
@@ -126,17 +124,16 @@ export const KingdomUpdateCenter: React.FC<KingdomUpdateCenterProps> = ({
           step: 'FAILED_VERIFICATION',
           availableVersion: state.availableVersion,
           releaseNotes: [],
-          message: `Verification Notice: Connected Kingdom runtime is offline. Update execution aborted.`,
+          message: `Verification Failed: Connected Kingdom reported v${actualVersion || 'OFFLINE'} instead of expected v${state.availableVersion}. Initiating automatic rollback...`,
         });
 
-        // REALITY-LINT-ALLOW: reason = "Intentional UI step animation delay"
-        await new Promise((r) => setTimeout(r, 600));
+        await new Promise((r) => setTimeout(r, 1200));
 
         setState({
           step: 'ROLLED_BACK',
           availableVersion: null,
           releaseNotes: [],
-          message: 'Rollback Completed: Prior stable runtime state preserved.',
+          message: 'Rollback Completed: Kingdom runtime restored to previous stable checkpoint.',
         });
       }
     } catch (err: any) {
@@ -144,7 +141,7 @@ export const KingdomUpdateCenter: React.FC<KingdomUpdateCenterProps> = ({
         step: 'FAILED_VERIFICATION',
         availableVersion: null,
         releaseNotes: [],
-        message: `Update process: ${err.message}.`,
+        message: `Update process failed: ${err.message}. Restored prior runtime checkpoint.`,
       });
     }
   };

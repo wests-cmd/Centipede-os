@@ -27,21 +27,13 @@ export interface StorageBreakdownMetrics {
   storagePressure: StoragePressureState;
 }
 
-import { DataProvenance } from '../types/provenance';
-
 export interface HardwareInfo {
-  cpuCores: number | null;
-  cpuCoresProvenance: DataProvenance;
-  totalMemoryMb: number | null;
-  totalMemoryMbProvenance: DataProvenance;
-  availableMemoryMb: number | null;
-  availableMemoryMbProvenance: DataProvenance;
-  storageTotalGb: number | null;
-  storageTotalGbProvenance: DataProvenance;
-  storageAvailableGb: number | null;
-  storageAvailableGbProvenance: DataProvenance;
+  cpuCores: number;
+  totalMemoryMb: number;
+  availableMemoryMb: number;
+  storageTotalGb: number;
+  storageAvailableGb: number;
   gpuAvailable: boolean;
-  gpuProvenance: DataProvenance;
   gpuName?: string;
   storageBreakdown?: StorageBreakdownMetrics;
 }
