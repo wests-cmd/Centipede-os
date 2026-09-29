@@ -201,6 +201,10 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+      - name: Install Bun download prerequisites
+        run: |
+          apt-get update
+          apt-get install -y ca-certificates unzip
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
