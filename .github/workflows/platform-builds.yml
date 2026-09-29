@@ -197,6 +197,7 @@ jobs:
   os-images:
     name: Debian live ISO, USB image, and QEMU disk
     runs-on: ubuntu-24.04
+    container: debian:bookworm
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
@@ -205,11 +206,11 @@ jobs:
           bun-version: latest
       - name: Install live-image tools
         run: |
-          sudo apt-get update
-          sudo apt-get install -y live-build debootstrap debian-archive-keyring qemu-utils qemu-system-x86 file
+          apt-get update
+          apt-get install -y ca-certificates git live-build debootstrap debian-archive-keyring qemu-utils qemu-system-x86 file nodejs npm
       - run: bun install --frozen-lockfile
       - name: Build bootable images
-        run: sudo -E bash scripts/build-live-image.sh
+        run: bash scripts/build-live-image.sh
       - name: Validate image outputs
         run: |
           VERSION=$(node -p "require('./package.json').version")
