@@ -229,7 +229,7 @@ jobs:
           QEMU_STATUS=0
           QEMU_MONITOR=/tmp/centipede-qemu-monitor.sock
           rm -f "$QEMU_MONITOR" /tmp/centipede-vm-screen.ppm /tmp/centipede-vm-serial.log
-          timeout 120s qemu-system-x86_64 -machine pc,accel=tcg -cpu max -smp 2 -m 4096 -cdrom "release/iso/$ISO" -boot order=d -display none -serial stdio -monitor "unix:$QEMU_MONITOR,server,nowait" -no-reboot > /tmp/centipede-vm-serial.log 2>&1 &
+          timeout 240s qemu-system-x86_64 -machine pc,accel=tcg -cpu max -smp 2 -m 4096 -cdrom "release/iso/$ISO" -boot order=d -display none -serial stdio -monitor "unix:$QEMU_MONITOR,server,nowait" -no-reboot > /tmp/centipede-vm-serial.log 2>&1 &
           QEMU_PID=$!
           for attempt in $(seq 1 30); do
             [ -S "$QEMU_MONITOR" ] && break
@@ -251,7 +251,7 @@ jobs:
               except TimeoutError: pass
           command("screendump /tmp/centipede-vm-menu.ppm")
           command("sendkey ret")
-          time.sleep(65)
+          time.sleep(160)
           command("screendump /tmp/centipede-vm-screen.ppm")
           sock.close()
           PY
@@ -259,7 +259,7 @@ jobs:
           cat /tmp/centipede-vm-serial.log
           test "$QEMU_STATUS" -eq 0 -o "$QEMU_STATUS" -eq 124
           test -s /tmp/centipede-vm-screen.ppm
-          grep -Eiq 'Linux version|live-boot' /tmp/centipede-vm-serial.log
+          grep -Eiq 'Started lightdm.service|Reached target graphical.target' /tmp/centipede-vm-serial.log
       - if: always()
         uses: actions/upload-artifact@v4
         with:
