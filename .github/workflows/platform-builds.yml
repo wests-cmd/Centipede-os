@@ -225,7 +225,10 @@ jobs:
           test -s "release/vm/$VM"
           cmp "release/iso/$ISO" "release/live-usb/$USB"
           qemu-img check "release/vm/$VM"
-          timeout 120s qemu-system-x86_64 -accel tcg -smp 2 -m 4096 -drive "file=release/vm/$VM,format=qcow2" -boot c -display none -serial file:/tmp/centipede-vm-serial.log -monitor none -no-reboot || test "$?" -eq 124
+          QEMU_STATUS=0
+          timeout 120s qemu-system-x86_64 -machine pc,accel=tcg -cpu max -smp 2 -m 4096 -drive "file=release/vm/$VM,format=qcow2,if=ide" -boot order=c -display none -serial file:/tmp/centipede-vm-serial.log -monitor none -no-reboot || QEMU_STATUS=$?
+          cat /tmp/centipede-vm-serial.log
+          test "$QEMU_STATUS" -eq 0 -o "$QEMU_STATUS" -eq 124
           grep -Eiq 'Linux version|live-boot' /tmp/centipede-vm-serial.log
           cd release
           sha256sum iso/* live-usb/* vm/*.qcow2 > platform-SHA256SUMS
