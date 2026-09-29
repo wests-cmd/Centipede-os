@@ -31,6 +31,7 @@ lb config \
   --mirror-chroot-security https://security.debian.org/debian-security \
   --mirror-binary https://deb.debian.org/debian \
   --mirror-binary-security https://security.debian.org/debian-security \
+  --firmware-chroot false \
   --security false \
   --bootappend-live "boot=live components username=centipede hostname=centipede console=ttyS0,115200n8"
 lb build
@@ -46,5 +47,3 @@ qemu-img convert -f raw -O qcow2 "$ISO_SOURCE" "$OUT/vm/$QCOW_NAME"
 qemu-img check "$OUT/vm/$QCOW_NAME"
 qemu-img info --output=json "$OUT/vm/$QCOW_NAME" > "$OUT/vm/${QCOW_NAME}.info.json"
 file "$ISO_SOURCE" "$OUT/vm/$QCOW_NAME"
-
-
