@@ -28,6 +28,9 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          accept-android-sdk-licenses: true
       - name: Install Android SDK platform and build tools
         run: sdkmanager --install 'platforms;android-36' 'build-tools;36.0.0' 'platform-tools'
       - run: bun install --frozen-lockfile
@@ -64,6 +67,9 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          accept-android-sdk-licenses: true
       - name: Install Android SDK platform and build tools
         run: sdkmanager --install 'platforms;android-36' 'build-tools;36.0.0' 'platform-tools'
       - run: bun install --frozen-lockfile
@@ -200,7 +206,7 @@ jobs:
       - name: Install live-image tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y live-build qemu-utils qemu-system-x86 file
+          sudo apt-get install -y live-build debootstrap debian-archive-keyring qemu-utils qemu-system-x86 file
       - run: bun install --frozen-lockfile
       - name: Build bootable images
         run: sudo -E bash scripts/build-live-image.sh
@@ -271,3 +277,4 @@ jobs:
             centipede-docker-image-*.tar
             SHA256SUMS
           if-no-files-found: error
+

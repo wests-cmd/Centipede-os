@@ -20,10 +20,17 @@ chmod +x "$BUILD/config/hooks/normal/0100-centipede-systemd.hook.chroot"
 
 cd "$BUILD"
 lb config \
+  --mode debian \
   --distribution bookworm \
   --architectures amd64 \
+  --archive-areas "main contrib non-free-firmware" \
   --binary-images iso-hybrid \
   --debian-installer none \
+  --mirror-bootstrap https://deb.debian.org/debian \
+  --mirror-chroot https://deb.debian.org/debian \
+  --mirror-chroot-security https://security.debian.org/debian-security \
+  --mirror-binary https://deb.debian.org/debian \
+  --mirror-binary-security https://security.debian.org/debian-security \
   --bootappend-live "boot=live components username=centipede hostname=centipede console=ttyS0,115200n8"
 lb build
 
@@ -38,3 +45,4 @@ qemu-img convert -f raw -O qcow2 "$ISO_SOURCE" "$OUT/vm/$QCOW_NAME"
 qemu-img check "$OUT/vm/$QCOW_NAME"
 qemu-img info --output=json "$OUT/vm/$QCOW_NAME" > "$OUT/vm/${QCOW_NAME}.info.json"
 file "$ISO_SOURCE" "$OUT/vm/$QCOW_NAME"
+
