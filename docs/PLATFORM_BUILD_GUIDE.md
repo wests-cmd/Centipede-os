@@ -30,7 +30,7 @@ The workflow exports an App Store Connect IPA, uploads it to TestFlight, and att
 
 ## OS images and Docker
 
-CI uses Debian live-build to generate a bootable hybrid ISO. The same bytes serve as the ISO download and Live USB source. The VM target is a qcow2 image derived from that bootable image and checked with QEMU. QEMU boots the image in CI; the ISO uses an XFCE/Chromium kiosk to show the Centipede web app. The image does not include automatic Debian firmware discovery or a broad hardware firmware set, so Wi-Fi and some graphics devices may need separately supplied firmware. It does not install Kingdom or grant Centipede host-control capabilities.
+CI uses Debian live-build to generate a bootable hybrid ISO. The same bytes serve as the ISO download and Live USB source. The QEMU target is a qcow2 virtual optical-media image derived from the bootable ISO; it is intended to be attached as a virtual CD-ROM, not used as an installed hard-disk image. CI checks the qcow2 structure and boots it as virtual CD media; the ISO uses an XFCE/Chromium kiosk to show the Centipede web app. The image does not include automatic Debian firmware discovery or a broad hardware firmware set, so Wi-Fi and some graphics devices may need separately supplied firmware. It does not install Kingdom or grant Centipede host-control capabilities.
 
 The Docker job builds and runs the image, checks the web page, bundled CSS, and container health status, then attaches a loadable `linux/amd64` Docker archive. Load it with `docker load -i centipede-docker-image.tar`. The image is not pushed to a container registry by this workflow.
 
