@@ -1,0 +1,37 @@
+{
+  "version": "1.0.0",
+  "dependencies": {
+    "desktop-slim": {
+      "toolchain": ["node", "bun", "vite", "tar"],
+      "systemRequirements": { "ramMb": 1024, "diskMb": 500 }
+    },
+    "desktop-full": {
+      "toolchain": ["node", "bun", "vite", "tar", "docker"],
+      "systemRequirements": { "ramMb": 4096, "diskMb": 3200 }
+    },
+    "docker": {
+      "toolchain": ["docker", "docker-compose", "python3"],
+      "systemRequirements": { "ramMb": 2048, "diskMb": 1500 }
+    },
+    "iso": {
+      "toolchain": ["archiso", "mkarchiso", "qemu-system-x86_64"],
+      "status": "PLANNED_TOOLCHAIN_REQUIRED"
+    },
+    "live-usb": {
+      "toolchain": ["dd", "parted", "qemu-system-x86_64"],
+      "status": "PLANNED_TOOLCHAIN_REQUIRED"
+    },
+    "vm": {
+      "toolchain": ["qemu-img", "qemu-system-x86_64"],
+      "status": "PLANNED_TOOLCHAIN_REQUIRED"
+    },
+    "android": {
+      "toolchain": ["android-sdk", "gradle", "openjdk-17"],
+      "status": "PLANNED_TOOLCHAIN_REQUIRED"
+    },
+    "ios": {
+      "toolchain": ["xcodebuild", "xcrun"],
+      "status": "PLANNED_TOOLCHAIN_REQUIRED"
+    }
+  }
+}
