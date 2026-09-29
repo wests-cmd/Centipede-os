@@ -42,10 +42,10 @@ if (!existsSync(distDir)) {
   process.exit(1);
 }
 
-// 3. Prepare clean release directory (self-clean stale artifacts)
+// 3. Prepare clean release directory (self-clean generated build artifacts only)
 if (existsSync(releaseDir)) {
-  console.log('\n--- Cleaning Stale Release Artifacts ---');
-  execSync(`rm -rf "${releaseDir}"/*`);
+  console.log('\n--- Cleaning Stale Release Build Artifacts ---');
+  execSync(`rm -f "${releaseDir}"/*.tar.gz "${releaseDir}"/SHA256SUMS "${releaseDir}"/release-manifest.json 2>/dev/null || true`);
 } else {
   mkdirSync(releaseDir, { recursive: true });
 }
