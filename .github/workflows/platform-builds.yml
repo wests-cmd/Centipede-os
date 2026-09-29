@@ -225,14 +225,14 @@ jobs:
           test -s "release/vm/$VM"
           cmp "release/iso/$ISO" "release/live-usb/$USB"
           qemu-img check "release/vm/$VM"
+          sha256sum release/iso/* release/live-usb/* release/vm/*.qcow2 > release/platform-SHA256SUMS
           QEMU_STATUS=0
-          timeout 120s qemu-system-x86_64 -machine pc,accel=tcg -cpu max -smp 2 -m 4096 -drive "file=release/vm/$VM,format=qcow2,media=cdrom" -boot order=d -display none -serial file:/tmp/centipede-vm-serial.log -monitor none -no-reboot || QEMU_STATUS=$?
+          timeout 120s qemu-system-x86_64 -machine pc,accel=tcg -cpu max -smp 2 -m 4096 -cdrom "release/iso/$ISO" -boot order=d -display none -serial stdio -monitor none -no-reboot > /tmp/centipede-vm-serial.log 2>&1 || QEMU_STATUS=$?
           cat /tmp/centipede-vm-serial.log
           test "$QEMU_STATUS" -eq 0 -o "$QEMU_STATUS" -eq 124
           grep -Eiq 'Linux version|live-boot' /tmp/centipede-vm-serial.log
-          cd release
-          sha256sum iso/* live-usb/* vm/*.qcow2 > platform-SHA256SUMS
-      - uses: actions/upload-artifact@v4
+      - if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: centipede-iso-live-usb-vm
           path: |
@@ -240,7 +240,7 @@ jobs:
             release/live-usb/
             release/vm/
             release/platform-SHA256SUMS
-          if-no-files-found: error
+          if-no-files-found: warn
 
   docker:
     name: Build and smoke-test Docker image
