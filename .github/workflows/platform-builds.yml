@@ -244,7 +244,7 @@ jobs:
           time.sleep(0.5)
           try: sock.recv(4096)
           except TimeoutError: pass
-          sock.sendall(b"screendump /tmp/centipede-vm-screen.ppm\\n")
+          sock.sendall(b"screendump /tmp/centipede-vm-screen.ppm\n")
           time.sleep(2)
           try: print(sock.recv(4096).decode("utf-8", "replace"))
           except TimeoutError: pass
