@@ -18,6 +18,8 @@ const sourceDirty = execFileSync('git', ['status', '--porcelain'], { cwd: root, 
 if (channel === 'stable' && sourceDirty) throw new Error('Stable release packaging requires a clean committed tree.');
 
 const paths: Record<string, string> = {
+  'desktop-slim': join(releaseDir, 'desktop-slim'),
+  'desktop-full': join(releaseDir, 'desktop-full'),
   desktop: join(releaseDir, 'desktop'),
   iso: join(downloaded, 'centipede-iso-live-usb-vm', 'iso'),
   'live-usb': join(downloaded, 'centipede-iso-live-usb-vm', 'live-usb'),
@@ -33,7 +35,8 @@ const artifacts: Array<Record<string, unknown> & { relativePath: string; sha256:
 const checksums: string[] = [];
 
 for (const [target, targetConfig] of Object.entries(releaseConfig.targets)) {
-  if (targetConfig.status !== 'BUILDABLE' || !targetConfig.artifact) throw new Error(`Target ${target} is not configured for release.`);
+  const isBuildable = targetConfig.status === 'AVAILABLE' || targetConfig.status === 'BUILDABLE';
+  if (!isBuildable || !targetConfig.artifact) continue;
   const artifactName = targetConfig.artifact.replaceAll('{version}', version);
   const sourcePath = join(paths[target], artifactName);
   if (!existsSync(sourcePath) || statSync(sourcePath).size === 0) throw new Error(`Missing built ${target} artifact: ${sourcePath}`);
