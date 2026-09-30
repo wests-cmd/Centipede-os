@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import path from 'node:path';
 import { getSafeSandboxPath } from '../../src/tools/executor';
 
 describe('Tool Executor Sandbox & Security Hardening Test Suite', () => {
@@ -16,6 +17,7 @@ describe('Tool Executor Sandbox & Security Hardening Test Suite', () => {
   it('3. Accepts valid relative paths inside sandbox boundary', () => {
     const valid = getSafeSandboxPath('documents/invoice.pdf');
     expect(valid).toContain('sandbox');
-    expect(valid).toContain('documents/invoice.pdf');
+    expect(valid.split(path.sep)).toContain('documents');
+    expect(valid.split(path.sep).at(-1)).toBe('invoice.pdf');
   });
 });
