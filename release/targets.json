@@ -1,103 +1,56 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "version": "1.0.0",
-  "lastUpdated": "2025-03-28T00:00:00.000Z",
+  "schemaVersion": 1,
   "targets": {
-    "desktop-slim": {
-      "target": "desktop-slim",
-      "artifact": "centipede-os-1.0.0-slim-web-bundle.tar.gz",
-      "architecture": "x86_64/arm64",
+    "desktop": {
+      "status": "BUILDABLE",
       "revision": 1,
-      "status": "AVAILABLE",
-      "builder": "scripts/build-release.ts",
-      "validation": "dist/index.html & non-empty archive & SHA256 match",
-      "releaseChannel": "production",
-      "updateStrategy": "atomic-tarball",
-      "description": "Cross-platform desktop workstation web bundle with on-demand package acquisition during First-Run Setup Wizard."
-    },
-    "desktop-full": {
-      "target": "desktop-full",
-      "artifact": "centipede-os-1.0.0-full-bundle.tar.gz",
-      "architecture": "x86_64/arm64",
-      "revision": 1,
-      "status": "AVAILABLE",
-      "builder": "scripts/build-release.ts",
-      "validation": "dist/index.html & docker-compose.yml & non-empty archive & SHA256 match",
-      "releaseChannel": "production",
-      "updateStrategy": "atomic-tarball",
-      "description": "Pre-packaged full release bundle featuring web desktop, Swarm Docker stack, local scripts, and documentation."
-    },
-    "docker": {
-      "target": "docker",
-      "artifact": "docker-compose.yml",
-      "architecture": "x86_64/arm64",
-      "revision": 1,
-      "status": "AVAILABLE",
-      "builder": "docker-compose up -d",
-      "validation": "container health check http://localhost:8000/status",
-      "releaseChannel": "production",
-      "updateStrategy": "docker-pull",
-      "description": "Multi-container Docker Compose Swarm featuring Commander, Knight, Scout & Kingdom Engine Python HTTP server."
+      "artifact": "centipede-os-{version}-desktop-web-bundle.tar.gz",
+      "architecture": "any",
+      "description": "Built web application bundle; requires a web server and an independently operated Kingdom service."
     },
     "iso": {
-      "target": "iso",
-      "artifact": "centipede-os-1.0.0.iso",
-      "architecture": "x86_64",
+      "status": "BUILDABLE",
       "revision": 1,
-      "status": "PLANNED",
-      "builder": "archiso / mkarchiso pipeline",
-      "validation": "QEMU boot validation & systemd startup",
-      "releaseChannel": "kernel-milestone",
-      "updateStrategy": "raw-disk-partition",
-      "description": "Bare-metal bootable Linux ArchISO live distribution (Planned OS Kernel Milestone)."
+      "artifact": "centipede-os-{version}-x86_64.iso",
+      "architecture": "x86_64",
+      "description": "Debian live-build hybrid boot ISO with XFCE kiosk session and bundled Centipede web application."
     },
     "live-usb": {
-      "target": "live-usb",
-      "artifact": "centipede-os-1.0.0-live-usb.img",
-      "architecture": "x86_64",
+      "status": "BUILDABLE",
       "revision": 1,
-      "status": "PLANNED",
-      "builder": "raw disk dd image writer",
-      "validation": "partition table & EFI bootloader validation",
-      "releaseChannel": "kernel-milestone",
-      "updateStrategy": "raw-disk-partition",
-      "description": "Bare-metal live bootable USB image (Planned OS Kernel Milestone)."
+      "artifact": "centipede-os-{version}-live-usb-x86_64.iso",
+      "architecture": "x86_64",
+      "description": "Same hybrid ISO bytes with a USB-specific filename, validated byte-identical and writable to USB media."
     },
     "vm": {
-      "target": "vm",
-      "artifact": "centipede-os-1.0.0.qcow2",
-      "architecture": "x86_64",
+      "status": "BUILDABLE",
       "revision": 1,
-      "status": "PLANNED",
-      "builder": "qemu-img convert",
-      "validation": "QEMU headless launch & socket health check",
-      "releaseChannel": "kernel-milestone",
-      "updateStrategy": "qcow2-snapshot",
-      "description": "QEMU/KVM virtual machine disk image (Planned OS Kernel Milestone)."
+      "artifact": "centipede-os-{version}-x86_64.qcow2",
+      "architecture": "x86_64",
+      "description": "QEMU qcow2 disk image converted from the bootable live image and structurally checked."
     },
     "android": {
-      "target": "android",
-      "artifact": "centipede-os-1.0.0.apk",
-      "architecture": "arm64-v8a",
+      "status": "BLOCKED",
       "revision": 1,
-      "status": "PLANNED",
-      "builder": "gradle / Android SDK",
-      "validation": "aapt dump badging & APK signature check",
-      "releaseChannel": "mobile-milestone",
-      "updateStrategy": "apk-installer",
-      "description": "Native Android companion APK client (Planned Mobile Native Milestone; Mobile Companion Web Client available now)."
+      "artifact": "centipede-android-{version}-release.apk",
+      "architecture": "universal",
+      "description": "Capacitor Android application; stable release requires the project's Android signing secrets.",
+      "reason": "Stable APK publication is disabled until the project configures and protects its Android signing keystore, pins ANDROID_EXPECTED_CERT_SHA256, and enables CENTIPEDE_ENABLE_SIGNED_ANDROID_RELEASE."
     },
     "ios": {
-      "target": "ios",
-      "artifact": "centipede-os-1.0.0.ipa",
-      "architecture": "arm64",
+      "status": "BLOCKED",
       "revision": 1,
-      "status": "PLANNED",
-      "builder": "xcodebuild archive",
-      "validation": "Mach-O executable verification & codesign check",
-      "releaseChannel": "mobile-milestone",
-      "updateStrategy": "testflight-appstore",
-      "description": "Native iOS companion IPA client (Planned Mobile Native Milestone; Mobile Companion Web Client available now)."
+      "artifact": "centipede-ios-{version}.ipa",
+      "architecture": "arm64",
+      "description": "Capacitor iOS device app; stable device distribution requires Apple distribution signing and provisioning. TestFlight upload is outside this workflow.",
+      "reason": "Stable iPhone IPA publication is disabled until Apple distribution signing/provisioning credentials are configured; simulator build is validation only."
+    },
+    "docker": {
+      "status": "BUILDABLE",
+      "revision": 1,
+      "artifact": "centipede-docker-image-{version}.tar",
+      "architecture": "linux/amd64",
+      "description": "Built and smoke-tested Docker image exported as a loadable image tar archive."
     }
   }
 }

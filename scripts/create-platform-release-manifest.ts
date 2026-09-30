@@ -6,6 +6,7 @@ import packageJson from '../package.json';
 import releaseConfig from '../release/targets.json';
 import { CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL, KINGDOM_PROTOCOL_MAJOR } from '../src/version';
 import { KINGDOM_CONTRACT_SPEC } from '../src/api/contractSpec';
+import { expectedArtifactSha256 } from '../src/platform/releaseIntegrity';
 
 const root = process.cwd();
 const releaseDir = join(root, 'release');
@@ -18,8 +19,6 @@ const sourceDirty = execFileSync('git', ['status', '--porcelain'], { cwd: root, 
 if (channel === 'stable' && sourceDirty) throw new Error('Stable release packaging requires a clean committed tree.');
 
 const paths: Record<string, string> = {
-  'desktop-slim': join(releaseDir, 'desktop-slim'),
-  'desktop-full': join(releaseDir, 'desktop-full'),
   desktop: join(releaseDir, 'desktop'),
   iso: join(downloaded, 'centipede-iso-live-usb-vm', 'iso'),
   'live-usb': join(downloaded, 'centipede-iso-live-usb-vm', 'live-usb'),
@@ -35,8 +34,8 @@ const artifacts: Array<Record<string, unknown> & { relativePath: string; sha256:
 const checksums: string[] = [];
 
 for (const [target, targetConfig] of Object.entries(releaseConfig.targets)) {
-  const isBuildable = targetConfig.status === 'AVAILABLE' || targetConfig.status === 'BUILDABLE';
-  if (!isBuildable || !targetConfig.artifact) continue;
+  if (targetConfig.status !== 'BUILDABLE') continue;
+  if (!targetConfig.artifact) throw new Error(`BUILDABLE target ${target} has no configured artifact.`);
   const artifactName = targetConfig.artifact.replaceAll('{version}', version);
   const sourcePath = join(paths[target], artifactName);
   if (!existsSync(sourcePath) || statSync(sourcePath).size === 0) throw new Error(`Missing built ${target} artifact: ${sourcePath}`);
@@ -46,6 +45,18 @@ for (const [target, targetConfig] of Object.entries(releaseConfig.targets)) {
   if (sourcePath !== artifactPath) copyFileSync(sourcePath, artifactPath);
   const bytes = readFileSync(artifactPath);
   const sha256 = createHash('sha256').update(bytes).digest('hex');
+  if (target !== 'desktop') {
+    const checksumRoot = target === 'iso' || target === 'live-usb' || target === 'vm'
+      ? join(downloaded, 'centipede-iso-live-usb-vm')
+      : join(downloaded, target === 'android' ? 'centipede-android-release-apk' : target === 'ios' ? 'centipede-ios-release-ipa' : 'centipede-docker-image');
+    const checksumName = target === 'iso' || target === 'live-usb' || target === 'vm' ? 'platform-SHA256SUMS' : 'SHA256SUMS';
+    const checksumPath = join(checksumRoot, checksumName);
+    if (!existsSync(checksumPath)) throw new Error(`Missing build-job checksums for ${target}: ${checksumPath}`);
+    const expectedSha256 = expectedArtifactSha256(readFileSync(checksumPath, 'utf8'), artifactName);
+    if (!expectedSha256 || expectedSha256 !== sha256.toLowerCase()) {
+      throw new Error(`Build-job checksum does not match the downloaded ${target} artifact ${artifactName}.`);
+    }
+  }
   const sizeBytes = statSync(artifactPath).size;
   const identity = `${version}+${target}.${targetConfig.revision}`;
   const relativePath = `${target}/${artifactName}`;

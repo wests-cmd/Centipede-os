@@ -8,12 +8,12 @@
     "dev": "vite",
     "build": "vite build",
     "mobile:sync": "bun run build && cap sync",
-    "build:release": "bun scripts/build-release.ts",
-    "lint:reality": "bun scripts/lint-reality.ts",
+    "build:release": "bun scripts/build-release.ts --target=desktop",
     "preview": "vite preview",
     "test": "bun test tests/unit/*.test.ts",
     "test:contract": "bun tests/integration/contract.integration.ts",
-    "test:e2e": "npx playwright test"
+    "test:e2e": "npx playwright test",
+    "lint:reality": "bun scripts/lint-reality.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

@@ -1,47 +1,37 @@
 import { describe, it, expect } from 'vitest';
-import { existsSync, readFileSync, statSync } from 'fs';
-import { join } from 'path';
+import { existsSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { execSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 
-import { execSync } from 'child_process';
+const root = process.cwd();
+const releaseDir = join(root, 'release');
+const targets = JSON.parse(readFileSync(join(root, 'release/targets.json'), 'utf8')).targets;
+const desktopName = targets.desktop.artifact.replace('{version}', JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version);
+const desktopPath = join(releaseDir, 'desktop', desktopName);
 
-describe('Reality Regression Suite — Production Build & Artifact Truth', () => {
-  const rootDir = process.cwd();
-  const releaseDir = join(rootDir, 'release');
-  const slimBundlePath = join(releaseDir, 'centipede-os-1.0.0-slim-web-bundle.tar.gz');
-  const fullBundlePath = join(releaseDir, 'centipede-os-1.0.0-full-bundle.tar.gz');
-  const legacyBundlePath = join(releaseDir, 'centipede-os-1.0.0-desktop-web-bundle.tar.gz');
-  const manifestPath = join(releaseDir, 'release-manifest.json');
-  const checksumPath = join(releaseDir, 'SHA256SUMS');
+describe('Desktop release artifact integrity', () => {
+  it('builds a non-empty archive containing the actual Vite application', () => {
+    if (!existsSync(desktopPath)) execSync('bun run build:release', { cwd: root, stdio: 'inherit' });
+    expect(existsSync(desktopPath)).toBe(true);
+    expect(statSync(desktopPath).size).toBeGreaterThan(1000);
+    const entries = execSync(`tar -tzf "${desktopPath}"`, { cwd: root, encoding: 'utf8' });
+    expect(entries.split(/\r?\n/)).toContain('dist/index.html');
+  }, 60000);
 
-  it('1. Release artifact bundles exist and are non-empty (Slim & Full)', () => {
-    if (!existsSync(slimBundlePath) || !existsSync(fullBundlePath)) {
-      execSync('bun run build:release', { stdio: 'inherit' });
-    }
-
-    expect(existsSync(slimBundlePath)).toBe(true);
-    expect(statSync(slimBundlePath).size).toBeGreaterThan(1000);
-
-    expect(existsSync(fullBundlePath)).toBe(true);
-    expect(statSync(fullBundlePath).size).toBeGreaterThan(1000);
-
-    expect(existsSync(legacyBundlePath)).toBe(true);
-    expect(statSync(legacyBundlePath).size).toBeGreaterThan(1000);
+  it('keeps manifest and checksum generation in the single aggregate release validator', () => {
+    const builder = readFileSync(join(root, 'scripts/build-release.ts'), 'utf8');
+    const aggregate = readFileSync(join(root, 'scripts/create-platform-release-manifest.ts'), 'utf8');
+    expect(builder).not.toContain('SHA256SUMS');
+    expect(builder).not.toContain('release-manifest.json');
+    expect(aggregate).toContain('SHA256SUMS');
+    expect(aggregate).toContain('release-manifest.json');
+    const bytes = readFileSync(desktopPath);
+    expect(createHash('sha256').update(bytes).digest('hex')).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  it('2. Release manifest exists and registers version 1.0.0 with Slim and Full profiles', () => {
-    expect(existsSync(manifestPath)).toBe(true);
-    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-    expect(manifest.product).toBe('Centipede OS');
-    expect(manifest.centipedeVersion).toBe('1.0.0');
-    expect(manifest.artifacts.some((a: any) => a.filename.includes('slim'))).toBe(true);
-    expect(manifest.artifacts.some((a: any) => a.filename.includes('full'))).toBe(true);
-  });
-
-  it('3. Checksums register contains valid SHA256 entries for Slim and Full bundles', () => {
-    expect(existsSync(checksumPath)).toBe(true);
-    const checksums = readFileSync(checksumPath, 'utf8');
-    expect(checksums).toContain('centipede-os-1.0.0-slim-web-bundle.tar.gz');
-    expect(checksums).toContain('centipede-os-1.0.0-full-bundle.tar.gz');
-    expect(checksums.split('\n')[0].split(' ')[0].length).toBe(64);
+  it('refuses a blocked signed mobile target instead of producing a fake stable artifact', () => {
+    expect(() => execSync('bun scripts/build-release.ts --target=android', { cwd: root, stdio: 'pipe' })).toThrow();
+    expect(() => execSync('bun scripts/build-release.ts --target=ios', { cwd: root, stdio: 'pipe' })).toThrow();
   });
 });

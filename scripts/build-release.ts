@@ -1,206 +1,40 @@
-import { execSync } from 'child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync, statSync } from 'fs';
-import { join } from 'path';
-import { syncSha256 } from '../src/security/cryptoUtils';
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { basename, join, resolve, sep } from 'node:path';
 import packageJson from '../package.json';
 import releaseConfig from '../release/targets.json';
-import { CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL, KINGDOM_PROTOCOL_MAJOR } from '../src/version';
-import { KINGDOM_COMPATIBILITY_MANIFEST, KINGDOM_CONTRACT_SPEC } from '../src/api/contractSpec';
 
-const rootDir = process.cwd();
-const releaseDir = join(rootDir, 'release');
-const distDir = join(rootDir, 'dist');
-const version = packageJson.version || '1.0.0';
+const root = process.cwd();
+const releaseDir = join(root, 'release');
+const version = packageJson.version;
+const targetArg = process.argv.find((arg) => arg.startsWith('--target='))?.slice('--target='.length) ?? 'desktop';
+const targets = releaseConfig.targets as Record<string, { status: string; revision: number; artifact?: string; architecture: string; reason?: string }>;
+const target = targets[targetArg];
+if (!target) throw new Error(`Unknown release target: ${targetArg}`);
+if (target.status !== 'BUILDABLE') throw new Error(`Release target ${targetArg} is ${target.status}: ${target.reason ?? 'not buildable'}`);
+if (targetArg !== 'desktop') throw new Error('This builder only produces the desktop web bundle; platform-builds.yml owns ISO, USB, VM, mobile, and Docker builds.');
+if (!target.artifact) throw new Error(`No artifact name is configured for ${targetArg}.`);
 
-console.log(`===========================================================`);
-console.log(`  CENTIPEDE OS RELEASE BUILDER — v${version}`);
-console.log(`===========================================================`);
-
-// 1. Tag / Version Consistency Validation
 const expectedTag = `v${version}`;
-const currentRef = process.env.GITHUB_REF || '';
-
-if (currentRef.startsWith('refs/tags/')) {
-  const actualTag = currentRef.replace('refs/tags/', '');
-  if (actualTag !== expectedTag) {
-    console.error(`\n[RELEASE BUILD ERROR] Tag/Version mismatch! Tag is '${actualTag}' but package.json version is '${version}' (expected '${expectedTag}'). Aborting release.`);
-    process.exit(1);
-  }
-  console.log(`[VERIFIED] Git Tag '${actualTag}' matches package.json version '${version}'.`);
+const ref = process.env.GITHUB_REF ?? '';
+if (ref.startsWith('refs/tags/') && ref !== `refs/tags/${expectedTag}`) {
+  throw new Error(`Tag ${ref.slice('refs/tags/'.length)} does not match package version ${expectedTag}.`);
+}
+if (ref === `refs/tags/${expectedTag}` && execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }).trim()) {
+  throw new Error('Stable release builds require a clean committed source tree.');
 }
 
-// 2. Ensure clean dist build
-console.log('\n--- 1. Building Production Web Bundle ---');
-const nodeBinPath = join(rootDir, 'node_modules', '.bin');
-const envWithPath = {
-  ...process.env,
-  PATH: `${nodeBinPath}:${process.env.PATH || ''}`,
-};
-execSync('bun run build', { stdio: 'inherit', env: envWithPath });
-
-if (!existsSync(distDir)) {
-  console.error('Build Error: dist/ directory not found after build!');
-  process.exit(1);
-}
-
-// 3. Prepare clean release directory (self-clean generated build artifacts only)
-if (existsSync(releaseDir)) {
-  console.log('\n--- Cleaning Stale Release Build Artifacts ---');
-  execSync(`rm -f "${releaseDir}"/*.tar.gz "${releaseDir}"/SHA256SUMS "${releaseDir}"/release-manifest.json 2>/dev/null || true`);
-} else {
-  mkdirSync(releaseDir, { recursive: true });
-}
-
-// Get Git Commit SHA if available
-let gitCommit = 'unknown';
-try {
-  gitCommit = execSync('git rev-parse HEAD').toString().trim();
-} catch (e) {
-  // Git unavailable fallback
-}
-
-// 4. Create Dual Release Archives: Slim and Full
-const slimBundleName = `centipede-os-${version}-slim-web-bundle.tar.gz`;
-const slimBundlePath = join(releaseDir, slimBundleName);
-
-const fullBundleName = `centipede-os-${version}-full-bundle.tar.gz`;
-const fullBundlePath = join(releaseDir, fullBundleName);
-
-const legacyBundleName = `centipede-os-${version}-desktop-web-bundle.tar.gz`;
-const legacyBundlePath = join(releaseDir, legacyBundleName);
-
-console.log(`\n--- 2. Archiving Slim Release Bundle: ${slimBundleName} ---`);
-execSync(`tar -czf "${slimBundlePath}" -C "${rootDir}" dist`, { stdio: 'inherit' });
-execSync(`cp "${slimBundlePath}" "${legacyBundlePath}"`);
-
-console.log(`\n--- 3. Archiving Full Release Bundle: ${fullBundleName} ---`);
-execSync(`tar -czf "${fullBundlePath}" -C "${rootDir}" dist docker-compose.yml package.json scripts docs`, { stdio: 'inherit' });
-
-if (!existsSync(slimBundlePath) || statSync(slimBundlePath).size === 0) {
-  console.error(`Build Error: Slim release artifact '${slimBundleName}' is missing or empty!`);
-  process.exit(1);
-}
-
-if (!existsSync(fullBundlePath) || statSync(fullBundlePath).size === 0) {
-  console.error(`Build Error: Full release artifact '${fullBundleName}' is missing or empty!`);
-  process.exit(1);
-}
-
-// 5. Calculate Artifact Checksums & Metrics
-console.log('\n--- 4. Generating SHA-256 Checksums ---');
-const slimBuffer = readFileSync(slimBundlePath);
-const slimSha256 = syncSha256(new Uint8Array(slimBuffer));
-const slimSize = statSync(slimBundlePath).size;
-
-const fullBuffer = readFileSync(fullBundlePath);
-const fullSha256 = syncSha256(new Uint8Array(fullBuffer));
-const fullSize = statSync(fullBundlePath).size;
-
-const legacyBuffer = readFileSync(legacyBundlePath);
-const legacySha256 = syncSha256(new Uint8Array(legacyBuffer));
-const legacySize = statSync(legacyBundlePath).size;
-
-const sha256sumsContent = `${slimSha256}  ${slimBundleName}\n${fullSha256}  ${fullBundleName}\n${legacySha256}  ${legacyBundleName}\n`;
-const sha256sumsPath = join(releaseDir, 'SHA256SUMS');
-writeFileSync(sha256sumsPath, sha256sumsContent);
-console.log(`Wrote ${sha256sumsPath}`);
-
-// 6. Read Authoritative Target Configuration and Generate Release Manifest
-console.log('\n--- 5. Reading Checked-in Target Configuration & Manifest Generation ---');
-const targetsSpecPath = join(rootDir, 'release', 'targets.json');
-let targetsSpec: any = {};
-if (existsSync(targetsSpecPath)) {
-  targetsSpec = JSON.parse(readFileSync(targetsSpecPath, 'utf8'));
-}
-
-const releaseManifest = {
-  product: 'Centipede OS',
-  centipedeVersion: version,
-  releaseChannel: 'production',
-  buildTimestamp: new Date().toISOString(),
-  gitCommit,
-  protocol: CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL,
-  protocolMajor: KINGDOM_PROTOCOL_MAJOR,
-  contractVersion: KINGDOM_CONTRACT_SPEC.contractVersion,
-  requiredCapabilities: KINGDOM_COMPATIBILITY_MANIFEST.requiredCapabilities,
-  optionalCapabilities: KINGDOM_COMPATIBILITY_MANIFEST.optionalCapabilities,
-  targetsSpec: targetsSpec.targets || {},
-  artifacts: [
-    {
-      filename: slimBundleName,
-      type: 'SLIM',
-      description: 'Ultralight minimal runtime bundle. On-demand package acquisition during setup wizard.',
-      targetProfile: 'Scout / Light Workstation / Web App',
-      platform: 'Cross-Platform (Web / Node / Bun)',
-      sizeBytes: slimSize,
-      sha256: slimSha256,
-    },
-    {
-      filename: fullBundleName,
-      type: 'FULL',
-      description: 'Full pre-packaged release with multi-node Docker Swarm stack, local scripts, and setup wizard.',
-      targetProfile: 'Full Centipede / Commander / Swarm Cluster',
-      platform: 'Cross-Platform (Docker / Node / Bun)',
-      sizeBytes: fullSize,
-      sha256: fullSha256,
-    },
-    {
-      filename: legacyBundleName,
-      type: 'LEGACY_ALIAS',
-      description: 'Backwards-compatible alias for Desktop Web Bundle.',
-      targetProfile: 'Desktop Web App',
-      platform: 'Cross-Platform (Web / Node / Bun)',
-      sizeBytes: legacySize,
-      sha256: legacySha256,
-    },
-  ],
-  deploymentProfiles: {
-    Desktop_Web_Bundle: { status: 'AVAILABLE', description: 'Cross-platform desktop workstation web bundle with First-Run Setup Wizard' },
-    Docker_Compose_Swarm: { status: 'AVAILABLE', description: 'Multi-container Docker Compose stack featuring Commander, Knight, Scout & Kingdom Engine' },
-    Phone: { status: 'AVAILABLE', description: 'Mobile Companion Web Client with QR PIN pairing & session revocation' },
-    Linux_Full: { status: 'AVAILABLE', description: 'Linux Workstation Full Centipede orchestration & execution profile' },
-    Linux_Slim: { status: 'AVAILABLE', description: 'Linux Knight worker / Scout discovery profile' },
-    Windows_Full: { status: 'AVAILABLE', description: 'Windows Workstation Full Centipede profile' },
-    Windows_Slim: { status: 'AVAILABLE', description: 'Windows Knight worker profile' },
-    macOS_Full: { status: 'AVAILABLE', description: 'macOS Workstation Full Centipede profile' },
-    macOS_Slim: { status: 'AVAILABLE', description: 'macOS Knight worker profile' },
-    LiveUSB_ISO: { status: 'PLANNED', description: 'Bare-metal bootable ArchISO (Planned OS Kernel Milestone)' },
-  },
-};
-
-const manifestPath = join(releaseDir, 'release-manifest.json');
-writeFileSync(manifestPath, JSON.stringify(releaseManifest, null, 2));
-console.log(`Wrote ${manifestPath}`);
-
-// 7. Self-Verification Pass (Byte-for-byte post-build validation)
-console.log('\n--- 6. Self-Verification Pass ---');
-const verifySlimBuffer = readFileSync(slimBundlePath);
-const verifySlimSha256 = syncSha256(new Uint8Array(verifySlimBuffer));
-if (verifySlimSha256 !== slimSha256) {
-  console.error(`Self-Verification Failure: Slim bundle hash changed during write!`);
-  process.exit(1);
-}
-
-const verifyFullBuffer = readFileSync(fullBundlePath);
-const verifyFullSha256 = syncSha256(new Uint8Array(verifyFullBuffer));
-if (verifyFullSha256 !== fullSha256) {
-  console.error(`Self-Verification Failure: Full bundle hash changed during write!`);
-  process.exit(1);
-}
-
-const manifestVerification = JSON.parse(readFileSync(manifestPath, 'utf8'));
-if (manifestVerification.centipedeVersion !== version) {
-  console.error(`Self-Verification Failure: Manifest version mismatch!`);
-  process.exit(1);
-}
-
-console.log(`[VERIFIED] Post-build self-verification passed. Checksums and manifest match artifact bytes.`);
-
-console.log(`\n===========================================================`);
-console.log(`  RELEASE BUILD SUCCESSFUL`);
-console.log(`  Version: v${version}`);
-console.log(`  Slim Artifact: ${slimBundleName} (${(slimSize / 1024).toFixed(1)} KB)`);
-console.log(`  Full Artifact: ${fullBundleName} (${(fullSize / 1024).toFixed(1)} KB)`);
-console.log(`  Slim SHA-256: ${slimSha256}`);
-console.log(`  Full SHA-256: ${fullSha256}`);
-console.log(`===========================================================`);
+execFileSync('bun', ['run', 'build'], { cwd: root, stdio: 'inherit' });
+if (!existsSync(join(root, 'dist', 'index.html'))) throw new Error('The web build did not produce dist/index.html.');
+const targetDir = join(releaseDir, targetArg);
+rmSync(targetDir, { recursive: true, force: true });
+mkdirSync(targetDir, { recursive: true });
+const artifactName = target.artifact.replaceAll('{version}', version);
+if (basename(artifactName) !== artifactName) throw new Error('Unsafe artifact name in release/targets.json.');
+const artifactPath = resolve(targetDir, artifactName);
+if (!artifactPath.startsWith(`${resolve(releaseDir)}${sep}${targetArg}${sep}`)) throw new Error('Unsafe release artifact path.');
+execFileSync('tar', ['-czf', artifactPath, '-C', root, 'dist'], { cwd: root, stdio: 'inherit' });
+if (!existsSync(artifactPath) || statSync(artifactPath).size === 0) throw new Error(`Desktop artifact is missing or empty: ${artifactPath}`);
+const digest = createHash('sha256').update(readFileSync(artifactPath)).digest('hex');
+console.log(`Built desktop artifact ${artifactName} (sha256 ${digest}). Checksums and manifests are emitted only by create-platform-release-manifest.ts.`);

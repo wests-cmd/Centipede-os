@@ -11,6 +11,55 @@ async function completeClientSetup(page: Page) {
 }
 
 test.describe('Centipede desktop client and Kingdom integration', () => {
+  test('shows that companion pairing is local to each client instead of shared across two clients', async ({ browser }) => {
+    test.setTimeout(60000);
+    const androidLikeContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true });
+    const iosLikeContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true });
+    const androidLike = await androidLikeContext.newPage();
+    const iosLike = await iosLikeContext.newPage();
+
+    try {
+      await androidLike.goto('/');
+      await completeClientSetup(androidLike);
+      await iosLike.goto('/');
+      await completeClientSetup(iosLike);
+      await Promise.all([
+        androidLike.locator('nav').evaluate((dock) => { dock.scrollLeft = dock.scrollWidth; }),
+        iosLike.locator('nav').evaluate((dock) => { dock.scrollLeft = dock.scrollWidth; }),
+      ]);
+      await Promise.all([
+        androidLike.getByRole('button', { name: 'Mobile', exact: true }).click(),
+        iosLike.getByRole('button', { name: 'Mobile', exact: true }).click(),
+      ]);
+
+      await expect(androidLike.getByText(/simulates pairing locally/i)).toBeVisible();
+      await expect(iosLike.getByText(/does not connect a remote phone/i)).toBeVisible();
+      await expect(androidLike.getByRole('heading', { name: 'Trusted Paired Devices (0)' })).toBeVisible();
+      await expect(iosLike.getByRole('heading', { name: 'Trusted Paired Devices (0)' })).toBeVisible();
+
+      await androidLike.getByRole('button', { name: 'Pair New Companion' }).click();
+      const pin = (await androidLike.locator('.font-mono.font-bold.text-cyan-300').textContent())?.trim();
+      expect(pin).toMatch(/^\d{6}$/);
+      await androidLike.getByPlaceholder(pin!).fill(pin!);
+      await androidLike.getByRole('button', { name: 'Confirm', exact: true }).click();
+      await expect(androidLike.getByRole('heading', { name: 'Trusted Paired Devices (1)' })).toBeVisible();
+
+      // The second mobile-sized client remains unpaired: current native shells do not share
+      // pairing state through the server API. Keep this explicit until the feature is wired.
+      await expect(iosLike.getByRole('heading', { name: 'Trusted Paired Devices (0)' })).toBeVisible();
+
+      await iosLike.getByRole('button', { name: 'Pair New Companion' }).click();
+      const iosPin = (await iosLike.locator('.font-mono.font-bold.text-cyan-300').textContent())?.trim();
+      expect(iosPin).toMatch(/^\d{6}$/);
+      await iosLike.getByPlaceholder(iosPin!).fill(iosPin!);
+      await iosLike.getByRole('button', { name: 'Confirm', exact: true }).click();
+      await expect(iosLike.getByRole('heading', { name: 'Trusted Paired Devices (1)' })).toBeVisible();
+      await expect(androidLike.getByRole('heading', { name: 'Trusted Paired Devices (1)' })).toBeVisible();
+    } finally {
+      await Promise.allSettled([androidLikeContext.close(), iosLikeContext.close()]);
+    }
+  });
+
   test('boots offline and labels the file view as demonstration content', async ({ page }) => {
     await page.route('http://localhost:8000/**', (route) => route.abort());
     await page.goto('/');
@@ -51,3 +100,4 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
     await page.screenshot({ path: 'test-results/05_pending_approval.png' });
   });
 });
+

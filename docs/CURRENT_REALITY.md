@@ -1,89 +1,29 @@
-# Centipede OS Canonical Current Reality Report
+# Centipede OS v1.0.0 release candidate reality
 
-**Document Status**: CANONICAL CURRENT STATE REALITY
-**Last Updated**: Current Active Workspace
-**Centipede Semantic Version**: `1.0.0`
-**Kingdom Product Identity**: `v1TAS` (Protocol Major 1)
+**Core version source:** `package.json` (`1.0.0`)
+**Target release gate:** `release/targets.json`
+**Kingdom compatibility:** protocol major `1`; contract version `1.4.0`; Kingdom remains an external service.
+**Release state:** candidate only. No stable GitHub Release has been published.
 
----
+## Verified on the prior branch head
 
-## 1. System Version & Identity Matrix
+The GitHub-hosted workflow run [36601824289](https://github.com/wests-cmd/Centipede-os/actions/runs/36601824289) completed the platform matrix at commit `127f0e1e40bc8c3c39e99926c293a4d0cf06d5dd`. It built and checked the Debian live ISO, byte-identical Live USB image, qcow2 VM media, Docker image, Android debug APK, and iOS Simulator app. QEMU reached the Centipede kiosk and local web app readiness marker. The main CI and CodeQL workflows also passed on that commit. These results predate the current synchronization/fixes and must be rerun before release.
 
-| Subsystem | Version Identifier | Status | Specification / Contract |
-|---|---|---|---|
-| **Centipede OS Slim Release** | `1.0.0` | `RELEASE READY` | `centipede-os-1.0.0-slim-web-bundle.tar.gz` |
-| **Centipede OS Full Release** | `1.0.0` | `RELEASE READY` | `centipede-os-1.0.0-full-bundle.tar.gz` |
-| **Kingdom Product** | `v1TAS` | `SEPARATE PRODUCT IDENTITY` | `KINGDOM_CENTIPEDE_API_CONTRACT.md` |
-| **Kingdom Protocol** | Major `1`, Minor `4` | `SUPPORTED & VERIFIED` | Dynamic Protocol Handshake |
-| **Release Tag** | `v1.0.0` | `VERIFIED` | `.github/workflows/release.yml` |
+## Target status
 
----
+| Target | Current status | What the evidence means |
+|---|---|---|
+| Desktop web bundle | BUILDABLE | Static web app archive; requires an independently operated Kingdom service for Kingdom-backed actions. |
+| ISO | BUILDABLE | Debian hybrid live image; boots to XFCE/Chromium kiosk and Centipede setup UI. Not a host-control OS. |
+| Live USB | BUILDABLE | Byte-identical ISO image suitable for writing to USB media. |
+| VM | BUILDABLE | qcow2 virtual optical-media image; boot validation passed on the prior branch head. |
+| Docker | BUILDABLE | Centipede web app container; smoke-tested. It does not run Kingdom and is not published to a registry. |
+| Android stable APK | BLOCKED | A debug APK was built for CI only. Stable distribution needs the project signing key and explicit enablement. |
+| iOS device IPA | BLOCKED | Simulator app was built for CI only. Device distribution requires Apple signing/provisioning and explicit enablement. |
+| Kingdom service | EXTERNAL | No live Kingdom deployment was available in the build verification. The Compose stack no longer impersonates it. |
 
-## 2. Test Execution & Coverage Summary
+The release manifest and `SHA256SUMS` are produced by the aggregate release validator only. It consumes artifacts from the same workflow run and checks build-job checksums against the downloaded files before packaging. Blocked targets are omitted. A stable release can contain only configured BUILDABLE targets after the synchronized branch passes all release gates.
 
-- **Unit & Integration Test Suite**: 130/130 passing tests across 23 test files (`bun test`).
-- **Static Reality Linter**: 0 violations across 85 production source files (`bun run lint:reality`).
-- **Contract Verification Suite**: 100% passing (`bun run test:contract`).
-- **Docker HTTP Integration Suite**: 4/4 passing (`tests/unit/docker_kingdom.test.ts`).
-- **Swarm Node Roles Suite**: 2/2 passing (`tests/unit/swarm_roles.test.ts`).
-- **Sandboxed Tools Hardening Suite**: 3/3 passing (`tests/unit/tools_hardening.test.ts`).
-- **Reality Regression Suite**: 9/9 passing (`tests/reality/*.test.ts`).
-- **Adversarial Invariant Suite**: 31/31 passing Master Security Invariant tests (`tests/unit/adversarial.test.ts`).
+## Known limitations
 
----
-
-## 3. Data Provenance & Telemetry Matrix
-
-| Telemetry / Metric | Value State | Data Provenance (`src/types/provenance.ts`) | Source API |
-|---|---|---|---|
-| **CPU Logical Cores** | Detected / `null` | `LOCAL_DETECTED` / `UNKNOWN` | `node:os` or `navigator.hardwareConcurrency` |
-| **System Total RAM** | Detected MB / `null` | `LOCAL_DETECTED` / `UNKNOWN` | `node:os` or `navigator.deviceMemory` |
-| **Storage Total/Free** | Detected GB / `null` | `LOCAL_DETECTED` / `UNKNOWN` | `navigator.storage.estimate()` |
-| **GPU Acceleration** | `false` | `UNAVAILABLE` | WebGL / Hardware Inspection |
-| **Kingdom Engine Health** | Live Response | `LIVE` / `DISCONNECTED` | HTTP `GET /status` |
-
----
-
-## 4. Subsystem Reality Matrix
-
-### A. Docker Deployment Reality
-- **State**: `VERIFIED & FUNCTIONAL`
-- **Engine**: `kingdom-engine` container runs `python scripts/kingdom-server.py`, serving real HTTP API contract endpoints on port 8000 with passing health checks (`GET /status`).
-- **Swarm Containers**: `centipede-commander`, `centipede-knight`, `centipede-scout` depend on `kingdom-engine` health check and route requests via `KingdomAdapter`.
-
-### B. Filesystem Execution Reality
-- **State**: `VERIFIED SANDBOX & FALLBACK SIMULATED`
-- **Node/Bun Environment**: Executed under `./sandbox` directory with strict path canonicalization (`getSafeSandboxPath`), path traversal protection (`..` prevention), symlink escape rejection, and atomic write/rename. Returns `verificationState: 'VERIFIED'`.
-- **Browser Environment**: Returns explicit simulation status `verificationState: 'SIMULATED'`.
-
-### C. Process Execution Reality
-- **State**: `VERIFIED RESTRICTED & ALLOWLISTED`
-- **Node/Bun Environment**: Executed via allowlist (`ALLOWED_PROCESS_COMMANDS`: `echo`, `ls`, `pwd`, `whoami`, `date`, `node -v`, `bun -v`, `uname`) inside `./sandbox` with 5s timeout. Returns `verificationState: 'VERIFIED'`.
-- **Browser Environment**: Explicitly classified as `PLANNED_IN_BROWSER` with `verificationState: 'SIMULATED'`.
-
-### D. Update System Reality
-- **State**: `PLANNED / DEVELOPMENT SIMULATION`
-- **UI Classification**: Explicitly labeled `[PLANNED / SIMULATION]` in `KingdomUpdateCenter.tsx`.
-- **Verification Policy**: Queries actual connected Kingdom status (`GET /status`) and reports true connected version. Never fakes version changes using `setTimeout`.
-
-### E. API Server & Mobile Companion Reality
-- **State**: `VERIFIED REAL HTTP SERVER`
-- **Node/Bun Environment**: `CentipedeServer` binds a real HTTP server (`http.createServer`) listening on port 3000 / custom port, serving `/api/v1/*` endpoints (`/health`, `/runtime`, `/mobile/pair/initiate`, `/mobile/pair/confirm`, `/mobile/revoke`).
-- **Browser Environment**: Operates as `IN_PROCESS_ROUTER` for client SPA shell.
-
----
-
-## 5. Security & Master Invariants
-
-All 20 Master Security Invariants (INV 1–20) are mathematically enforced at the `ToolExecutor` and `PermissionGate` boundaries:
-1. AI model text outputs carry **zero authority**.
-2. Capability grants are **single-use, atomic, context-bound**, and validated with parameter SHA-256 hashes.
-3. Kingdom remains sole execution authority.
-4. Unauthorized execution produces **zero side effects**.
-
----
-
-## 6. Known Blockers & Next Actions
-
-- **Critical Release Blockers**: None (0 P0, 0 P1 blockers).
-- **Bare-metal ISO packaging**: Documented honestly as `PLANNED` OS Kernel Milestone.
+The live image is a browser kiosk and has a limited firmware set; it does not install an operating system or add host-control capabilities. Android/iOS packages wrap the web application and do not add remote phone pairing. The Kingdom client can only report a live connection when configured against an actual external endpoint; this CI run did not validate a deployed Kingdom service.

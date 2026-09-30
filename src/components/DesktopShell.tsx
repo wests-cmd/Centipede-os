@@ -264,7 +264,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
       </div>
 
       {/* Bottom Desktop Dock */}
-      <nav className="h-14 bg-slate-900/90 border-t border-slate-800 px-4 flex items-center justify-center space-x-2 z-30 backdrop-blur-md overflow-x-auto">
+      <nav className="h-14 bg-slate-900/90 border-t border-slate-800 px-4 flex items-center justify-start md:justify-center space-x-2 z-30 backdrop-blur-md overflow-x-auto">
         {sidebarApps.map((item) => {
           const Icon = item.icon;
           const isActive = activeAppId === item.id;
@@ -292,3 +292,4 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
     </div>
   );
 };
+

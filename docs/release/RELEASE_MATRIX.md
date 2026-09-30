@@ -1,28 +1,19 @@
-# Centipede OS v1.0.0 Multi-Distribution Release Matrix
+# Centipede OS v1.0.0 target release matrix
 
-**Version**: `1.0.0`
-**Authoritative Source**: `release/targets.json` and `release/target-dependencies.json`
+**Core version:** `package.json` is the sole core version source.
+**Target status and artifact names:** [`release/targets.json`](../../release/targets.json)
+**Manifest/checksum producer:** `scripts/create-platform-release-manifest.ts`.
 
----
+| Target | Artifact | Status | CI evidence / release gate |
+|---|---|---|---|
+| desktop | `centipede-os-{version}-desktop-web-bundle.tar.gz` | BUILDABLE | Web build archived; release packaging validates artifact bytes. |
+| iso | `centipede-os-{version}-x86_64.iso` | BUILDABLE | Debian live-build plus QEMU kiosk readiness smoke test. |
+| live-usb | `centipede-os-{version}-live-usb-x86_64.iso` | BUILDABLE | Same hybrid ISO bytes; byte comparison required. |
+| vm | `centipede-os-{version}-x86_64.qcow2` | BUILDABLE | QEMU image structural and guest boot checks. |
+| docker | `centipede-docker-image-{version}.tar` | BUILDABLE | Centipede web image build, HTTP/CSS/health smoke test, loadable tar. Kingdom is external. |
+| android | `centipede-android-{version}-release.apk` | BLOCKED | Branch debug APK is validation only. Stable release requires retained signing secrets and explicit workflow enablement. |
+| ios | `centipede-ios-{version}.ipa` | BLOCKED | Simulator app is validation only. Stable IPA requires Apple distribution provisioning/signing and explicit workflow enablement. |
 
-## Target Matrix
+Every target has an independent revision for artifact identity. The release workflow checks `v${package.json.version}`, packages only BUILDABLE targets, verifies downloaded build checksums, and creates one target manifest plus a combined manifest and checksum list. A missing or stale build artifact fails publication.
 
-| Target ID | Output Artifact | Architecture | Status | Builder | Verification Method | Update Strategy |
-|---|---|---|---|---|---|---|
-| **desktop-slim** | `centipede-os-1.0.0-slim-web-bundle.tar.gz` | x86_64 / arm64 | **AVAILABLE** | `scripts/build-release.ts` | Non-empty archive & SHA-256 match & Vite `dist/` | Atomic tarball |
-| **desktop-full** | `centipede-os-1.0.0-full-bundle.tar.gz` | x86_64 / arm64 | **AVAILABLE** | `scripts/build-release.ts` | Pre-packaged runtime + Docker Compose + scripts & docs | Atomic tarball |
-| **docker** | `docker-compose.yml` | x86_64 / arm64 | **AVAILABLE** | `docker-compose up -d` | HTTP `/status` health check against `scripts/kingdom-server.py` | Docker pull |
-| **iso** | `centipede-os-1.0.0.iso` | x86_64 | **PLANNED** | `archiso / mkarchiso` | QEMU headless boot & systemd startup | Raw partition |
-| **live-usb** | `centipede-os-1.0.0-live-usb.img` | x86_64 | **PLANNED** | `dd / raw image writer` | EFI bootloader & partition table check | Raw partition |
-| **vm** | `centipede-os-1.0.0.qcow2` | x86_64 | **PLANNED** | `qemu-img convert` | QEMU guest launch & API socket check | QCOW2 snapshot |
-| **android** | `centipede-os-1.0.0.apk` | arm64-v8a | **PLANNED** | `gradle / Android SDK` | AAPT dump badging & APK signature check | APK installer |
-| **ios** | `centipede-os-1.0.0.ipa` | arm64 | **PLANNED** | `xcodebuild archive` | Mach-O executable verification & codesign check | TestFlight / AppStore |
-
----
-
-## Toolchain & Hardware Dependencies
-
-- **Desktop Slim & Full**: Node.js v22+, Bun v1.2+, Vite v5+, Tar.
-- **Docker Stack**: Docker Engine v24+, Docker Compose v2.20+, Python 3.11+.
-- **OS Kernel Targets (ISO / USB / VM)**: `archiso`, `qemu-system-x86_64`, `parted` (Planned OS Kernel Milestone).
-- **Mobile Native Targets (Android / iOS)**: Android SDK / Gradle, Xcode / xcodebuild (Planned Mobile Native Milestone; Mobile Companion Web Client available now).
+A successful branch validation run is not a published stable release. No stable GitHub Release exists until a version tag completes the synchronized release workflow.

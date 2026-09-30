@@ -54,7 +54,7 @@ jobs:
 
   android-release:
     name: Signed Android release APK
-    if: github.ref_type == 'tag'
+    if: github.ref_type == 'tag' && vars.CENTIPEDE_ENABLE_SIGNED_ANDROID_RELEASE == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -89,12 +89,17 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_EXPECTED_CERT_SHA256: ${{ vars.ANDROID_EXPECTED_CERT_SHA256 }}
         run: |
           test -n "$ANDROID_KEY_ALIAS" -a -n "$ANDROID_KEYSTORE_PASSWORD" -a -n "$ANDROID_KEY_PASSWORD"
           chmod +x gradlew
           ./gradlew --no-daemon assembleRelease
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
           "$APKSIGNER" verify --verbose app/build/outputs/apk/release/app-release.apk
+          test -n "$ANDROID_EXPECTED_CERT_SHA256" || { echo 'Missing ANDROID_EXPECTED_CERT_SHA256 repository variable.' >&2; exit 1; }
+          ACTUAL_CERT_SHA256=$("$APKSIGNER" verify --print-certs app/build/outputs/apk/release/app-release.apk | sed -n 's/.*Signer #1 certificate SHA-256 digest: //p' | head -1 | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
+          EXPECTED_CERT_SHA256=$(printf '%s' "$ANDROID_EXPECTED_CERT_SHA256" | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
+          test "$ACTUAL_CERT_SHA256" = "$EXPECTED_CERT_SHA256" || { echo 'APK certificate fingerprint differs from the pinned publisher certificate.' >&2; exit 1; }
           mkdir -p ../platform-output/android
           VERSION=$(node -p "require('../package.json').version")
           cp app/build/outputs/apk/release/app-release.apk "../platform-output/android/centipede-android-${VERSION}-release.apk"
@@ -126,6 +131,16 @@ jobs:
           mkdir -p platform-output/ios-simulator
           ditto -c -k --sequesterRsrc --keepParent build/ios-simulator/Build/Products/Release-iphonesimulator/App.app platform-output/ios-simulator/centipede-ios-simulator.zip
           shasum -a 256 platform-output/ios-simulator/centipede-ios-simulator.zip > platform-output/ios-simulator/SHA256SUMS
+      - name: Boot iPhone Simulator and smoke test Centipede
+        run: |
+          DEVICE_UDID=$(xcrun simctl list devices available --json | python3 -c 'import json,sys; devices=json.load(sys.stdin)["devices"]; print(next(device["udid"] for values in devices.values() for device in values if device["name"].startswith("iPhone ")))')
+          test -n "$DEVICE_UDID"
+          xcrun simctl boot "$DEVICE_UDID" 2>/dev/null || true
+          xcrun simctl bootstatus "$DEVICE_UDID" -b
+          xcrun simctl install "$DEVICE_UDID" build/ios-simulator/Build/Products/Release-iphonesimulator/App.app
+          xcrun simctl launch --terminate-running-process "$DEVICE_UDID" com.westscmd.centipedeos
+          sleep 10
+          xcrun simctl io "$DEVICE_UDID" screenshot platform-output/ios-simulator/centipede-startup.png
       - uses: actions/upload-artifact@v4
         with:
           name: centipede-ios-simulator-app
@@ -133,7 +148,7 @@ jobs:
 
   ios-device:
     name: Signed iOS device IPA
-    if: github.ref_type == 'tag'
+    if: github.ref_type == 'tag' && vars.CENTIPEDE_ENABLE_SIGNED_IOS_RELEASE == 'true'
     runs-on: macos-15
     timeout-minutes: 60
     steps:
@@ -322,3 +337,4 @@ jobs:
             centipede-docker-image-*.tar
             SHA256SUMS
           if-no-files-found: error
+

@@ -6,7 +6,7 @@ describe('Centipede OS Swarm Node Role Differentiation Test Suite', () => {
   const KINGDOM_URL = 'http://localhost:8008';
 
   beforeAll(async () => {
-    serverProcess = spawn('python3', ['scripts/kingdom-server.py'], {
+    serverProcess = spawn('python3', ['tests/fixtures/kingdom-contract-fixture.py'], {
       env: { ...process.env, PORT: '8008' },
       stdio: 'ignore',
     });

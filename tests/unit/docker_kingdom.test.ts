@@ -8,7 +8,7 @@ describe('Kingdom Docker & HTTP Server Integration Test Suite', () => {
   const TEST_PORT = '8088';
 
   beforeAll(async () => {
-    serverProcess = spawn('python3', ['scripts/kingdom-server.py'], {
+    serverProcess = spawn('python3', ['tests/fixtures/kingdom-contract-fixture.py'], {
       env: { ...process.env, PORT: TEST_PORT },
       stdio: 'ignore',
     });
