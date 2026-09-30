@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "test": "bun test tests/unit/*.test.ts",
     "test:contract": "bun tests/integration/contract.integration.ts",
-    "test:e2e": "npx playwright test"
+    "test:e2e": "npx playwright test",
+    "lint:reality": "bun scripts/lint-reality.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

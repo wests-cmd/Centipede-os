@@ -8,13 +8,13 @@ Kingdom is a separate project and runtime. This repository contains a client and
 
 # Current release status
 
-Centipede `v1.0.0` has a desktop web bundle and platform build workflows for a Debian live ISO/USB image, QEMU VM disk, Android app, iOS app, and Docker image. The OS images launch the web app in a Chromium kiosk session; they do not add host-level Centipede execution or Kingdom. No stable GitHub release is available until all platform builds, signing, and validations pass in CI.
+Centipede `v1.0.0` has a desktop web bundle and platform build workflows for a Debian live ISO/USB image, QEMU VM disk, Android app, iOS app, and Docker image. The OS images launch the web app in a Chromium kiosk session; they do not add host-level Centipede execution or Kingdom. No stable GitHub release has been published. The synchronized tag workflow is designed to publish only verified BUILDABLE targets; Android device distribution and iOS device distribution remain BLOCKED until publisher credentials are configured.
 
 Android and iOS use native Capacitor projects. Android release APKs require an Android signing key; iOS device builds require Apple distribution signing and provisioning. Branch builds produce only debug APK and simulator validation outputs. ISO, USB, VM, and Docker image jobs run on GitHub-hosted Linux runners. See [the ship reality matrix](docs/SHIP_REALITY_MATRIX.md) and [platform build guide](docs/PLATFORM_BUILD_GUIDE.md) for evidence and release prerequisites.
 
 The desktop bundle requires a separately operated Kingdom service for Kingdom-backed actions. The Compose file does not install or implement Kingdom.
 
-Several desktop panels are prototypes or use browser-local/example data. The application does not provide host file access, remote phone pairing, an OS installer, host storage management, or system rollback. Native mobile packages display the same web UI; release builds require platform signing and iOS TestFlight configuration.
+Several desktop panels are prototypes or use browser-local/example data. The application does not provide host file access, remote phone pairing, an OS installer, host storage management, or system rollback. Native mobile packages display the same web UI. Stable Android/iOS distribution remains BLOCKED until the matching signing assets and release gates are configured.
 
 ## Quick Navigation
 
@@ -58,7 +58,7 @@ A **Scout** is a Kingdom discovery role. The profile selector in this app only s
 
 ## Choosing a deployment
 
-Platform build jobs are available in GitHub Actions. Stable-tag publishing runs all platform jobs and fails if any build, required signature, image smoke test, or artifact verification fails. Review [current target status](docs/SHIP_REALITY_MATRIX.md) and [release prerequisites](docs/PLATFORM_BUILD_GUIDE.md).
+Platform build jobs are available in GitHub Actions. Stable-tag publishing waits for the desktop, ISO/USB/VM, and Docker release jobs, then fails closed on missing artifacts or checksum mismatches. Signed Android/iOS jobs are disabled until their target status, publisher credentials, and repository enablement are deliberately updated. Review [current target status](docs/SHIP_REALITY_MATRIX.md) and [release prerequisites](docs/PLATFORM_BUILD_GUIDE.md).
 
 ## Mobile companion prototype
 

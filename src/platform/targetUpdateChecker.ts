@@ -1,4 +1,4 @@
-export type TargetName = 'desktop' | 'iso' | 'live-usb' | 'vm' | 'android' | 'ios';
+export type TargetName = 'desktop' | 'iso' | 'live-usb' | 'vm' | 'android' | 'ios' | 'docker';
 
 export interface TargetUpdateMetadata {
   target: TargetName;
@@ -23,12 +23,11 @@ export interface CompatibilityGateResult {
 export class TargetUpdateChecker {
   public static parseArtifactVersion(versionString: string): { coreVersion: string; target: TargetName; revision: number } | null {
     const match = versionString.match(/^(\d+\.\d+\.\d+)\+([a-z-]+)\.(\d+)$/);
-    if (!match) return null;
-    return {
-      coreVersion: match[1],
-      target: match[2] as TargetName,
-      revision: parseInt(match[3], 10),
-    };
+    const validTargets: TargetName[] = ['desktop', 'iso', 'live-usb', 'vm', 'android', 'ios', 'docker'];
+    if (!match || !validTargets.includes(match[2] as TargetName)) return null;
+    const revision = Number.parseInt(match[3], 10);
+    if (!Number.isSafeInteger(revision) || revision < 1) return null;
+    return { coreVersion: match[1], target: match[2] as TargetName, revision };
   }
 
   public static verifyCompatibilityGate(
