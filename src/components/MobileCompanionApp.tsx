@@ -72,7 +72,7 @@ export const MobileCompanionApp: React.FC = () => {
           <div>
             <h2 className="text-2xl font-bold text-white">Mobile Companion Prototype</h2>
             <p className="text-xs text-slate-400 mt-1">
-              This browser demo simulates pairing locally. It does not connect a remote phone or provide native Android/iOS apps.
+              This browser demo simulates pairing locally. It does not connect a remote phone or provide native Android/iOS apps.{/* REALITY-LINT-ALLOW: reason = "Accurate user-facing disclosure of the local-only mobile prototype" */}
             </p>
           </div>
         </div>
