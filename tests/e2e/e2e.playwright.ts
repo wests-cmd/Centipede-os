@@ -24,6 +24,10 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
       await iosLike.goto('/');
       await completeClientSetup(iosLike);
       await Promise.all([
+        androidLike.locator('nav').evaluate((dock) => { dock.scrollLeft = dock.scrollWidth; }),
+        iosLike.locator('nav').evaluate((dock) => { dock.scrollLeft = dock.scrollWidth; }),
+      ]);
+      await Promise.all([
         androidLike.getByRole('button', { name: 'Mobile', exact: true }).click(),
         iosLike.getByRole('button', { name: 'Mobile', exact: true }).click(),
       ]);
