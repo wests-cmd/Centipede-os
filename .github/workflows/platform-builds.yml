@@ -131,6 +131,16 @@ jobs:
           mkdir -p platform-output/ios-simulator
           ditto -c -k --sequesterRsrc --keepParent build/ios-simulator/Build/Products/Release-iphonesimulator/App.app platform-output/ios-simulator/centipede-ios-simulator.zip
           shasum -a 256 platform-output/ios-simulator/centipede-ios-simulator.zip > platform-output/ios-simulator/SHA256SUMS
+      - name: Boot iPhone Simulator and smoke test Centipede
+        run: |
+          DEVICE_UDID=$(xcrun simctl list devices available --json | python3 -c 'import json,sys; devices=json.load(sys.stdin)["devices"]; print(next(device["udid"] for values in devices.values() for device in values if device["name"].startswith("iPhone ")))')
+          test -n "$DEVICE_UDID"
+          xcrun simctl boot "$DEVICE_UDID" 2>/dev/null || true
+          xcrun simctl bootstatus "$DEVICE_UDID" -b
+          xcrun simctl install "$DEVICE_UDID" build/ios-simulator/Build/Products/Release-iphonesimulator/App.app
+          xcrun simctl launch --terminate-running-process "$DEVICE_UDID" com.westscmd.centipedeos
+          sleep 10
+          xcrun simctl io "$DEVICE_UDID" screenshot platform-output/ios-simulator/centipede-startup.png
       - uses: actions/upload-artifact@v4
         with:
           name: centipede-ios-simulator-app
