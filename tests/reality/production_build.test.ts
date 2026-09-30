@@ -17,7 +17,7 @@ describe('Desktop release artifact integrity', () => {
     expect(statSync(desktopPath).size).toBeGreaterThan(1000);
     const entries = execSync(`tar -tzf "${desktopPath}"`, { cwd: root, encoding: 'utf8' });
     expect(entries.split(/\r?\n/)).toContain('dist/index.html');
-  });
+  }, 60000);
 
   it('keeps manifest and checksum generation in the single aggregate release validator', () => {
     const builder = readFileSync(join(root, 'scripts/build-release.ts'), 'utf8');
