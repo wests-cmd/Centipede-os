@@ -1,16 +1,42 @@
-# Centipede OS v1.0.0 release gate report
+# Centipede OS v1.0.0 Release Certification
 
-**Status: RELEASE BLOCKED pending synchronized-branch CI and stable-tag validation.** No stable GitHub Release has been published.
+**Gate status: NOT YET RELEASED.** PR #98 is under final review. No `v1.0.0` tag or stable GitHub Release exists yet. The tag-triggered release workflow must finish and its published assets must pass manifest and SHA-256 verification before release certification.
 
-## Proven on the previous branch head
+## Current PR verification
 
-At commit `127f0e1e40bc8c3c39e99926c293a4d0cf06d5dd`, GitHub Actions built and validated the Debian live ISO/USB image, qcow2 VM image, Docker web image, Android debug APK, and iOS Simulator app. QEMU reached the Centipede kiosk readiness marker. Main CI and CodeQL passed. These checks must rerun against the synchronized/fixed PR head.
+At PR head `06bfaacba4258a4ddeaddada0fd9d0d34842a3f4`:
 
-## Stable target decisions
+- Main CI passed, including typecheck, unit/security suite, companion interaction E2E, and release build.
+- CodeQL and JavaScript/TypeScript and Actions analyses passed.
+- Platform build workflow passed: Debian live ISO/USB image, QEMU qcow2 image, Docker image smoke test, Android debug APK, and iOS Simulator build/startup smoke test.
+- Signed Android APK and signed iPhone IPA jobs were skipped because distribution signing credentials and explicit release enablement are not configured.
+- The separate optional Code Scanning AI Findings workflow failed because its runner rejected the requested model; this is an infrastructure/configuration failure. CodeQL completed successfully.
+- Local two-client UI test passed and confirmed the current mobile companion demo keeps pairing state local to each client. Server API tests exercised two client credentials, loss of endpoint connectivity, reconnect, and independent revocation. These tests do not demonstrate native Android/iOS app interoperability.
 
-- Desktop bundle, ISO, Live USB, VM, and Docker are configured BUILDABLE and are eligible for the stable target manifest after the new release workflow passes.
-- Android stable APK is BLOCKED until the project configures the long-lived signing secrets and explicitly enables its signed release job. The branch debug APK is not a user-updateable stable release.
-- iOS device IPA is BLOCKED until Apple distribution certificate/profile secrets and explicit job enablement are configured. Simulator output is not installable on iPhone; App Store Connect/TestFlight upload is not part of the GitHub release gate.
-- Kingdom is an external dependency. The Docker image contains the Centipede web app and does not claim to run Kingdom. No live Kingdom deployment was tested.
+## Stable target publication policy
 
-The release publisher has only the permissions it needs. Build jobs are read-only. One aggregate validator owns release manifests and checksums and excludes BLOCKED targets. A stable release is not certified until the synchronized branch passes CI, security, image boot, Docker smoke, artifact-integrity, and tag/version checks.
+The authoritative target list is `release/targets.json`. Only targets marked `BUILDABLE` are eligible for publication after the tagged workflow builds and validates them.
+
+- **Desktop:** web application bundle; requires an independently operated web server and Kingdom service.
+- **ISO:** Debian live boot image with Centipede application.
+- **Live USB:** byte-validated USB-named copy of the hybrid ISO.
+- **VM:** QEMU qcow2 disk image built from the live system.
+- **Docker:** Centipede web application image. It does not contain or claim to run Kingdom.
+- **Android:** blocked for stable distribution until protected signing configuration is supplied and the signed release job is enabled. A debug APK is validation output only.
+- **iOS:** blocked for iPhone distribution until Apple signing/provisioning configuration is supplied. Simulator output is not an iPhone installable release.
+
+Kingdom remains a separately operated external dependency. No live Kingdom deployment was verified in this release workflow. Preserve its real protocol/API compatibility identifiers; do not describe the Centipede Docker image as a Kingdom image.
+
+## Required follow-up gate: native cross-client behavior
+
+The current companion UI is a local browser demonstration and is not wired to the shared pairing API. Keep native mobile interoperation **uncertified** until all of these pass against one shared service:
+
+1. Pair a real Android client and a real iOS client independently; confirm each receives a distinct device identity and credential.
+2. Verify the clients see the same service-side trust/device state and cannot see each other's private credentials.
+3. Drop one client's connectivity, keep the other operating, then reconnect and verify expected session recovery.
+4. Revoke one device and prove only that device is denied after retry/reconnect.
+5. Run this workflow in Android and iOS simulators (and on physical devices before store distribution), then require signed release artifacts before marking either target publishable.
+
+## Final certification gate
+
+Do not call v1.0.0 released until the PR is merged, the stable tag workflow succeeds, every published asset corresponds to a `BUILDABLE` target, the release manifest and SHA-256 checksums validate, and the resulting GitHub Release assets are downloadable and smoke-tested.
