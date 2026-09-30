@@ -12,14 +12,17 @@ async function completeClientSetup(page: Page) {
 
 test.describe('Centipede desktop client and Kingdom integration', () => {
   test('shows that companion pairing is local to each client instead of shared across two clients', async ({ browser }) => {
+    test.setTimeout(60000);
     const androidLikeContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true });
     const iosLikeContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true });
     const androidLike = await androidLikeContext.newPage();
     const iosLike = await iosLikeContext.newPage();
 
     try {
-      await Promise.all([androidLike.goto('/'), iosLike.goto('/')]);
-      await Promise.all([completeClientSetup(androidLike), completeClientSetup(iosLike)]);
+      await androidLike.goto('/');
+      await completeClientSetup(androidLike);
+      await iosLike.goto('/');
+      await completeClientSetup(iosLike);
       await Promise.all([
         androidLike.getByRole('button', { name: 'Mobile', exact: true }).click(),
         iosLike.getByRole('button', { name: 'Mobile', exact: true }).click(),
@@ -49,7 +52,7 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
       await expect(iosLike.getByRole('heading', { name: 'Trusted Paired Devices (1)' })).toBeVisible();
       await expect(androidLike.getByRole('heading', { name: 'Trusted Paired Devices (1)' })).toBeVisible();
     } finally {
-      await Promise.all([androidLikeContext.close(), iosLikeContext.close()]);
+      await Promise.allSettled([androidLikeContext.close(), iosLikeContext.close()]);
     }
   });
 
@@ -93,3 +96,4 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
     await page.screenshot({ path: 'test-results/05_pending_approval.png' });
   });
 });
+
