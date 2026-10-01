@@ -160,19 +160,19 @@ export const MobileCompanionApp: React.FC = () => {
         ) : (
           <div className="space-y-3">
             {pairedDevices.map((dev) => (
-              <div key={dev.deviceId} className="bg-slate-900/80 border border-slate-700/80 rounded-xl p-4 flex justify-between items-center">
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <span className="font-semibold text-white">{dev.deviceName}</span>
-                    <span className="text-[10px] font-mono text-slate-500">({dev.deviceId})</span>
+              <div key={dev.deviceId} className="bg-slate-900/80 border border-slate-700/80 rounded-xl p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <span className="break-words font-semibold text-white">{dev.deviceName}</span>
+                    <span className="break-all text-[10px] font-mono text-slate-500">({dev.deviceId})</span>
                   </div>
                   <div className="text-xs text-slate-400 mt-1">
-                    Capabilities: <span className="text-slate-300 font-mono">{dev.allowedCapabilities.join(', ')}</span>
+                    Capabilities: <span className="break-words text-slate-300 font-mono">{dev.allowedCapabilities.join(', ')}</span>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-3">
-                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border ${
+                <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+                  <span className={`inline-flex max-w-full break-all px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border ${
                     dev.trustState === 'PAIRED_ACTIVE'
                       ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
                       : 'bg-red-500/20 text-red-400 border-red-500/40'
@@ -183,7 +183,7 @@ export const MobileCompanionApp: React.FC = () => {
                   {dev.trustState === 'PAIRED_ACTIVE' && (
                     <button
                       onClick={() => handleRevokeDevice(dev.deviceId)}
-                      className="bg-red-950 hover:bg-red-900 text-red-300 border border-red-700/80 px-3 py-1 rounded-lg text-xs font-semibold transition-colors"
+                      className="shrink-0 bg-red-950 hover:bg-red-900 text-red-300 border border-red-700/80 px-3 py-1 rounded-lg text-xs font-semibold transition-colors"
                     >
                       Revoke
                     </button>
