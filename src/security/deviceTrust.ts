@@ -54,7 +54,7 @@ export class DeviceTrustManager {
     }
   }
 
-  public initiatePairing(deviceName: string, deviceType: DeviceType): { deviceId: string; pairingCode: string; qrData: string } {
+  public initiatePairing(deviceName: string, deviceType: DeviceType, endpoint = 'http://localhost:3000'): { deviceId: string; pairingCode: string; qrData: string } {
     this.cleanupExpired();
     const deviceId = `dev_${Date.now()}_${generateSecureRandomHex(4)}`;
     const pairingCode = generateSecurePin(); // CSPRNG 6-digit PIN
@@ -76,7 +76,7 @@ export class DeviceTrustManager {
     return {
       deviceId,
       pairingCode,
-      qrData: JSON.stringify({ deviceId, pairingCode, centipedeEndpoint: 'http://localhost:3000' }),
+      qrData: JSON.stringify({ deviceId, pairingCode, centipedeEndpoint: endpoint }),
     };
   }
 

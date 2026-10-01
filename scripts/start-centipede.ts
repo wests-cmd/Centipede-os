@@ -1,56 +1,35 @@
-import { execSync, spawn } from 'child_process';
-import { existsSync, mkdirSync } from 'fs';
-import { join } from 'path';
+import { execFileSync, spawn } from 'node:child_process';
+import { existsSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import packageJson from '../package.json';
 
 const rootDir = process.cwd();
 const dataDir = join(rootDir, 'data');
-const version = packageJson.version;
+if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
 
-console.log(`===========================================================`);
-console.log(`  CENTIPEDE OS ONE-CLICK LAUNCHER — v${version}`);
-console.log(`===========================================================`);
+console.log(`Centipede OS v${packageJson.version}`);
+console.log('Preparing the web app and shared pairing service...');
+execFileSync('bun', ['run', 'build'], { cwd: rootDir, stdio: 'inherit' });
 
-// 1. Ensure required data directory exists
-if (!existsSync(dataDir)) {
-  console.log('--- Initializing local storage directory ./data ---');
-  mkdirSync(dataDir, { recursive: true });
+const kingdomUrl = process.env.KINGDOM_API_URL || 'http://localhost:8000';
+try {
+  const response = await fetch(`${kingdomUrl}/status`, { signal: AbortSignal.timeout(2000) });
+  console.log(response.ok
+    ? `[ONLINE] Kingdom service responded at ${kingdomUrl}`
+    : `[STANDBY] Kingdom service returned ${response.status}; Centipede remains available locally.`);
+} catch {
+  console.log(`[STANDBY] Kingdom service is unavailable at ${kingdomUrl}; Centipede remains available locally.`);
 }
 
-// 2. Platform Detection
-const platform = process.platform;
-const isWindows = platform === 'win32';
-const isMac = platform === 'darwin';
-const isLinux = platform === 'linux';
-
-console.log(`\nPlatform: ${platform.toUpperCase()} (${process.arch})`);
-
-// 3. Test Kingdom connection availability
-console.log('\n--- Checking Kingdom Swarm Backend Availability ---');
-const kingdomUrl = process.env.KINGDOM_API_URL || 'http://localhost:8000';
-
-fetch(`${kingdomUrl}/status`, { signal: AbortSignal.timeout(2000) })
-  .then((res) => {
-    if (res.ok) {
-      console.log(`[ONLINE] Connected to Kingdom Swarm Engine on ${kingdomUrl}`);
-    } else {
-      console.log(`[STANDBY] Kingdom backend returned status ${res.status}. Operating in local standby mode.`);
-    }
-  })
-  .catch(() => {
-    console.log(`[STANDBY] Kingdom Swarm backend is offline at ${kingdomUrl}.`);
-    console.log(`          Centipede OS desktop will operate in local standby mode.`);
-    console.log(`          Configure KINGDOM_API_URL for a separately deployed Kingdom service.\n`);
-  })
-  .finally(() => {
-    // 4. Launch Centipede OS Web Desktop Interface
-    console.log('--- Launching Centipede OS Desktop Environment ---');
-    console.log('URL: http://localhost:3000\n');
-
-    const dev = spawn('bun', ['run', 'dev', '--', '--host', '127.0.0.1', '--port', '3000'], { stdio: 'inherit', cwd: rootDir });
-
-    dev.on('error', (err) => {
-      console.error(`Failed to launch Centipede OS: ${err.message}`);
-      process.exit(1);
-    });
-  });
+const service = spawn('bun', ['run', 'src/server/production.ts'], {
+  cwd: rootDir,
+  stdio: 'inherit',
+  env: { ...process.env, PORT: process.env.PORT || '3000' },
+});
+service.on('error', (error) => {
+  console.error(`Failed to start Centipede: ${error.message}`);
+  process.exitCode = 1;
+});
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.on(signal, () => service.kill(signal));
+}

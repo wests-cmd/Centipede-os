@@ -39,7 +39,7 @@ If the PC does not show a boot menu, restart and try the other common key or loo
 
 The project contains a browser-based desktop application, a Debian live image, a Docker image, and Android/iOS app projects. The live desktop runs Centipede in Chromium. The new desktop design separates common apps from Centipede tools. Its Debian image build includes Chromium, LibreOffice Writer/Calc, Thunderbird, and VLC; these changes need a new tagged release before they become the public stable USB download.
 
-The interface is a client for Kingdom, a separately operated service. Centipede does not include Kingdom or gain control of the host PC. Some panels are prototypes or use local example data; the phone pairing screens do not pair a real second phone. The live image has limited hardware firmware and may not support every Wi-Fi or graphics device.
+The interface is a client for Kingdom, a separately operated service. Centipede does not include Kingdom or gain control of the host PC. Some panels are prototypes or use local example data. The browser companion can now enroll a phone against the running Centipede service: create a one-time code on the desktop, open the printed phone address on the same network, and enter the code there. Pairing runs over plain HTTP, so use it only on a private, trusted network; do not expose the port to the internet. Pairing records last only for the current server session. This is device enrollment only; the native Android/iOS apps and mobile task/approval workflows are not ready. The live image has limited hardware firmware and may not support every Wi-Fi or graphics device.
 
 ## Current release and target status
 
@@ -62,7 +62,9 @@ bun install --frozen-lockfile
 bun start
 ```
 
-The app prints its local URL. Kingdom-backed features need a separately deployed Kingdom service and a reachable API endpoint.
+The app prints its local URL. It listens on the loopback address and the first private IPv4 interface it finds so a phone can reach it without opening every interface. Kingdom-backed features need a separately deployed Kingdom service and a reachable API endpoint.
+
+For phone pairing, keep the app running, create a pairing code on the desktop, then open the printed phone address on a phone connected to the same trusted network. Enter the one-time six-digit code on the phone. If a firewall asks, allow Centipede only on your private network. Docker users can set `CENTIPEDE_PUBLIC_URL` in their environment to the PC's LAN address (for example, `http://192.168.1.20:3000`) before starting the container.
 
 ## Developer checks
 
