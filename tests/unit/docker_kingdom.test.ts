@@ -8,7 +8,8 @@ describe('Kingdom Docker & HTTP Server Integration Test Suite', () => {
   const TEST_PORT = '8088';
 
   beforeAll(async () => {
-    serverProcess = spawn('python3', ['tests/fixtures/kingdom-contract-fixture.py'], {
+    const pythonCommand = process.env.CENTIPEDE_E2E_PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
+    serverProcess = spawn(pythonCommand, ['tests/fixtures/kingdom-contract-fixture.py'], {
       env: { ...process.env, PORT: TEST_PORT },
       stdio: 'ignore',
     });

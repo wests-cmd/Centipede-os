@@ -10,6 +10,7 @@ async function completeClientSetup(page: Page) {
   await expect(page.getByRole('heading', { name: 'Client Setup Complete' })).toBeVisible();
   await page.getByRole('button', { name: 'Open Centipede Desktop App' }).click();
   await expect(page.locator('header')).toContainText('Centipede OS');
+  await page.screenshot({ path: 'test-results/full-use-00_home.png' });
 }
 
 test('opens every Centipede desktop app surface and records a screenshot', async ({ page }) => {
