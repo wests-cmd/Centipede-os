@@ -11,7 +11,12 @@ import json
 import time
 import uuid
 import urllib.request
-from http.server import HTTPServer, BaseHTTPRequestHandler
+import base64
+import hashlib
+import select
+import socket
+import struct
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
 # Server State
@@ -70,6 +75,10 @@ class KingdomRequestHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path
         query = parse_qs(parsed.query)
+
+        if path == "/ws":
+            self._accept_websocket()
+            return
 
         if path == "/status":
             task_counts = {
@@ -190,6 +199,62 @@ class KingdomRequestHandler(BaseHTTPRequestHandler):
         else:
             self._set_headers(404)
             self.wfile.write(json.dumps({"error": f"Endpoint GET {path} not found"}).encode("utf-8"))
+
+    def _accept_websocket(self):
+        key = self.headers.get("Sec-WebSocket-Key")
+        if not key:
+            self._set_headers(400)
+            self.wfile.write(b'{"error":"Missing WebSocket handshake key"}')
+            return
+
+        accept = base64.b64encode(hashlib.sha1(
+            (key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode("ascii")
+        ).digest()).decode("ascii")
+        self.send_response(101, "Switching Protocols")
+        self.send_header("Upgrade", "websocket")
+        self.send_header("Connection", "Upgrade")
+        self.send_header("Sec-WebSocket-Accept", accept)
+        self.end_headers()
+
+        def send_text(payload):
+            data = json.dumps(payload).encode("utf-8")
+            length = len(data)
+            if length < 126:
+                header = bytes([0x81, length])
+            elif length < 65536:
+                header = bytes([0x81, 126]) + struct.pack("!H", length)
+            else:
+                header = bytes([0x81, 127]) + struct.pack("!Q", length)
+            self.connection.sendall(header + data)
+
+        def runtime_snapshot():
+            status = {
+                "running": engine_state["running"],
+                "mode": engine_state["mode"],
+                "version": engine_state["version"],
+                "protocol": engine_state["protocol"],
+                "capabilities": engine_state["capabilities"],
+                "scheduler_running": engine_state["scheduler_running"],
+                "tasks": {"queued": 0, "running": 0, "completed": 0, "failed": 0, "cancelled": 0},
+            }
+            return {"type": "runtime.snapshot", "data": status}
+
+        try:
+            self.connection.settimeout(1)
+            send_text(runtime_snapshot())
+            next_heartbeat = time.monotonic() + 20
+            while True:
+                readable, _, _ = select.select([self.connection], [], [], 1)
+                if readable:
+                    frame = self.connection.recv(2048)
+                    if not frame or (frame[0] & 0x0F) == 0x8:
+                        break
+                # Keep the negotiated stream open; periodic snapshots match Kingdom's contract.
+                if time.monotonic() >= next_heartbeat:
+                    send_text({"type": "heartbeat", "data": runtime_snapshot()["data"]})
+                    next_heartbeat = time.monotonic() + 20
+        except (OSError, socket.timeout):
+            pass
 
     def do_POST(self):
         parsed = urlparse(self.path)
@@ -380,7 +445,8 @@ class KingdomRequestHandler(BaseHTTPRequestHandler):
 def run(port=8000):
     host = os.environ.get("HOST", "127.0.0.1")
     server_address = (host, port)
-    httpd = HTTPServer(server_address, KingdomRequestHandler)
+    httpd = ThreadingHTTPServer(server_address, KingdomRequestHandler)
+    httpd.daemon_threads = True
     print(f"===========================================================")
     print(f" KINGDOM DISTRIBUTED RUNTIME ENGINE — v{engine_state['version']}")
     print(f" Listening on http://{host}:{port}")

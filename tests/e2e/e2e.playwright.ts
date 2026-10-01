@@ -9,6 +9,9 @@ async function completeClientSetup(page: Page, kingdomUrl = 'http://127.0.0.1:1'
   }
   await page.getByPlaceholder('http://localhost:8000').fill(kingdomUrl);
   await page.getByRole('button', { name: 'Continue' }).click();
+  if (kingdomUrl !== 'http://127.0.0.1:1') {
+    await expect(page.locator('body')).toContainText('Kingdom Connection:CONNECTED', { timeout: 10000 });
+  }
   await expect(page.getByRole('heading', { name: 'Client Setup Complete' })).toBeVisible();
   await page.getByRole('button', { name: 'Open Centipede Desktop App' }).click();
   await expect(page.locator('header')).toContainText('Centipede OS');
