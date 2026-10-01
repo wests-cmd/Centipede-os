@@ -59,6 +59,15 @@ See the [ship reality matrix](docs/SHIP_REALITY_MATRIX.md), [platform build guid
 
 [Join the Centipede / Kingdom Discord](https://discord.gg/4b8f9YS2Wp) for community discussion and help. The invite currently points to **Kingdom's server**.
 
+The server's **Kingdom Centipede Skill Bot** can show approved project notes:
+
+- `/skillmap` lists approved Kingdom or Centipede skills.
+- `/ask` looks up approved notes; choose a project and ask a specific question.
+- `/aiask` drafts an answer with local AI and approved notes. Check AI drafts before relying on them.
+- `/botstatus` checks the bot. Administrators can add approved notes with `/teach`.
+
+The bot is for help and reference; it does not execute Kingdom tasks or grant permissions. Never share pairing codes, owner tokens, or API keys in Discord.
+
 ## Running the web app (developers)
 
 Requires Bun and Node-compatible tooling:
