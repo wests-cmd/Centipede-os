@@ -1,6 +1,6 @@
 # [Centipede OS](https://github.com/wests-cmd/Centipede-os) — The AI Desktop Web Application
 
-**[Centipede OS](https://github.com/wests-cmd/Centipede-os)** provides a browser-based desktop application with an AI assistant (**Segmentor**), platform packaging for Debian live images and native WebView clients, and an integration layer for a separately deployed Kingdom service. Platform build workflows are implemented but need successful CI runs before any stable image claims. Security and Kingdom execution behavior depend on the configured external Kingdom deployment.
+**[Centipede OS](https://github.com/wests-cmd/Centipede-os)** provides a browser-based desktop application with an AI assistant (**Segmentor**), Debian live images, and an integration layer for a separately deployed Kingdom service. This follow-on branch is updating the desktop with a simple home page and free browser, office, email/calendar, and media apps. Security and Kingdom execution behavior depend on the configured external Kingdom deployment.
 
 Kingdom is a separate project and runtime. This repository contains a client and API contract; it does not bundle the Kingdom service.
 
@@ -8,7 +8,7 @@ Kingdom is a separate project and runtime. This repository contains a client and
 
 # Current release status
 
-Centipede `v1.0.0` has a desktop web bundle and platform build workflows for a Debian live ISO/USB image, QEMU VM disk, Android app, iOS app, and Docker image. The OS images launch the web app in a Chromium kiosk session; they do not add host-level Centipede execution or Kingdom. No stable GitHub release has been published. The synchronized tag workflow is designed to publish only verified BUILDABLE targets; Android device distribution and iOS device distribution remain BLOCKED until publisher credentials are configured.
+Centipede `v1.0.0` is [published on GitHub](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0) with a desktop bundle, Debian live ISO/USB image, QEMU VM disk, and Docker image. That release retains its original XFCE/Chromium kiosk. This follow-on branch changes the ISO to a normal desktop window and adds free everyday apps; those changes are not released until CI passes and a new version is published. The OS does not add host-level Centipede execution or include Kingdom. Android device distribution and iOS device distribution remain blocked until publisher credentials are configured.
 
 Android and iOS use native Capacitor projects. Android release APKs require an Android signing key; iOS device builds require Apple distribution signing and provisioning. Branch builds produce only debug APK and simulator validation outputs. ISO, USB, VM, and Docker image jobs run on GitHub-hosted Linux runners. See [the ship reality matrix](docs/SHIP_REALITY_MATRIX.md) and [platform build guide](docs/PLATFORM_BUILD_GUIDE.md) for evidence and release prerequisites.
 

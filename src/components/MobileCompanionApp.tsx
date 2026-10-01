@@ -62,15 +62,15 @@ export const MobileCompanionApp: React.FC = () => {
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="mx-auto w-full max-w-5xl space-y-5 p-3 sm:space-y-6 sm:p-6">
       {/* Header Banner */}
-      <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-6 shadow-xl flex justify-between items-center">
-        <div className="flex items-center space-x-4">
-          <div className="p-3 bg-cyan-500/20 text-cyan-400 rounded-xl border border-cyan-500/30">
+      <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-slate-700 bg-slate-800/80 p-4 shadow-xl sm:flex-row sm:items-center sm:rounded-2xl sm:p-6">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+          <div className="shrink-0 rounded-lg border border-cyan-500/30 bg-cyan-500/20 p-2.5 text-cyan-400 sm:rounded-xl sm:p-3">
             <Smartphone className="w-8 h-8" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-white">Mobile Companion Prototype</h2>
+            <h2 className="text-xl font-bold text-white sm:text-2xl">Mobile Companion Prototype</h2>
             <p className="text-xs text-slate-400 mt-1">
               This browser demo simulates pairing locally. It does not connect a remote phone or provide native Android/iOS apps.{/* REALITY-LINT-ALLOW: reason = "Accurate user-facing disclosure of the local-only mobile prototype" */}
             </p>
@@ -79,7 +79,7 @@ export const MobileCompanionApp: React.FC = () => {
 
         <button
           onClick={handleInitiatePairing}
-          className="flex items-center space-x-2 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-cyan-600/30"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-cyan-600 sm:w-auto sm:rounded-xl"
         >
           <QrCode className="w-4 h-4" />
           <span>Pair New Companion</span>

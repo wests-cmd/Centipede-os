@@ -6,7 +6,7 @@ The current target map is [`SHIP_REALITY_MATRIX.md`](SHIP_REALITY_MATRIX.md). Bu
 
 ## Product boundary
 
-The shipped application is a browser UI that calls a separately deployed Kingdom API. The ISO/Live USB/VM jobs package Debian Linux and start that UI in a Chromium kiosk session. They do not implement a new kernel, host-command execution, Kingdom service, or verified host isolation. The native mobile projects package the same UI in a Capacitor WebView; remote phone pairing remains a prototype.
+The shipped application is a browser UI that calls a separately deployed Kingdom API. The ISO/Live USB/VM jobs package Debian Linux and start that UI in a maximized Chromium window alongside the XFCE Applications menu. They do not implement a new kernel, host-command execution, Kingdom service, or verified host isolation. The native mobile projects package the same UI in a Capacitor WebView; remote phone pairing remains a prototype.
 
 ## Release gate
 

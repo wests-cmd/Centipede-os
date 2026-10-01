@@ -1,7 +1,11 @@
 chromium
 lightdm
+libreoffice-calc
+libreoffice-writer
 network-manager
 python3
+thunderbird
+vlc
 xfce4
 xfce4-terminal
 xserver-xorg
