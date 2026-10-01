@@ -220,14 +220,15 @@ export const CentipedeWorldVisual: React.FC<CentipedeWorldVisualProps> = ({
       const drawPart = (part: typeof points) => {
         if (part.length > 1) {
           ctx.beginPath();
-          ctx.moveTo(part[0].x, part[0].y);
-          for (let i = 1; i < part.length; i++) {
-            const previous = part[i - 1];
-            const current = part[i];
-            ctx.quadraticCurveTo(previous.x, previous.y, (previous.x + current.x) / 2, (previous.y + current.y) / 2);
+          let previous: (typeof points)[number] | null = null;
+          for (const current of part) {
+            if (previous && current.index - previous.index === 1) {
+              ctx.quadraticCurveTo(previous.x, previous.y, (previous.x + current.x) / 2, (previous.y + current.y) / 2);
+            } else {
+              ctx.moveTo(current.x, current.y);
+            }
+            previous = current;
           }
-          const last = part[part.length - 1];
-          ctx.lineTo(last.x, last.y);
           ctx.strokeStyle = dragon ? 'rgba(131, 24, 67, .86)' : 'rgba(124, 45, 18, .9)';
           ctx.lineWidth = Math.max(4, radius * 0.073);
           ctx.lineCap = 'round';
