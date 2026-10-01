@@ -378,11 +378,12 @@ class KingdomRequestHandler(BaseHTTPRequestHandler):
 
 
 def run(port=8000):
-    server_address = ("0.0.0.0", port)
+    host = os.environ.get("HOST", "127.0.0.1")
+    server_address = (host, port)
     httpd = HTTPServer(server_address, KingdomRequestHandler)
     print(f"===========================================================")
     print(f" KINGDOM DISTRIBUTED RUNTIME ENGINE — v{engine_state['version']}")
-    print(f" Listening on http://0.0.0.0:{port}")
+    print(f" Listening on http://{host}:{port}")
     print(f" ZeroTrust Mode: ENABLED | Protocol: Major {engine_state['protocol']['major']}")
     print(f"===========================================================")
     try:

@@ -90,7 +90,6 @@ export class KingdomAdapter {
     this.disconnect();
     this.baseUrl = url.replace(/\/$/, '');
     this.wsUrl = this.baseUrl.replace(/^http/, 'ws') + '/ws';
-    this.reconnect();
   }
 
   public getBaseUrl(): string {

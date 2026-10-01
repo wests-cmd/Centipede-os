@@ -35,6 +35,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter }) => {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     adapter.setBaseUrl(url);
+    void adapter.reconnect();
     setSavedMessage('Settings applied successfully! Reconnecting to updated API URL...');
     setTimeout(() => setSavedMessage(''), 4000);
   };
@@ -43,6 +44,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter }) => {
     const defaultUrl = 'http://localhost:8000';
     setUrl(defaultUrl);
     adapter.setBaseUrl(defaultUrl);
+    void adapter.reconnect();
     setSavedMessage('Reset to default API URL (http://localhost:8000).');
     setTimeout(() => setSavedMessage(''), 4000);
   };

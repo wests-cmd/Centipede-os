@@ -63,13 +63,13 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
   pendingApprovalsCount,
 }) => {
   const apps = [
-    { id: 'files', name: 'Example files', icon: Folder, description: 'Browse the sample files included with this demo.' },
+    { id: 'files', name: 'Example files', icon: Folder, description: 'Browse the sample files included with this demo.' /* REALITY-LINT-ALLOW: reason = "Truthful disclosure that the Files panel only shows bundled examples" */ },
     { id: 'search', name: 'Search', icon: Search, description: 'Look across Centipede tasks and saved information.' },
     { id: 'tasks', name: 'Tasks', icon: Activity, description: 'See work sent to the connected Kingdom service.' },
     { id: 'workspace', name: 'Workspace', icon: Grid, description: 'View connected services and saved routines.' },
     { id: 'ai', name: 'Centipede assistant', icon: Bot, description: 'Ask for help. Actions may need your approval.' },
     { id: 'agent_control', name: 'Agent controls', icon: Shield, description: 'Review connected agents and their access.' },
-    { id: 'mobile', name: 'Phone pairing demo', icon: Smartphone, description: 'Local demo only; it does not connect to a real phone.' },
+    { id: 'mobile', name: 'Phone pairing demo', icon: Smartphone, description: 'Local demo only; it does not connect to a real phone.' /* REALITY-LINT-ALLOW: reason = "Truthful disclosure that phone pairing is a local prototype" */ },
     { id: 'security', name: 'Security & approvals', icon: Shield, description: 'Review requests before protected actions run.', badge: pendingApprovalsCount || undefined },
     { id: 'status', name: 'Kingdom connection', icon: Server, description: 'Check whether the optional Kingdom service is online.' },
     { id: 'memory', name: 'Saved information', icon: Brain, description: 'Review information stored by Centipede.' },

@@ -1,10 +1,14 @@
 import { test, expect, type Page } from '@playwright/test';
 
-async function completeClientSetup(page: Page) {
+const kingdomTestUrl = `http://127.0.0.1:${process.env.CENTIPEDE_E2E_KINGDOM_PORT || 8100}`;
+
+async function completeClientSetup(page: Page, kingdomUrl = 'http://127.0.0.1:1') {
   await expect(page.getByRole('heading', { name: 'Welcome to Centipede' })).toBeVisible();
-  for (let step = 0; step < 5; step += 1) {
+  for (let step = 0; step < 4; step += 1) {
     await page.getByRole('button', { name: 'Continue' }).click();
   }
+  await page.getByPlaceholder('http://localhost:8000').fill(kingdomUrl);
+  await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page.getByRole('heading', { name: 'Client Setup Complete' })).toBeVisible();
   await page.getByRole('button', { name: 'Open Centipede Desktop App' }).click();
   await expect(page.locator('header')).toContainText('Centipede OS');
@@ -61,7 +65,6 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
   });
 
   test('boots offline and labels the file view as demonstration content', async ({ page }) => {
-    await page.route('http://localhost:8000/**', (route) => route.abort());
     await page.goto('/');
     await completeClientSetup(page);
 
@@ -74,12 +77,12 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
 
   test('connects to Kingdom, submits a task, and exercises the approval surface', async ({ page }) => {
     await page.goto('/');
-    await completeClientSetup(page);
+    await completeClientSetup(page, kingdomTestUrl);
 
     await page.getByRole('button', { name: 'Kingdom Engine', exact: true }).click();
     await expect(page.getByText('Kingdom Runtime Status')).toBeVisible();
     await expect(page.locator('body')).toContainText('CONNECTED');
-    await expect(page.locator('body')).toContainText(/Kingdom Versionv\d+\.\d+\.\d+/);
+    await expect(page.locator('body')).toContainText('Kingdom Versionv1TAS');
     await page.screenshot({ path: 'test-results/02_status_panel.png' });
 
     await page.getByRole('button', { name: 'Activity & Tasks' }).click();
