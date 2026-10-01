@@ -18,7 +18,7 @@ async function completeClientSetup(page: Page, kingdomUrl = 'http://127.0.0.1:1'
 }
 
 test.describe('Centipede desktop client and Kingdom integration', () => {
-  test('shows that companion pairing is local to each client instead of shared across two clients', async ({ browser }) => {
+  test('pairs a second mobile-sized client through the shared HTTP service', async ({ browser }) => {
     test.setTimeout(60000);
     const androidLikeContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true });
     const iosLikeContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true });
@@ -39,34 +39,31 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
         iosLike.getByRole('button', { name: 'Mobile', exact: true }).click(),
       ]);
 
-      await expect(androidLike.getByText(/simulates pairing locally/i)).toBeVisible();
-      await expect(iosLike.getByText(/does not connect a remote phone/i)).toBeVisible();
-      await expect(androidLike.getByRole('heading', { name: 'Trusted Paired Devices (0)' })).toBeVisible();
-      await expect(iosLike.getByRole('heading', { name: 'Trusted Paired Devices (0)' })).toBeVisible();
-      await androidLike.screenshot({ path: 'test-results/15_mobile-local-only-disclosure.png' });
+      await expect(androidLike.getByText(/Connect a phone browser to this Centipede service/i)).toBeVisible();
+      await expect(iosLike.getByText(/Native Android and iOS apps are not included yet/i)).toBeVisible();
+      const initialHeading = androidLike.getByRole('heading', { name: /^Trusted Paired Devices/ });
+      const initialCount = Number((await initialHeading.textContent())?.match(/\((\d+)\)/)?.[1]);
+      await expect(iosLike.getByRole('heading', { name: `Trusted Paired Devices (${initialCount})` })).toBeVisible();
+      await androidLike.screenshot({ path: 'test-results/15_mobile-shared-service-disclosure.png' });
 
-      await androidLike.getByRole('button', { name: 'Pair New Companion' }).click();
+      await androidLike.getByRole('button', { name: 'Create Pairing Code' }).click();
       const pin = (await androidLike.locator('.font-mono.font-bold.text-cyan-300').textContent())?.trim();
       expect(pin).toMatch(/^\d{6}$/);
-      await androidLike.getByPlaceholder(pin!).fill(pin!);
-      await androidLike.getByRole('button', { name: 'Confirm', exact: true }).click();
-      await expect(androidLike.getByRole('heading', { name: 'Trusted Paired Devices (1)' })).toBeVisible();
-      expect(await androidLike.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
-      await androidLike.screenshot({ path: 'test-results/06_mobile-pair_android-browser.png', fullPage: true });
-
-      // The second mobile-sized client remains unpaired: current native shells do not share
-      // pairing state through the server API. Keep this explicit until the feature is wired.
-      await expect(iosLike.getByRole('heading', { name: 'Trusted Paired Devices (0)' })).toBeVisible();
-
-      await iosLike.getByRole('button', { name: 'Pair New Companion' }).click();
-      const iosPin = (await iosLike.locator('.font-mono.font-bold.text-cyan-300').textContent())?.trim();
-      expect(iosPin).toMatch(/^\d{6}$/);
-      await iosLike.getByPlaceholder(iosPin!).fill(iosPin!);
-      await iosLike.getByRole('button', { name: 'Confirm', exact: true }).click();
-      await expect(iosLike.getByRole('heading', { name: 'Trusted Paired Devices (1)' })).toBeVisible();
-      await expect(androidLike.getByRole('heading', { name: 'Trusted Paired Devices (1)' })).toBeVisible();
+      await iosLike.getByLabel('Pairing code').fill(pin!);
+      await iosLike.getByRole('button', { name: 'Connect' }).click();
+      await expect(iosLike.getByText('This phone is paired with the Centipede service.')).toBeVisible();
+      await androidLike.getByRole('button', { name: 'Refresh paired devices' }).click();
+      await expect(androidLike.getByRole('heading', { name: `Trusted Paired Devices (${initialCount + 1})` })).toBeVisible();
       expect(await iosLike.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
-      await iosLike.screenshot({ path: 'test-results/07_mobile-pair_ios-browser.png', fullPage: true });
+      expect(await androidLike.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+      await iosLike.screenshot({ path: 'test-results/06_mobile-pair_phone-browser.png', fullPage: true });
+      await androidLike.screenshot({ path: 'test-results/07_mobile-paired-device-list.png', fullPage: true });
+
+      await iosLike.getByLabel('Pairing code').fill(pin!);
+      await iosLike.getByRole('button', { name: 'Connect' }).click();
+      await expect(iosLike.locator('body')).toContainText('Invalid or expired pairing code.');
+      await androidLike.getByRole('button', { name: 'Revoke' }).click();
+      await expect(androidLike.locator('body')).toContainText('REVOKED');
     } finally {
       await Promise.allSettled([androidLikeContext.close(), iosLikeContext.close()]);
     }

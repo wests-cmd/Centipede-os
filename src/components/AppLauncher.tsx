@@ -72,7 +72,7 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
     { id: 'workspace', name: 'Workspace', icon: Grid, description: 'View connected services and saved routines.' },
     { id: 'ai', name: 'Centipede assistant', icon: Bot, description: 'Ask for help. Actions may need your approval.' },
     { id: 'agent_control', name: 'Agent controls', icon: Shield, description: 'Review connected agents and their access.' },
-    { id: 'mobile', name: 'Phone pairing demo', icon: Smartphone, description: 'Local demo only; it does not connect to a real phone.' /* REALITY-LINT-ALLOW: reason = "Truthful disclosure that phone pairing is a local prototype" */ },
+    { id: 'mobile', name: 'Mobile Companion', icon: Smartphone, description: 'Pair a phone browser with Centipede over a trusted local network.' },
     { id: 'security', name: 'Security & approvals', icon: Shield, description: 'Review requests before protected actions run.', badge: pendingApprovalsCount || undefined },
     { id: 'status', name: 'Kingdom connection', icon: Server, description: 'Check whether the optional Kingdom service is online.' },
     { id: 'memory', name: 'Saved information', icon: Brain, description: 'Review information stored by Centipede.' },

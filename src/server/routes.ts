@@ -8,6 +8,8 @@ export interface ApiRequest {
   method: 'GET' | 'POST' | 'DELETE';
   headers?: Record<string, string>;
   body?: any;
+  /** Set only by the HTTP adapter after checking the socket peer address. */
+  isLocalAdmin?: boolean;
 }
 
 export interface ApiResponse {
@@ -42,13 +44,24 @@ export class ApiRouter {
 
     if (req.path === '/api/v1/mobile/pair/initiate' && req.method === 'POST') {
       const name = req.body?.deviceName || 'Mobile Companion';
-      const pairing = deviceTrustManager.initiatePairing(name, 'MOBILE_APP');
+      const pairing = deviceTrustManager.initiatePairing(name, 'MOBILE_APP', req.body?.endpoint);
       return { status: 200, data: pairing };
     }
 
     if (req.path === '/api/v1/mobile/pair/confirm' && req.method === 'POST') {
       const result = deviceTrustManager.confirmPairing(req.body?.pairingCode || '');
       return result.success ? { status: 200, data: result } : { status: 401, error: result.error };
+    }
+
+    // Device administration is available only through a loopback connection.
+    // A LAN client can complete a short-lived pairing but cannot enumerate or
+    // revoke other devices.
+    if (req.isLocalAdmin && req.path === '/api/v1/mobile/devices' && req.method === 'GET') {
+      const devices = deviceTrustManager.getPairedDevices().map(({ sessionToken: _token, pairingCode: _code, ...device }) => device);
+      return { status: 200, data: { devices } };
+    }
+    if (req.isLocalAdmin && req.path === '/api/v1/mobile/revoke' && req.method === 'POST') {
+      return { status: 200, data: { revoked: deviceTrustManager.revokeDevice(req.body?.deviceId || '') } };
     }
 
     // 2. Session Authenticated Endpoints
