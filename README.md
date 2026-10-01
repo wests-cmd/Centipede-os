@@ -1,143 +1,82 @@
-# [Centipede OS](https://github.com/wests-cmd/Centipede-os) — The AI Desktop Web Application
+# Centipede OS
 
-**[Centipede OS](https://github.com/wests-cmd/Centipede-os)** provides a browser-based desktop application with an AI assistant (**Segmentor**), Debian live images, and an integration layer for a separately deployed Kingdom service. This follow-on branch is updating the desktop with a simple home page and free browser, office, email/calendar, and media apps. Security and Kingdom execution behavior depend on the configured external Kingdom deployment.
+Centipede OS is a Debian live desktop with the Centipede web app. Kingdom is a separate service; it is not included in the download.
 
-Kingdom is a separate project and runtime. This repository contains a client and API contract; it does not bundle the Kingdom service.
+## Try Centipede on another PC
 
----
+<p><a href="https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.0/centipede-os-1.0.0-x86_64.iso"><strong>⬇️ Download Centipede OS v1.0.0 (ISO)</strong></a></p>
 
-# Current release status
+This starts a **temporary live session from a USB drive**. It does not install Centipede onto the PC’s internal drive. Anything saved in the live session may be lost when you shut down. Do not use this as a replacement for Windows or another installed system.
 
-Centipede `v1.0.0` is [published on GitHub](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0) with a desktop bundle, Debian live ISO/USB image, QEMU VM disk, and Docker image. That release retains its original XFCE/Chromium kiosk. This follow-on branch changes the ISO to a normal desktop window and adds free everyday apps; those changes are not released until CI passes and a new version is published. The OS does not add host-level Centipede execution or include Kingdom. Android device distribution and iOS device distribution remain blocked until publisher credentials are configured.
+### Make the USB (Windows, Mac, or Linux)
 
-Android and iOS use native Capacitor projects. Android release APKs require an Android signing key; iOS device builds require Apple distribution signing and provisioning. Branch builds produce only debug APK and simulator validation outputs. ISO, USB, VM, and Docker image jobs run on GitHub-hosted Linux runners. See [the ship reality matrix](docs/SHIP_REALITY_MATRIX.md) and [platform build guide](docs/PLATFORM_BUILD_GUIDE.md) for evidence and release prerequisites.
+You need an empty USB drive with at least 8 GB free; 16 GB is a comfortable choice. **Flashing erases everything on the USB drive.** Copy anything you need from it first.
 
-The desktop bundle requires a separately operated Kingdom service for Kingdom-backed actions. The Compose file does not install or implement Kingdom.
+1. Click **Download Centipede OS** above and save the `.iso` file.
+2. Download and open [balenaEtcher](https://etcher.balena.io/). It is a free USB writing app; Debian also recommends it for writing live images.
+3. In Etcher, click **Flash from file** and choose the Centipede `.iso` you downloaded.
+4. Click **Select target**. Choose your USB drive by its name and size. Check carefully that it is the USB drive, not another drive.
+5. Click **Flash!** and approve the erase warning. Wait for Etcher to say the flash is complete, then close it and safely eject the USB.
 
-Several desktop panels are prototypes or use browser-local/example data. The application does not provide host file access, remote phone pairing, an OS installer, host storage management, or system rollback. Native mobile packages display the same web UI. Stable Android/iOS distribution remains BLOCKED until the matching signing assets and release gates are configured.
+### Start Centipede from the USB
 
-## Quick Navigation
+1. Save and close anything open on the other PC. Leave its internal drive connected; do not choose an install or erase option.
+2. Shut the PC down. Insert the Centipede USB and turn the PC on.
+3. Immediately tap the PC maker’s **boot menu** key. Common keys are `F12`, `F9`, `F11`, or `Esc`; the right key depends on the PC and may briefly appear on its startup screen.
+4. Use the arrow keys to select the USB drive (often shown as `UEFI: <USB name>`) and press `Enter`.
+5. Choose the default live/start option if a menu appears. Wait for the desktop to load.
+6. To leave, shut down Centipede, remove the USB when the PC is off, and turn the PC on again. It should start its usual system.
 
-- [What is Centipede OS?](#what-is-centipede-os)
-- [Core Concepts Explained](#core-concepts-explained)
-- [Choosing Your Profile](#choosing-your-profile)
-- [How Do I Control Centipede OS From My Phone?](#phone-command-center)
-- [Installation Guide](docs/INSTALLATION_GUIDE.md)
-- [Security & Privacy FAQ](#security-faq)
-- [Troubleshooting & Recovery](#recovery)
-- [Developer & Testing Documentation](#developer-info)
+If the PC does not show a boot menu, restart and try the other common key or look up “boot menu” plus the PC maker and model. Do not change Secure Boot or firmware settings as a first troubleshooting step.
 
----
+> **Important:** The published v1.0.0 image is the verified stable download. The refreshed desktop and free everyday app set are merged into `main` but have not yet been published as a new release. The stable download link above still serves v1.0.0.
 
-## What is Centipede OS?
+### Desktop preview (merged, not yet in the download)
 
-Centipede is currently a browser-based desktop application. Its verified live integration is the Kingdom REST API client; other panels may be local prototypes or example data:
+![Centipede desktop preview. The public v1.0.0 download still contains the older desktop.](docs/images/centipede-desktop-preview.png)
 
-- **Segmentor UI**: A local intent and permission-gating interface; it does not provide host file or shell access.
-- **Kingdom API client**: The app can query the separately deployed Kingdom API and submit tasks or approval requests. Kingdom deployment and policy must be verified independently.
-- **Browser storage**: Client preferences are stored in browser local storage. Other memory views are not a promise of durable host storage.
-- **Mobile companion prototype**: The pairing and ingestion screens are local simulations, not remote phone connectivity or native mobile applications.
+## What is included
 
----
+The project contains a browser-based desktop application, a Debian live image, a Docker image, and Android/iOS app projects. The live desktop runs Centipede in Chromium. The new desktop design separates common apps from Centipede tools. Its Debian image build includes Chromium, LibreOffice Writer/Calc, Thunderbird, and VLC; these changes need a new tagged release before they become the public stable USB download.
 
-## Core Concepts Explained
+The interface is a client for Kingdom, a separately operated service. Centipede does not include Kingdom or gain control of the host PC. Some panels are prototypes or use local example data; the phone pairing screens do not pair a real second phone. The live image has limited hardware firmware and may not support every Wi-Fi or graphics device.
 
-### What is Kingdom?
-**Kingdom** is a separately deployed service in the `wests-cmd/kingdom` project. This repository contains the Centipede client and compatibility contract. Deploy and verify Kingdom independently; this web application does not implement or include its execution authority.
+## Current release and target status
 
-### What is a Knight?
-A **Knight** is a Kingdom worker node. This Centipede repository does not provision Knight nodes.
+- The current public release is [Centipede OS v1.0.0](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0).
+- ISO, USB, QEMU VM, desktop bundle, and Docker assets are published for v1.0.0.
+- Android device distribution is blocked until the protected signing key and publisher fingerprint are configured.
+- iPhone distribution is blocked until Apple distribution signing and provisioning are configured. The iOS Simulator app is not installable on an iPhone.
+- Docker contains the Centipede web app, not Kingdom. Running it requires Docker and does not provide the USB desktop experience.
 
-### What is a Scout?
-A **Scout** is a Kingdom discovery role. The profile selector in this app only stores a browser client preference; it does not deploy a Scout.
+See the [ship reality matrix](docs/SHIP_REALITY_MATRIX.md), [platform build guide](docs/PLATFORM_BUILD_GUIDE.md), and [release certification](docs/release/RELEASE_CERTIFICATION.md) for validation evidence and limits.
 
-### What is Segmentor (Centipede Assistant)?
-**Segmentor** is the assistant interface in this web app. Protected work requires the external Kingdom API; this app does not execute arbitrary host operations.
+## Running the web app (developers)
 
----
+Requires Bun and Node-compatible tooling:
 
-## Choosing a deployment
-
-Platform build jobs are available in GitHub Actions. Stable-tag publishing waits for the desktop, ISO/USB/VM, and Docker release jobs, then fails closed on missing artifacts or checksum mismatches. Signed Android/iOS jobs are disabled until their target status, publisher credentials, and repository enablement are deliberately updated. Review [current target status](docs/SHIP_REALITY_MATRIX.md) and [release prerequisites](docs/PLATFORM_BUILD_GUIDE.md).
-
-## Mobile companion prototype
-
-The pairing screen uses local browser state for demonstration. It does not pair a separate phone or provide mobile monitoring.
-
-The mobile companion panel remains a local UI prototype. Native Android/iOS builds package the desktop web application in a native WebView; they do not add remote phone pairing or monitoring.
-
----
-
-## Installation Guide
-
-For detailed non-technical installation steps, see our [Installation Guide](docs/INSTALLATION_GUIDE.md).
-
-### Option A: Launch the browser application
 ```bash
-# Clone repository
 git clone https://github.com/wests-cmd/Centipede-os.git
 cd Centipede-os
-
-# Install dependencies and start the local web application
-bun install
+bun install --frozen-lockfile
 bun start
 ```
-Open `http://localhost:3000` in your browser. Kingdom-backed operations require a separately deployed Kingdom service.
 
-### Option B: Build the desktop web application
-```bash
-# Clone repository
-git clone https://github.com/wests-cmd/Centipede-os.git
-cd Centipede-os
+The app prints its local URL. Kingdom-backed features need a separately deployed Kingdom service and a reachable API endpoint.
 
- # Build the web application bundle
-npm install
-npm run build
-```
-Serve the generated `dist/` directory with a static web server. Kingdom-backed features require a separately configured Kingdom endpoint.
-
----
-
-## Security FAQ
-
-### Q: Can this application delete my files or execute system commands?
-This browser application does not have host file or shell access. Kingdom-backed actions are handled by the separately deployed Kingdom service; review that deployment's authorization and policy configuration independently.
-
-### Q: Does this release certify prompt-injection or host security protections?
-No. The UI contains security-related demonstrations, but this release does not certify system-wide isolation, prompt-injection resistance, or Kingdom deployment security.
-
-### Q: What happens if Kingdom is offline?
-Kingdom-backed features cannot run while the service is unavailable. The client reports connection status; availability and fail-closed behavior for execution must be verified in the deployed Kingdom service.
-
-### Q: Can I revoke a stolen phone or node here?
-No. The mobile companion is a local prototype and this release does not pair remote phones or nodes.
-
----
-
-## Recovery
-
-This browser application does not manage operating-system updates, host storage, rollback, or emergency process termination. Browser-local preferences and demo data are not a backup. Manage the separately deployed Kingdom service using its own operational procedures.
-
----
-
-## Developer Info
+## Developer checks
 
 ```bash
-# Install dependencies
-bun install
-
-# Run unit and compatibility tests
+bun x tsc --noEmit
 bun test
-
-# Run contract verification against live Kingdom server
-bun run test:contract
-
-# Run Playwright E2E browser tests
-bun run test:e2e
+npm run build
+npm run test:e2e
 ```
 
-### Kingdom ↔ Centipede Capability Negotiation & Compatibility
-- **Contract Specification**: `src/api/contractSpec.ts`
-- **Capability Negotiator**: `src/api/capabilityNegotiator.ts`
-- **Compatibility**: Kingdom protocol major `1`, minimum contract version `1.4.0`; runtime Kingdom release versions are discovered dynamically. The protocol and contract identifiers are independent of the Centipede product version.
-- **ZeroTrust Boundary**: Capability negotiation classifies version/capability status (`SUPPORTED`, `UNSUPPORTED`, `DEGRADED`, `INCOMPATIBLE`, `UNKNOWN`, `REQUIRES_UPDATE`), but NEVER acts as an authorization authority. Kingdom remains authoritative.
+The release workflow also builds ISO/USB/VM and Docker targets, generates a release manifest and SHA-256 checksums, and fails on missing or mismatched build outputs. Mobile release builds remain blocked until signing is configured.
+
+## Kingdom compatibility
+
+- Protocol major: `1`
+- Minimum contract version: `1.4.0`
+- Kingdom remains the execution authority. These compatibility identifiers are independent of Centipede's product version.

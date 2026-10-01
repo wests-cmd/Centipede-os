@@ -213,9 +213,9 @@ export const KingdomStatusPanel: React.FC<KingdomStatusPanelProps> = ({
           <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Kingdom Version</div>
           <div className="text-2xl font-bold text-blue-400 mt-2">
             {connectionState === 'CONNECTED' && runtimeInfo.connectedKingdomVersion
-              ? `v${runtimeInfo.connectedKingdomVersion}`
+              ? `v${runtimeInfo.connectedKingdomVersion.replace(/^v/i, '')}`
               : runtimeInfo.lastKnownKingdomVersion
-              ? `v${runtimeInfo.lastKnownKingdomVersion} (Offline)`
+              ? `v${runtimeInfo.lastKnownKingdomVersion.replace(/^v/i, '')} (Offline)`
               : 'Offline'}
           </div>
           <div className="text-xs text-slate-400 mt-2">Protocol: {runtimeInfo.protocol ? `v${runtimeInfo.protocol.major}.${runtimeInfo.protocol.minor}` : 'v1.x'}</div>

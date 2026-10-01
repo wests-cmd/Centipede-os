@@ -1,29 +1,35 @@
-# Centipede OS v1.0.0 release candidate reality
+# Centipede OS release reality
 
-**Core version source:** `package.json` (`1.0.0`)
-**Target release gate:** `release/targets.json`
-**Kingdom compatibility:** protocol major `1`; contract version `1.4.0`; Kingdom remains an external service.
-**Release state:** `v1.0.0` is published at https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0. This branch updates the desktop experience; changes still need CI and release validation before shipping.
+**Core version:** `package.json` (`1.0.0`)
+**Public stable release:** [`v1.0.0`](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0)
+**Desktop refresh merge:** `f17a9365f223572dc0ea411dfbfdf214eee3ed5a`
+**Kingdom compatibility:** protocol major `1`; contract version `1.4.0`; Kingdom is a separate service.
 
-## Verified on the prior branch head
+## Published release versus current main
 
-The GitHub-hosted workflow run [36601824289](https://github.com/wests-cmd/Centipede-os/actions/runs/36601824289) completed the platform matrix at commit `127f0e1e40bc8c3c39e99926c293a4d0cf06d5dd`. It built and checked the Debian live ISO, byte-identical Live USB image, qcow2 VM media, Docker image, Android debug APK, and iOS Simulator app. QEMU reached the Centipede kiosk and local web app readiness marker. The main CI and CodeQL workflows also passed on that commit. These results predate the current synchronization/fixes and must be rerun before release.
+The public v1.0.0 download remains the release built at commit `e0051a65656cf7678d3d5d814243c0e3a5f44cae`. It contains the original XFCE/Chromium desktop. It does not contain the refreshed home screen and everyday app bundle now present on `main`.
+
+The refreshed desktop work was validated on PR commit `1f99f79eddb3dd06bd86dbc55074b20993f87d0b` before it was merged. Platform build run [36805229329](https://github.com/wests-cmd/Centipede-os/actions/runs/36805229329) built the Debian ISO, byte-identical USB image, QEMU qcow2, Docker image, Android debug APK, and iOS Simulator app. QEMU reached the desktop readiness marker; Docker's HTTP/health smoke test passed; the iPhone Simulator launched the app. The merged source still needs a new version tag and release publication before those updated images become downloads from the stable release page.
+
+The primary CI and CodeQL checks passed on the PR head. The separate Copilot security-review job failed before it could review the code because the configured model was unsupported; it reported no source findings. Android signed APK and iPhone IPA jobs were skipped because publisher signing is not configured.
 
 ## Target status
 
-| Target | Current status | What the evidence means |
-|---|---|---|
-| Desktop web bundle | BUILDABLE | Static web app archive; requires an independently operated Kingdom service for Kingdom-backed actions. |
-| ISO | BUILDABLE | Published v1.0.0 image boots to XFCE/Chromium kiosk. This branch changes to a maximized desktop window with free everyday applications; that update still needs CI validation. Not a host-control OS. |
-| Live USB | BUILDABLE | Byte-identical ISO image suitable for writing to USB media. |
-| VM | BUILDABLE | qcow2 virtual optical-media image; boot validation passed on the prior branch head. |
-| Docker | BUILDABLE | Centipede web app container; smoke-tested. It does not run Kingdom and is not published to a registry. |
-| Android stable APK | BLOCKED | A debug APK was built for CI only. Stable distribution needs the project signing key and explicit enablement. |
-| iOS device IPA | BLOCKED | Simulator app was built for CI only. Device distribution requires Apple signing/provisioning and explicit enablement. |
-| Kingdom service | EXTERNAL | No live Kingdom deployment was available in the build verification. The Compose stack no longer impersonates it. |
+| Target | Gate | Current public status | Current main evidence |
+|---|---|---|---|
+| Desktop web bundle | BUILDABLE | v1.0.0 bundle published | Updated home screen is merged; a new tagged release is still needed. |
+| ISO | BUILDABLE | v1.0.0 ISO published | Updated Debian live ISO built in run 36805229329; not published as a new release. |
+| Live USB | BUILDABLE | v1.0.0 image published | Updated ISO is byte-identical to the USB output; not published as a new release. |
+| VM | BUILDABLE | v1.0.0 qcow2 published | Updated QEMU media passed structural and boot-readiness checks; not published as a new release. |
+| Docker | BUILDABLE | v1.0.0 archive published | Updated Linux/amd64 image passed its HTTP and health smoke test; not published as a new release or registry image. |
+| Android | BLOCKED for stable distribution | No signed release APK | Debug APK build passed; retained signing key, pinned publisher certificate, and explicit enablement are required. |
+| iOS | BLOCKED for device distribution | No signed iPhone IPA | iOS Simulator app passed launch smoke; Apple distribution signing/provisioning and explicit enablement are required. |
+| Kingdom service | EXTERNAL | Not supplied by this repository | No live Kingdom deployment was connected during these builds. |
 
-The release manifest and `SHA256SUMS` are produced by the aggregate release validator only. It consumes artifacts from the same workflow run and checks build-job checksums against the downloaded files before packaging. Blocked targets are omitted. A stable release can contain only configured BUILDABLE targets after the synchronized branch passes all release gates.
+The branch workflow artifact for ISO/USB/VM was about 3.35 GB combined. Its three image files duplicate the ISO for USB and package it as QEMU media. The image includes free everyday apps, which increase download size.
 
-## Known limitations
+## User-facing install limits
 
-The live image has a limited firmware set; it does not install to disk by default or add host-control capabilities. Android/iOS packages wrap the web application and do not add remote phone pairing. The Kingdom client can only report a live connection when configured against an actual external endpoint; this CI run did not validate a deployed Kingdom service. The current UI and image changes are on a follow-on branch and are not part of the published release until CI succeeds.
+The published and candidate images are live systems. They boot from USB and run in memory; they do not install to an internal drive, provide disk partitioning, or promise persistent files across restarts. The current installation guide explains this before the writing steps. The image has a limited firmware set and is not verified on every PC model. It does not install Kingdom or grant Centipede control of the host PC.
+
+Android/iOS projects wrap the web application and do not add remote phone pairing. The Kingdom client only reports a verified connection when configured against an actual external endpoint; this CI did not test a deployed Kingdom service.

@@ -33,13 +33,22 @@ jobs:
       - name: Run Unit & Security Test Suite
         run: bun test
 
-      - name: Install Playwright browser for companion interaction test
+      - name: Install Playwright browser for end-to-end interaction tests
         run: bun x playwright install --with-deps chromium
 
-      - name: Verify companion clients remain isolated until server pairing is wired
+      - name: Run complete desktop and companion interaction checks
         env:
           CENTIPEDE_E2E_PORT: 3100
-        run: bun x playwright test tests/e2e/e2e.playwright.ts --grep "shows that companion pairing"
+          CENTIPEDE_E2E_KINGDOM_PORT: 8100
+        run: bun x playwright test
+
+      - name: Save end-to-end screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: centipede-e2e-screenshots
+          path: test-results/*.png
+          if-no-files-found: warn
 
       - name: Verify Release Build Execution
         run: bun run build:release
