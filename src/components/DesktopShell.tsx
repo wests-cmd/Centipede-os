@@ -84,7 +84,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
       case 'CONNECTING':
         return 'bg-amber-500/10 border-amber-500/40 text-amber-400 animate-pulse';
       case 'DISCONNECTED':
-        return 'bg-red-500/20 border-red-500/50 text-red-400';
+        return 'bg-amber-500/10 border-amber-500/30 text-amber-300';
       case 'VERSION_INCOMPATIBLE':
         return 'bg-purple-500/20 border-purple-500/50 text-purple-300';
       case 'AUTHENTICATION_FAILED':
@@ -104,6 +104,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   ];
 
   const sidebarApps = [
+    { id: 'launcher', name: 'Home', icon: Home },
     { id: 'ai', name: 'Centipede AI', icon: Bot },
     { id: 'agent_control', name: 'Agent Control Plane', icon: ShieldAlert },
     { id: 'workspace', name: 'Digital Workspace', icon: Grid },
@@ -123,18 +124,18 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   return (
     <div className="flex flex-col h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden select-none">
       {/* Top OS Menu Bar */}
-      <header className="h-12 bg-slate-900/90 border-b border-slate-800 px-4 flex items-center justify-between z-30 backdrop-blur-md">
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-2 font-bold text-cyan-400 tracking-wide">
+      <header className="relative z-30 flex min-h-12 items-center justify-between gap-2 border-b border-slate-800 bg-slate-900 px-3 py-2 backdrop-blur-md sm:px-4">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <div className="flex shrink-0 items-center gap-2 font-bold tracking-wide text-cyan-400">
             <Monitor className="w-5 h-5 text-cyan-500" />
-            <span className="text-white text-base">Centipede OS</span>
+            <span className="whitespace-nowrap text-sm text-white sm:text-base">Centipede OS</span>
           </div>
-          <span className="text-slate-600">|</span>
-          <span className="text-xs text-slate-400 font-mono">v{runtimeInfo.centipedeVersion}</span>
+          <span className="hidden text-slate-600 sm:inline">|</span>
+          <span className="hidden whitespace-nowrap font-mono text-xs text-slate-400 sm:inline">v{runtimeInfo.centipedeVersion}</span>
         </div>
 
         {/* Connection & Dynamic Version Badges */}
-        <div className="flex items-center space-x-4">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-4">
           <div className="hidden md:flex items-center space-x-3 text-xs">
             <span className="text-slate-400">
               Kingdom:{' '}
@@ -152,32 +153,32 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
 
           <div
             onClick={() => setActiveAppId('status')}
-            className={`flex items-center space-x-2 px-3 py-1 rounded-full border text-xs font-semibold cursor-pointer transition-all ${getBadgeStyle()}`}
+            className={`flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-semibold transition-all sm:gap-2 sm:px-3 sm:text-xs ${getBadgeStyle()}`}
           >
             <span className={`w-2 h-2 rounded-full ${
-              connectionState === 'CONNECTED' ? 'bg-emerald-400' : connectionState === 'CONNECTING' ? 'bg-amber-400' : 'bg-red-400'
+              connectionState === 'CONNECTED' ? 'bg-emerald-400' : 'bg-amber-400'
             }`}></span>
-            <span className="uppercase tracking-wider">{connectionState}</span>
+            <span className="uppercase tracking-wider">{connectionState === 'DISCONNECTED' ? 'Offline' : connectionState.toLowerCase()}</span>
           </div>
 
-          <div className="text-xs text-slate-400 font-mono pl-2 border-l border-slate-800">{time}</div>
+          <div className="hidden border-l border-slate-800 pl-2 font-mono text-xs text-slate-400 lg:block">{time}</div>
         </div>
       </header>
 
       {/* Disconnected Alert Banner */}
       {connectionState === 'DISCONNECTED' && (
-        <div className="bg-red-950/90 border-b border-red-800 text-red-100 px-4 py-2 flex items-center justify-between text-xs z-20">
-          <div className="flex items-center space-x-2">
-            <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
-            <span className="font-semibold">Kingdom Backend Offline.</span>
-            <span>
+        <div className="z-20 flex flex-wrap items-center justify-between gap-2 border-b border-amber-800/70 bg-amber-950/50 px-3 py-2 text-xs text-amber-100 sm:px-4">
+          <div className="flex min-w-0 items-start gap-2">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 text-amber-300" />
+            <span className="font-semibold">Kingdom offline.</span>
+            <span className="hidden sm:inline">
               Centipede OS is operating in standalone offline mode.{' '}
               {runtimeInfo.lastKnownKingdomVersion ? `Last known version: v${runtimeInfo.lastKnownKingdomVersion}` : 'Version unavailable.'}
             </span>
           </div>
           <button
             onClick={() => adapter.reconnect()}
-            className="flex items-center space-x-1 bg-red-800 hover:bg-red-700 px-3 py-1 rounded-lg text-white font-medium border border-red-600 transition-colors"
+            className="flex items-center space-x-1 rounded-lg border border-amber-700 bg-amber-900/60 px-3 py-1 font-medium text-amber-50 transition-colors hover:bg-amber-800"
           >
             <RefreshCw className="w-3 h-3" />
             <span>Reconnect</span>
@@ -217,7 +218,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
             <div>
               <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2 px-2">Applications</div>
               <div className="space-y-0.5">
-                {sidebarApps.map((a) => {
+                {sidebarApps.filter((a) => a.id !== 'launcher').map((a) => {
                   const Icon = a.icon;
                   const isActive = activeAppId === a.id;
                   return (
@@ -258,21 +259,24 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         </aside>
 
         {/* Main View Area */}
-        <main className="flex-1 overflow-auto bg-slate-950 p-3">
+        <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-slate-950 p-2 sm:p-3">
           {children}
         </main>
       </div>
 
       {/* Bottom Desktop Dock */}
-      <nav className="h-14 bg-slate-900/90 border-t border-slate-800 px-4 flex items-center justify-start md:justify-center space-x-2 z-30 backdrop-blur-md overflow-x-auto">
+      <nav aria-label="Main navigation" className="z-30 flex h-14 items-center justify-start gap-1 overflow-x-auto border-t border-slate-800 bg-slate-900 px-2 backdrop-blur-md sm:justify-center sm:gap-2 sm:px-4">
         {sidebarApps.map((item) => {
           const Icon = item.icon;
           const isActive = activeAppId === item.id;
+          const mobileApp = ['launcher', 'files', 'tasks', 'search', 'settings'].includes(item.id);
           return (
             <button
               key={item.id}
               onClick={() => setActiveAppId(item.id)}
-              className={`relative flex flex-col items-center justify-center px-3 py-1 rounded-xl transition-all group flex-shrink-0 ${
+              aria-label={item.name}
+              title={item.name}
+              className={`${mobileApp ? 'flex' : 'hidden sm:flex'} group relative min-w-12 shrink-0 flex-col items-center justify-center rounded-lg px-2 py-1 transition-colors sm:min-w-0 sm:rounded-xl sm:px-3 ${
                 isActive
                   ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-md shadow-cyan-500/10'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/60'

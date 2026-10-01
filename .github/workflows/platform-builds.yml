@@ -260,7 +260,7 @@ jobs:
           try: sock.recv(4096)
           except TimeoutError: pass
           def command(value):
-              sock.sendall((value + "\n").encode())
+              sock.sendall((value + "\r\n").encode())
               time.sleep(1)
               try: print(sock.recv(4096).decode("utf-8", "replace"))
               except TimeoutError: pass
@@ -275,7 +275,7 @@ jobs:
           cat /tmp/centipede-vm-serial.log
           test "$QEMU_STATUS" -eq 0 -o "$QEMU_STATUS" -eq 124
           test -s /tmp/centipede-vm-screen.ppm
-          grep -Fq 'CENTIPEDE_KIOSK_READY' /tmp/centipede-vm-serial.log
+          grep -Fq 'CENTIPEDE_DESKTOP_READY' /tmp/centipede-vm-serial.log
       - if: always()
         uses: actions/upload-artifact@v4
         with:

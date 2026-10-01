@@ -18,7 +18,7 @@
     { "id": "docker", "build": "Docker image, HTTP/CSS/health smoke, saved image archive", "publication": "requires platform CI pass" }
   ],
   "limitations": [
-    "The OS images are Debian with the Centipede browser app in kiosk mode, not a custom kernel or privileged host-control system.",
+    "The OS images are Debian with the Centipede browser app in a maximized desktop window, not a custom kernel or privileged host-control system.",
     "Kingdom is not bundled or deployed by this repository.",
     "Mobile WebView builds do not implement remote phone pairing.",
     "Target CI and platform signing have not been verified until successful workflow runs exist."

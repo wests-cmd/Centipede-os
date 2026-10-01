@@ -1,11 +1,11 @@
 [Unit]
-Description=Verify Centipede kiosk desktop readiness
+Description=Verify Centipede desktop readiness
 After=graphical.target
 Wants=graphical.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/libexec/centipede-kiosk-readiness.py
+ExecStart=/usr/local/libexec/centipede-desktop-readiness.py
 TimeoutStartSec=130
 
 [Install]

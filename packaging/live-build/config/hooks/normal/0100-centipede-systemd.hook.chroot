@@ -2,4 +2,4 @@
 set -eu
 systemctl enable centipede-web.service
 systemctl enable lightdm.service
-systemctl enable centipede-kiosk-readiness.service
+systemctl enable centipede-desktop-readiness.service
