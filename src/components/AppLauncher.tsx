@@ -81,13 +81,13 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-9 px-4 py-6 sm:px-6 sm:py-8">
-      <header className="border-b border-slate-800 pb-6">
+      <section aria-labelledby="desktop-heading" className="border-b border-slate-800 pb-6">
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-300">Centipede OS</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">Your desktop</h1>
+        <h1 id="desktop-heading" className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">Your desktop</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
           Everyday apps are ready to use. Centipede tools are below when you need them.
         </p>
-      </header>
+      </section>
 
       <section aria-labelledby="everyday-apps-heading">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
