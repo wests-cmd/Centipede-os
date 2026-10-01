@@ -43,6 +43,7 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
       await expect(iosLike.getByText(/does not connect a remote phone/i)).toBeVisible();
       await expect(androidLike.getByRole('heading', { name: 'Trusted Paired Devices (0)' })).toBeVisible();
       await expect(iosLike.getByRole('heading', { name: 'Trusted Paired Devices (0)' })).toBeVisible();
+      await androidLike.screenshot({ path: 'test-results/15_mobile-local-only-disclosure.png' });
 
       await androidLike.getByRole('button', { name: 'Pair New Companion' }).click();
       const pin = (await androidLike.locator('.font-mono.font-bold.text-cyan-300').textContent())?.trim();
@@ -50,7 +51,8 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
       await androidLike.getByPlaceholder(pin!).fill(pin!);
       await androidLike.getByRole('button', { name: 'Confirm', exact: true }).click();
       await expect(androidLike.getByRole('heading', { name: 'Trusted Paired Devices (1)' })).toBeVisible();
-      await androidLike.screenshot({ path: 'test-results/06_mobile-pair_android-browser.png' });
+      expect(await androidLike.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+      await androidLike.screenshot({ path: 'test-results/06_mobile-pair_android-browser.png', fullPage: true });
 
       // The second mobile-sized client remains unpaired: current native shells do not share
       // pairing state through the server API. Keep this explicit until the feature is wired.
@@ -63,7 +65,8 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
       await iosLike.getByRole('button', { name: 'Confirm', exact: true }).click();
       await expect(iosLike.getByRole('heading', { name: 'Trusted Paired Devices (1)' })).toBeVisible();
       await expect(androidLike.getByRole('heading', { name: 'Trusted Paired Devices (1)' })).toBeVisible();
-      await iosLike.screenshot({ path: 'test-results/07_mobile-pair_ios-browser.png' });
+      expect(await iosLike.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+      await iosLike.screenshot({ path: 'test-results/07_mobile-pair_ios-browser.png', fullPage: true });
     } finally {
       await Promise.allSettled([androidLikeContext.close(), iosLikeContext.close()]);
     }
