@@ -18,6 +18,7 @@ import { SkillsApp } from './components/SkillsApp';
 import { MapsApp } from './components/MapsApp';
 import { Window } from './components/Window';
 import { FirstRunWizard } from './components/FirstRunWizard';
+import { HOME_VISUALS, HomeVisual } from './components/CentipedeWorldVisual';
 import { ApprovalRequest, ConnectionState, RuntimeStatus } from './types';
 import { Brain, Cpu, Map, Server, Shield, Activity, Folder, Terminal as TermIcon, Sliders, Bot, Search, Smartphone, Grid, ShieldAlert } from 'lucide-react';
 
@@ -26,6 +27,23 @@ export const App: React.FC = () => {
   const [status, setStatus] = useState<RuntimeStatus | null>(null);
   const [connectionState, setConnectionState] = useState<ConnectionState>('DISCONNECTED');
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
+  const [homeVisual, setHomeVisual] = useState<HomeVisual>(() => {
+    try {
+      const saved = window.localStorage.getItem('centipede_home_visual');
+      return HOME_VISUALS.some((profile) => profile.id === saved) ? (saved as HomeVisual) : 'centipede-world';
+    } catch {
+      return 'centipede-world';
+    }
+  });
+
+  const changeHomeVisual = (visual: HomeVisual) => {
+    setHomeVisual(visual);
+    try {
+      window.localStorage.setItem('centipede_home_visual', visual);
+    } catch {
+      // The visual remains usable for this session when storage is unavailable.
+    }
+  };
   const [isFirstRunCompleted, setIsFirstRunCompleted] = useState<boolean>(() => {
     if (typeof window !== 'undefined' && window.localStorage) {
       return localStorage.getItem('centipede_first_run_completed') === 'true';
@@ -64,6 +82,7 @@ export const App: React.FC = () => {
             onOpenApp={(id) => setActiveAppId(id)}
             activeAppId={activeAppId}
             pendingApprovalsCount={pendingApprovalsCount}
+            homeVisual={homeVisual}
           />
         );
       case 'agent_control':
@@ -147,7 +166,7 @@ export const App: React.FC = () => {
       case 'settings':
         return (
           <Window id="win_set" title="System Settings" icon={Sliders} isOpen={true} onClose={() => setActiveAppId('launcher')}>
-            <SettingsPanel adapter={kingdomAdapter} />
+          <SettingsPanel adapter={kingdomAdapter} homeVisual={homeVisual} onHomeVisualChange={changeHomeVisual} />
           </Window>
         );
       default:
@@ -156,6 +175,7 @@ export const App: React.FC = () => {
             onOpenApp={(id) => setActiveAppId(id)}
             activeAppId={activeAppId}
             pendingApprovalsCount={pendingApprovalsCount}
+            homeVisual={homeVisual}
           />
         );
     }

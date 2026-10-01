@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { KingdomAdapter } from '../api/kingdomAdapter';
-import { Sliders, CheckCircle2, RotateCcw, HardDrive, Cpu, Sparkles, Check, Server } from 'lucide-react';
+import { Sliders, CheckCircle2, RotateCcw, HardDrive, Cpu, Sparkles, Check, Server, Paintbrush } from 'lucide-react';
 import { platformDetector } from '../platform/detector';
 import { CentipedeProfile } from '../platform/types';
+import { HOME_VISUALS, HomeVisual } from './CentipedeWorldVisual';
 
 interface SettingsPanelProps {
   adapter: KingdomAdapter;
+  homeVisual: HomeVisual;
+  onHomeVisualChange: (visual: HomeVisual) => void;
 }
 
-export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter }) => {
+export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter, homeVisual, onHomeVisualChange }) => {
   const [url, setUrl] = useState(adapter.getBaseUrl());
   const [pollInterval, setPollInterval] = useState('3000');
   const [savedMessage, setSavedMessage] = useState('');
@@ -65,6 +68,47 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter }) => {
           <span>{savedMessage}</span>
         </div>
       )}
+
+      <section aria-labelledby="home-visual-heading" className="rounded-2xl border border-slate-700 bg-slate-800/60 p-5 shadow-xl sm:p-6">
+        <div className="mb-4 flex items-center gap-3">
+          <Paintbrush aria-hidden="true" className="h-6 w-6 text-cyan-300" />
+          <div>
+            <h3 id="home-visual-heading" className="text-lg font-bold text-white">Home screen visual</h3>
+            <p className="text-xs text-slate-400">Choose the scene shown on Home. Your choice stays on this device.</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {HOME_VISUALS.map((profile) => {
+            const selected = homeVisual === profile.id;
+            const swatch = {
+              'centipede-world': 'from-blue-950 via-cyan-900 to-orange-500',
+              'neon-dragon': 'from-fuchsia-950 via-purple-800 to-pink-400',
+              'space-nebula': 'from-indigo-950 via-violet-700 to-cyan-400',
+              'abstract-orb': 'from-slate-950 via-blue-700 to-sky-300',
+            }[profile.id];
+            return (
+              <button
+                key={profile.id}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => onHomeVisualChange(profile.id)}
+                className={`group overflow-hidden rounded-xl border text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 ${selected ? 'border-cyan-300 bg-cyan-950/40 ring-1 ring-cyan-300/30' : 'border-slate-700 bg-slate-900/70 hover:border-slate-500'}`}
+              >
+                <span aria-hidden="true" className={`relative block h-20 bg-gradient-to-br ${swatch}`}>
+                  <span className="absolute left-1/2 top-1/2 h-11 w-11 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/50 bg-white/10 shadow-[0_0_28px_rgba(103,232,249,.45)]" />
+                  <span className="absolute left-1/2 top-1/2 h-5 w-16 -translate-x-1/2 -translate-y-1/2 rotate-[-20deg] rounded-[50%] border border-white/70" />
+                  {selected && <span className="absolute right-2 top-2 rounded-full bg-slate-950/70 px-2 py-0.5 text-[10px] font-medium text-cyan-100">Selected</span>}
+                </span>
+                <span className="block p-3">
+                  <span className="block text-xs font-semibold text-white">{profile.name}</span>
+                  <span className="mt-1 block text-[11px] leading-4 text-slate-400">{profile.description}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-3 text-[11px] text-slate-500">Animation pauses when the scene is off screen, the app is hidden, or reduced motion is enabled.</p>
+      </section>
 
       {/* Centipede OS Profile Selector & Hardware Auto-Detector */}
       <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 space-y-4 shadow-xl">

@@ -19,11 +19,13 @@ import {
   Cpu,
   Video,
 } from 'lucide-react';
+import { CentipedeWorldVisual, HomeVisual } from './CentipedeWorldVisual';
 
 interface AppLauncherProps {
   onOpenApp: (appId: string) => void;
   activeAppId: string;
   pendingApprovalsCount: number;
+  homeVisual: HomeVisual;
 }
 
 const everydayApps = [
@@ -61,6 +63,7 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
   onOpenApp,
   activeAppId,
   pendingApprovalsCount,
+  homeVisual,
 }) => {
   const apps = [
     { id: 'files', name: 'Example files', icon: Folder, description: 'Browse the sample files included with this demo.' /* REALITY-LINT-ALLOW: reason = "Truthful disclosure that the Files panel only shows bundled examples" */ },
@@ -80,13 +83,31 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
   ];
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-9 px-4 py-6 sm:px-6 sm:py-8">
-      <section aria-labelledby="desktop-heading" className="border-b border-slate-800 pb-6">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-300">Centipede OS</p>
-        <h1 id="desktop-heading" className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">Your desktop</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-          Everyday apps come with the Debian desktop. Centipede tools are below when you need them.
-        </p>
+    <div className="mx-auto w-full max-w-6xl space-y-8 px-3 py-4 sm:px-6 sm:py-7">
+      <section aria-labelledby="desktop-heading" className="relative isolate h-[19rem] overflow-hidden rounded-2xl border border-cyan-950/70 bg-slate-950 shadow-2xl shadow-cyan-950/20 sm:h-[23rem]">
+        <CentipedeWorldVisual visual={homeVisual} quality="BALANCED" className="absolute inset-0" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-slate-950/5" />
+        <div className="relative z-10 flex h-full max-w-xl flex-col items-start justify-center px-6 py-8 sm:px-10">
+          <p className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200">
+            <span className="h-px w-7 bg-cyan-300/80" /> A more capable everyday desktop
+          </p>
+          <h1 id="desktop-heading" className="max-w-lg text-3xl font-semibold leading-tight tracking-tight text-white sm:text-5xl">
+            Your day, with a little more orbit.
+          </h1>
+          <p className="mt-4 max-w-md text-sm leading-6 text-slate-300 sm:text-base">
+            Everyday apps are close at hand. Centipede tools are here when you need a helping hand.
+          </p>
+          <button
+            type="button"
+            onClick={() => onOpenApp('ai')}
+            className="pointer-events-auto mt-6 rounded-lg border border-cyan-300/40 bg-cyan-400/10 px-4 py-2.5 text-sm font-medium text-cyan-100 shadow-lg shadow-cyan-950/30 transition hover:border-cyan-200/70 hover:bg-cyan-300/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200"
+          >
+            Open Centipede assistant
+          </button>
+        </div>
+        <div className="absolute bottom-4 right-4 z-10 hidden rounded-full border border-white/10 bg-slate-950/55 px-3 py-1.5 text-[11px] text-slate-300 backdrop-blur sm:block">
+          {homeVisual === 'centipede-world' ? 'Centipede + World' : homeVisual.replace('-', ' ')}
+        </div>
       </section>
 
       <section aria-labelledby="everyday-apps-heading">
