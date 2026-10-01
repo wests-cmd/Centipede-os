@@ -50,6 +50,7 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
       await androidLike.getByPlaceholder(pin!).fill(pin!);
       await androidLike.getByRole('button', { name: 'Confirm', exact: true }).click();
       await expect(androidLike.getByRole('heading', { name: 'Trusted Paired Devices (1)' })).toBeVisible();
+      await androidLike.screenshot({ path: 'test-results/06_mobile-pair_android-browser.png' });
 
       // The second mobile-sized client remains unpaired: current native shells do not share
       // pairing state through the server API. Keep this explicit until the feature is wired.
@@ -62,6 +63,7 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
       await iosLike.getByRole('button', { name: 'Confirm', exact: true }).click();
       await expect(iosLike.getByRole('heading', { name: 'Trusted Paired Devices (1)' })).toBeVisible();
       await expect(androidLike.getByRole('heading', { name: 'Trusted Paired Devices (1)' })).toBeVisible();
+      await iosLike.screenshot({ path: 'test-results/07_mobile-pair_ios-browser.png' });
     } finally {
       await Promise.allSettled([androidLikeContext.close(), iosLikeContext.close()]);
     }
