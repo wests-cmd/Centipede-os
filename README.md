@@ -2,17 +2,21 @@
 
 Centipede OS is a Debian live desktop with the Centipede web app. Kingdom is a separate service; it is not included in the download.
 
-## Try Centipede on another PC
+## Download and try Centipede
 
-<p><a href="https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.0/centipede-os-1.0.0-x86_64.iso"><strong>⬇️ Download Centipede OS v1.0.0 (ISO)</strong></a></p>
+**New to this?** Download the ISO, write it to an empty USB drive, and start the other computer from that USB. The live session does not install Centipede or replace Windows.
 
-This starts a **temporary live session from a USB drive**. It does not install Centipede onto the PC’s internal drive. Anything saved in the live session may be lost when you shut down. Do not use this as a replacement for Windows or another installed system.
+<p><a href="https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.0/centipede-os-1.0.0-x86_64.iso"><strong>⬇️ Download Centipede OS v1.0.0 for USB</strong></a></p>
+
+Need a different format or want to see every available file? Visit the [Centipede OS v1.0.0 downloads page](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0).
+
+**Before you start:** The USB needs at least 8 GB free. Writing the image erases the USB. Files saved during a live session may be lost when you shut down. Keep the PC’s internal drive connected and do not choose an install or erase option.
 
 ### Make the USB (Windows, Mac, or Linux)
 
-You need an empty USB drive with at least 8 GB free; 16 GB is a comfortable choice. **Flashing erases everything on the USB drive.** Copy anything you need from it first.
+Use an empty USB drive with at least 8 GB free (16 GB is a comfortable choice). Copy anything you need from it first; writing the image erases the USB.
 
-1. Click **Download Centipede OS** above and save the `.iso` file.
+1. Click **Download Centipede OS v1.0.0 for USB** above and save the `.iso` file.
 2. Download and open [balenaEtcher](https://etcher.balena.io/). It is a free USB writing app; Debian also recommends it for writing live images.
 3. In Etcher, click **Flash from file** and choose the Centipede `.iso` you downloaded.
 4. Click **Select target**. Choose your USB drive by its name and size. Check carefully that it is the USB drive, not another drive.
@@ -29,11 +33,11 @@ You need an empty USB drive with at least 8 GB free; 16 GB is a comfortable choi
 
 If the PC does not show a boot menu, restart and try the other common key or look up “boot menu” plus the PC maker and model. Do not change Secure Boot or firmware settings as a first troubleshooting step.
 
-> **Important:** The published v1.0.0 image is the verified stable download. The refreshed desktop and free everyday app set are merged into `main` but have not yet been published as a new release. The stable download link above still serves v1.0.0.
+> **What you download:** v1.0.0 is the current published stable image. It contains the original XFCE/Chromium desktop. The refreshed desktop and everyday app set have not yet been published in a new release.
 
-### Desktop preview (merged, not yet in the download)
+### Preview of the upcoming desktop
 
-![Centipede desktop preview. The public v1.0.0 download still contains the older desktop.](docs/images/centipede-desktop-preview.png)
+![Centipede desktop preview. This refreshed design is not in the v1.0.0 download.](docs/images/centipede-desktop-preview.png)
 
 ## What is included
 
@@ -50,6 +54,10 @@ The interface is a client for Kingdom, a separately operated service. Centipede 
 - Docker contains the Centipede web app, not Kingdom. Running it requires Docker and does not provide the USB desktop experience.
 
 See the [ship reality matrix](docs/SHIP_REALITY_MATRIX.md), [platform build guide](docs/PLATFORM_BUILD_GUIDE.md), and [release certification](docs/release/RELEASE_CERTIFICATION.md) for validation evidence and limits.
+
+## Discord community
+
+[Join the Centipede / Kingdom Discord](https://discord.gg/4b8f9YS2Wp) for community discussion and help. The invite currently points to **Kingdom's server**.
 
 ## Running the web app (developers)
 
