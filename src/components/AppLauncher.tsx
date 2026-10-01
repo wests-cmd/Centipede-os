@@ -85,7 +85,7 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-300">Centipede OS</p>
         <h1 id="desktop-heading" className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">Your desktop</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-          Everyday apps are ready to use. Centipede tools are below when you need them.
+          Everyday apps come with the Debian desktop. Centipede tools are below when you need them.
         </p>
       </section>
 
@@ -93,9 +93,9 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
         <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
           <div>
             <h2 id="everyday-apps-heading" className="text-lg font-semibold text-white">Everyday apps</h2>
-            <p className="mt-1 text-sm text-slate-400">Free apps, included with Centipede OS.</p>
+            <p className="mt-1 text-sm text-slate-400">Included in the Debian desktop; no subscriptions required.</p>
           </div>
-          <p className="text-xs text-slate-500">Open the Applications menu in the top panel.</p>
+          <p className="text-xs text-slate-500">On Debian, open the Applications menu in the top panel.</p>
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
