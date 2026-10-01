@@ -269,7 +269,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         {sidebarApps.map((item) => {
           const Icon = item.icon;
           const isActive = activeAppId === item.id;
-          const mobileApp = ['launcher', 'files', 'tasks', 'search', 'settings'].includes(item.id);
+          const mobileApp = ['launcher', 'mobile', 'files', 'tasks', 'search', 'settings'].includes(item.id);
           return (
             <button
               key={item.id}
