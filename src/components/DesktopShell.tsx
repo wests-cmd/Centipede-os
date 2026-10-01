@@ -274,7 +274,6 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
             <button
               key={item.id}
               onClick={() => setActiveAppId(item.id)}
-              aria-label={item.name}
               title={item.name}
               className={`${mobileApp ? 'flex' : 'hidden sm:flex'} group relative min-w-12 shrink-0 flex-col items-center justify-center rounded-lg px-2 py-1 transition-colors sm:min-w-0 sm:rounded-xl sm:px-3 ${
                 isActive
