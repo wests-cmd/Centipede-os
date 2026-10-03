@@ -129,3 +129,30 @@ export function syncSha256(input: string | Uint8Array): string {
 
   return hex;
 }
+
+/**
+ * Universal CSPRNG hex string generator.
+ * Fails closed if cryptographically secure random number generation is unsupported.
+ */
+export function generateSecureRandomHex(bytes = 16): string {
+  if (typeof globalThis !== 'undefined' && globalThis.crypto && typeof globalThis.crypto.getRandomValues === 'function') {
+    const array = new Uint8Array(bytes);
+    globalThis.crypto.getRandomValues(array);
+    return Array.from(array, (b) => b.toString(16).padStart(2, '0')).join('');
+  }
+  throw new Error('CSPRNG_UNAVAILABLE: globalThis.crypto.getRandomValues is required for secure random generation.');
+}
+
+/**
+ * Universal CSPRNG 6-digit numeric PIN generator.
+ * Fails closed if cryptographically secure random number generation is unsupported.
+ */
+export function generateSecurePin(): string {
+  if (typeof globalThis !== 'undefined' && globalThis.crypto && typeof globalThis.crypto.getRandomValues === 'function') {
+    const array = new Uint32Array(1);
+    globalThis.crypto.getRandomValues(array);
+    const pin = (array[0] % 900000) + 100000;
+    return pin.toString();
+  }
+  throw new Error('CSPRNG_UNAVAILABLE: globalThis.crypto.getRandomValues is required for secure PIN generation.');
+}
