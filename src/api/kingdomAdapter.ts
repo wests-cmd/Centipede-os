@@ -80,6 +80,7 @@ export class KingdomAdapter {
   private lastKnownStatus: RuntimeStatus | null = null;
   private lastKnownKingdomVersion: string | null = null;
   private discoveredCapabilities: Record<string, boolean> = {};
+  private endpointRegexCache: Map<string, RegExp> = new Map();
 
   constructor(baseUrl: string = 'http://localhost:8000') {
     this.baseUrl = baseUrl.replace(/\/$/, '');
@@ -284,10 +285,16 @@ export class KingdomAdapter {
       const cleanPath = path.split('?')[0];
       const matchingSpecKey = Object.keys(KINGDOM_CONTRACT_SPEC.endpoints).find((key) => {
         const spec = KINGDOM_CONTRACT_SPEC.endpoints[key];
-        const specPathRegex = new RegExp('^' + spec.path.replace(/\{[^}]+\}/g, '[^/]+') + '$');
         const specMethod = spec.method || 'GET';
         const reqMethod = options.method || 'GET';
-        return specMethod === reqMethod && specPathRegex.test(cleanPath);
+        if (specMethod !== reqMethod) return false;
+
+        let specPathRegex = this.endpointRegexCache.get(key);
+        if (!specPathRegex) {
+          specPathRegex = new RegExp('^' + spec.path.replace(/\{[^}]+\}/g, '[^/]+') + '$');
+          this.endpointRegexCache.set(key, specPathRegex);
+        }
+        return specPathRegex.test(cleanPath);
       });
 
       if (matchingSpecKey && json && typeof json === 'object') {

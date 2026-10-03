@@ -201,22 +201,29 @@ export const CentipedeWorldVisual: React.FC<CentipedeWorldVisualProps> = ({
     const drawCentipede = (cx: number, cy: number, radius: number, time: number, dragon = false) => {
       const rx = radius * (dragon ? 1.32 : 1.2);
       const ry = radius * (dragon ? 0.7 : 0.78);
-      const points = Array.from({ length: segments }, (_, i) => {
+      const points: { theta: number; x: number; y: number; scale: number; index: number }[] = [];
+      const back: typeof points = [];
+      const front: typeof points = [];
+
+      for (let i = 0; i < segments; i++) {
         const progress = i / segments;
         const theta = angle + progress * Math.PI * 2;
         const wobble = dragon ? Math.sin(progress * 14 + time * 0.001) * 7 : 0;
-        return {
+        const pt = {
           theta,
           x: cx + Math.cos(theta) * (rx + wobble),
           y: cy + Math.sin(theta) * (ry + wobble * 0.35),
           scale: 0.68 + (Math.sin(theta) + 1) * 0.16,
           index: i,
         };
-      });
+        points.push(pt);
+        if (pt.y < cy) {
+          back.push(pt);
+        } else {
+          front.push(pt);
+        }
+      }
 
-      // Back arc is drawn beneath the planet to make the body read as a full orbit.
-      const back = points.filter((point) => point.y < cy);
-      const front = points.filter((point) => point.y >= cy);
       const drawPart = (part: typeof points) => {
         if (part.length > 1) {
           ctx.beginPath();
