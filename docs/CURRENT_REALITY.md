@@ -1,5 +1,7 @@
 # Centipede OS release reality
 
+> Current release gates and the Q-Man daily-driver completion checklist are maintained in [SHIP_REALITY_MATRIX.md](SHIP_REALITY_MATRIX.md). Historical readiness documents may contain outdated completion claims and do not override that matrix or current code.
+
 **Core version:** `package.json` (`1.0.0`)
 **Public stable release:** [`v1.0.0`](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0)
 **Desktop refresh merge:** `f17a9365f223572dc0ea411dfbfdf214eee3ed5a`
@@ -33,3 +35,5 @@ The branch workflow artifact for ISO/USB/VM was about 3.35 GB combined. Its thre
 The published and candidate images are live systems. They boot from USB and run in memory; they do not install to an internal drive, provide disk partitioning, or promise persistent files across restarts. The current installation guide explains this before the writing steps. The image has a limited firmware set and is not verified on every PC model. It does not install Kingdom or grant Centipede control of the host PC.
 
 The browser companion now creates and confirms short-lived phone pairing codes through a shared server process. The production launcher and Docker image serve the API and web app together. Pairing is plain HTTP and must stay on a private, trusted network; mobile task and approval workflows are not implemented. Android/iOS projects remain WebView shells and do not provide signed phone distribution. The Kingdom client only reports a verified connection when configured against an actual external endpoint; this CI did not test a deployed Kingdom service.
+
+The Kingdom Update Center previously displayed an invented patch version and release notes, then displayed success or rollback states without downloading or applying a package. The current implementation removes those fake controls and reports the actual connection/version state, while stating that Centipede does not install or roll back Kingdom software. No Centipede OS installer, system updater, or boot recovery mode is currently provided.

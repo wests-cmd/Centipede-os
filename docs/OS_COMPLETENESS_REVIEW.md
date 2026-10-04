@@ -1,5 +1,7 @@
 # CENTIPEDE OS TRUTH CLASSIFICATION & OS COMPLETENESS REVIEW
 
+> **Historical audit; superseded for current release status.** Some completion and test claims below are not supported by current release evidence. Use [SHIP_REALITY_MATRIX.md](SHIP_REALITY_MATRIX.md) as the current checklist and verify each claim against current code and release artifacts before treating it as complete.
+
 ## 1. Truth Classification Audit of All Subsystems
 
 Every subsystem component in Centipede OS has been audited against source code and test execution evidence, classified into one of the explicit truth categories:

@@ -243,7 +243,7 @@ export const KingdomStatusPanel: React.FC<KingdomStatusPanelProps> = ({
       </div>
 
       {/* Kingdom Update Center Component */}
-      <KingdomUpdateCenter adapter={adapter} runtimeInfo={runtimeInfo} onRequestCreated={onRequestCreated} />
+      <KingdomUpdateCenter runtimeInfo={runtimeInfo} />
 
       {/* Swarm Knights List */}
       <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6">
