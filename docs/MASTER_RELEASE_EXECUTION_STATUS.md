@@ -1,6 +1,6 @@
 # Centipede OS master release execution status
 
-This status page maps the supplied **Master Release Execution Checklist** to the current repository. It is an audit snapshot, not evidence that planned capabilities work. `PROVEN` requires reproducible behavior and release evidence; code presence alone is insufficient. The checklist is much broader than the current desktop/live-media product.
+This status page maps the versioned [Master Release Execution Checklist](MASTER_RELEASE_EXECUTION_CHECKLIST.md) to the current repository. It is an audit snapshot, not evidence that planned capabilities work. `PROVEN` requires reproducible behavior and release evidence; code presence alone is insufficient. The checklist is much broader than the current desktop/live-media product.
 
 **Overall release status: NOT PROVEN against the master checklist.** The published v1.0.0 artifacts and their narrower gates are tracked in [SHIP_REALITY_MATRIX.md](SHIP_REALITY_MATRIX.md). This page records the expanded product requirements and blockers.
 
