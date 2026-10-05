@@ -70,6 +70,8 @@ export class TargetUpdateChecker {
     currentArchitecture: string,
     providedSha256: string
   ): CompatibilityGateResult {
+    // Metadata preflight only: providedSha256 must be computed from the downloaded bytes by the caller.
+    // This check does not authenticate a manifest or verify a release signature.
     if (!targetMeta || typeof targetMeta !== 'object'
       || typeof currentKingdomProtocol !== 'string'
       || typeof currentArchitecture !== 'string'
@@ -89,6 +91,8 @@ export class TargetUpdateChecker {
       || !currentArtifactCore || !currentCore || !minimumCore
       || compareVersions(currentArtifactCore, currentCore) !== 0
       || !isSafeArtifactFilename(targetMeta.artifact)
+      || typeof targetMeta.downloadLocation !== 'string'
+      || targetMeta.downloadLocation !== `https://github.com/wests-cmd/Centipede-os/releases/download/v${latestArtifact.coreVersion}/${targetMeta.artifact}`
       || typeof targetMeta.sha256 !== 'string'
       || !SHA256_PATTERN.test(targetMeta.sha256)
       || !SHA256_PATTERN.test(providedSha256)

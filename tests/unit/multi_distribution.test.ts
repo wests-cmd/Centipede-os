@@ -132,6 +132,7 @@ describe('Centipede release target contract', () => {
 
     expect(TargetUpdateChecker.verifyCompatibilityGate(metadata, '1.0.0', 'v1.0+', 'x86_64', sha).allowed).toBe(true);
     expect(TargetUpdateChecker.verifyCompatibilityGate({ ...metadata, sha256: 'bad' }, '1.0.0', 'v1.0+', 'x86_64', 'bad').allowed).toBe(false);
+    expect(TargetUpdateChecker.verifyCompatibilityGate({ ...metadata, downloadLocation: 'https://attacker.example/payload.iso' }, '1.0.0', 'v1.0+', 'x86_64', sha).allowed).toBe(false);
     expect(TargetUpdateChecker.verifyCompatibilityGate(metadata, '1.0.0', 'v2.0', 'x86_64', sha).allowed).toBe(false);
     expect(TargetUpdateChecker.verifyCompatibilityGate({ ...metadata, latestRevision: 1, latestArtifactVersion: '1.0.0+iso.1' }, '1.0.0', 'v1.0+', 'x86_64', sha).allowed).toBe(false);
     expect(TargetUpdateChecker.verifyCompatibilityGate({ ...metadata, architecture: 'any' }, '1.0.0', 'v1.0+', 'arm64', sha).allowed).toBe(true);
