@@ -1,6 +1,6 @@
 # Centipede OS release reality
 
-> Current release gates and the Q-Man daily-driver completion checklist are maintained in [SHIP_REALITY_MATRIX.md](SHIP_REALITY_MATRIX.md). Historical readiness documents may contain outdated completion claims and do not override that matrix or current code.
+> Current release gates are maintained in [SHIP_REALITY_MATRIX.md](SHIP_REALITY_MATRIX.md); the supplied expanded product checklist is tracked in [MASTER_RELEASE_EXECUTION_STATUS.md](MASTER_RELEASE_EXECUTION_STATUS.md). Historical readiness documents may contain outdated completion claims and do not override those records or current code.
 
 **Core version:** `package.json` (`1.0.0`)
 **Public stable release:** [`v1.0.0`](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0)
@@ -39,3 +39,5 @@ The browser companion now creates and confirms short-lived phone pairing codes t
 The Kingdom Update Center previously displayed an invented patch version and release notes, then displayed success or rollback states without downloading or applying a package. The current implementation removes those fake controls and reports the actual connection/version state, while stating that Centipede does not install or roll back Kingdom software. No Centipede OS installer, system updater, or boot recovery mode is currently provided.
 
 Runtime service telemetry no longer claims fixed Centipede/Kingdom/model health or a fabricated 2 ms latency. Services report `UNKNOWN` until an actual health probe supplies evidence; this does not replace live Kingdom adapter connection state.
+
+Browser storage quota is not host disk capacity. Runtime detection no longer manufactures disk pressure, per-directory usage, or an emergency-storage signal; Centipede therefore has no verified host-disk preflight in this app build. Profile suggestions use available CPU/memory reports and make their heuristic limits explicit instead of filling missing values with a guessed 4-core/8-GB/128-GB machine.

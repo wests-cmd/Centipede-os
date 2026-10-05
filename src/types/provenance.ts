@@ -1,6 +1,7 @@
 export type DataProvenance =
   | 'LIVE'
   | 'LOCAL_DETECTED'
+  | 'BROWSER_QUOTA'
   | 'REMOTE_REPORTED'
   | 'PERSISTED'
   | 'CACHED'

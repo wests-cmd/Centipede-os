@@ -132,7 +132,7 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
                 <Globe className="w-6 h-6 text-cyan-400" />
                 <div>
                   <div className="text-xs font-bold text-white">Platform OS</div>
-                  <div className="text-xs text-slate-400">{runtimeInfo?.platform.os || 'Linux Workstation'} ({runtimeInfo?.platform.architecture})</div>
+                  <div className="text-xs text-slate-400">{runtimeInfo?.platform.os || 'Unknown'} ({runtimeInfo?.platform.architecture || 'Unknown'})</div>
                 </div>
               </div>
 
@@ -140,7 +140,9 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
                 <Cpu className="w-6 h-6 text-indigo-400" />
                 <div>
                   <div className="text-xs font-bold text-white">Browser-Reported CPU & Memory</div>
-                  <div className="text-xs text-slate-400">{runtimeInfo?.hardware.cpuCores || 4} logical cores • approximately {Math.round((runtimeInfo?.hardware.totalMemoryMb || 8192) / 1024)} GB RAM</div>
+                  <div className="text-xs text-slate-400">
+                    {runtimeInfo?.hardware.cpuCores ?? 'Unknown'} reported logical cores • {runtimeInfo?.hardware.totalMemoryMb ? `approximately ${Math.round(runtimeInfo.hardware.totalMemoryMb / 1024)} GB RAM` : 'memory unavailable'}
+                  </div>
                 </div>
               </div>
 
@@ -148,7 +150,11 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
                 <HardDrive className="w-6 h-6 text-emerald-400" />
                 <div>
                   <div className="text-xs font-bold text-white">Browser Storage Estimate</div>
-                  <div className="text-xs text-slate-400">Approximately {runtimeInfo?.hardware.storageAvailableGb || 64} GB available to this browser origin</div>
+                  <div className="text-xs text-slate-400">
+                    {runtimeInfo?.hardware.storageAvailableGb !== null && runtimeInfo?.hardware.storageAvailableGb !== undefined
+                      ? `Approximately ${runtimeInfo.hardware.storageAvailableGb} GB available to this browser origin; this is not host disk space.`
+                      : 'Browser storage estimate unavailable; host disk space is not measured.'}
+                  </div>
                 </div>
               </div>
 

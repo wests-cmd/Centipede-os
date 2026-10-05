@@ -9,24 +9,6 @@ export interface ProfileRecommendation {
   hardwareSummary: string;
 }
 
-export type StoragePressureState = 'NORMAL' | 'INFORMATIONAL_WARNING' | 'WARNING' | 'CRITICAL' | 'EMERGENCY';
-
-export interface StorageBreakdownMetrics {
-  diskTotalGb: number;
-  diskUsedGb: number;
-  diskFreeGb: number;
-  freeSpacePercent: number;
-  systemUsedGb: number;
-  kingdomUsedGb: number;
-  dockerUsedGb: number;
-  vmUsedGb: number;
-  modelsUsedGb: number;
-  skillsUsedGb: number;
-  logsUsedGb: number;
-  userUsedGb: number;
-  storagePressure: StoragePressureState;
-}
-
 import { DataProvenance } from '../types/provenance';
 
 export interface HardwareInfo {
@@ -36,14 +18,15 @@ export interface HardwareInfo {
   totalMemoryMbProvenance: DataProvenance;
   availableMemoryMb: number | null;
   availableMemoryMbProvenance: DataProvenance;
+  /** Browser-origin quota/estimate when available; this is not physical disk capacity. */
   storageTotalGb: number | null;
   storageTotalGbProvenance: DataProvenance;
+  /** Remaining browser-origin quota when available; this is not free host disk space. */
   storageAvailableGb: number | null;
   storageAvailableGbProvenance: DataProvenance;
   gpuAvailable: boolean;
   gpuProvenance: DataProvenance;
   gpuName?: string;
-  storageBreakdown?: StorageBreakdownMetrics;
 }
 
 export interface EnvironmentInfo {
