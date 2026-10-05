@@ -1,7 +1,7 @@
 import { join, normalize } from 'node:path';
 import { networkInterfaces } from 'node:os';
 import { apiRouter, ApiRequest } from './routes';
-import { isLoopbackPeerAddress } from './requestTrust';
+import { isLocalAdminRequest } from './requestTrust';
 
 const root = process.cwd();
 const webRoot = join(root, 'dist');
@@ -47,7 +47,11 @@ const serverOptions: Omit<Parameters<typeof Bun.serve>[0], 'hostname'> = {
         method: request.method as ApiRequest['method'],
         headers: Object.fromEntries(request.headers.entries()),
         body,
-        isLocalAdmin: isLoopbackPeerAddress(server.requestIP(request)?.address),
+        isLocalAdmin: isLocalAdminRequest(
+          server.requestIP(request)?.address,
+          Object.fromEntries(request.headers.entries()),
+          url.protocol === 'https:' ? 'https' : 'http',
+        ),
       };
       const address = server.requestIP(request)?.address || 'unknown';
       const limitedRoute = url.pathname === '/api/v1/mobile/pair/confirm' || url.pathname === '/api/v1/mobile/pair/initiate';
@@ -81,7 +85,7 @@ const servers = hostnames.map((hostname) => Bun.serve({ ...serverOptions, hostna
 
 console.log(`[Centipede] Web app and pairing API listening at ${hostnames.map((hostname) => `http://${hostname}:${port}`).join(', ')}`);
 console.log(`[Centipede] Phone address for this network: ${publicUrl}`);
-console.log('[Centipede] Device administration is restricted to loopback connections.');
+console.log('[Centipede] Device administration requires a loopback peer and a localhost request origin.');
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.on(signal, () => {

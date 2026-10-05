@@ -42,7 +42,7 @@ This status page maps the versioned [Master Release Execution Checklist](MASTER_
 | 33 | Mobile companion | **PARTIAL — signed distribution BLOCKED** | Android/iOS project references and pairing shells exist. Production signing, store compliance, and complete companion workflows are not verified. |
 | 34 | Resource modes | **PARTIAL** | Some low-resource choices exist; measured PERFORMANCE/BALANCED/LOW POWER/ULTRALIGHT behavior and the <5 GB target need artifact evidence. |
 | 35 | UI | **PARTIAL** | Centipede desktop shell and application areas exist; checklist navigation, modes, health/repair/update/recovery areas remain incomplete. |
-| 36 | Kingdom security invariants | **PARTIAL** | Pair-code creation and device administration now require a server-confirmed loopback peer; request headers do not grant local authority. A paired mobile session can revoke only itself. The Docker/reverse-proxy local-admin path is not certified. Camera, printer, plugin, remote-node, and full revocation invariants remain open. |
+| 36 | Kingdom security invariants | **PARTIAL** | Pair-code creation and device administration require a server-confirmed loopback peer and localhost request host; browser Origin and Fetch Metadata checks reject cross-origin requests. Headers cannot grant authority. A paired mobile session can revoke only itself. Docker/reverse-proxy local administration is not certified. Camera, printer, plugin, remote-node, and full revocation invariants remain open. |
 | 37 | Doomsday testing | **PARTIAL** | Unit/adversarial tests exist. The specified update/recovery, device, camera, microphone, printer, and accessibility attack/failure suite has not run. |
 | 38 | Accessibility test personas | **MISSING** | Unit tests cover preference presets, persistence, and style application; no real screen-reader, keyboard-only, voice-only, low-vision, no-audio, or recovery workflow personas have been tested. |
 | 39 | Repository consolidation | **PARTIAL** | Current reality docs and one release target gate are identified; stale historical claims remain and need systematic review. |
@@ -59,6 +59,7 @@ This status page maps the versioned [Master Release Execution Checklist](MASTER_
 - Added a read-only Centipede Doctor page with truthful `PASS`, `WARNING`, `FAIL`, and `NOT CONFIGURED` checks. It performs a read-only Kingdom model catalog request and does not run repairs.
 - Hardened update metadata checks against downgrade/replay and malformed release entries; this does not provide an updater.
 - Removed header-based local-admin inference from the pairing API. Pair codes are created only from a server-confirmed loopback peer, and paired devices can revoke only their own session.
+- Added localhost host and browser-origin checks as defense in depth against cross-origin local API requests and DNS rebinding; the transport peer remains mandatory.
 
 ## Immediate release blockers
 
