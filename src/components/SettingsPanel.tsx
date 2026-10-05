@@ -4,6 +4,7 @@ import { Sliders, CheckCircle2, RotateCcw, HardDrive, Cpu, Sparkles, Check, Serv
 import { platformDetector } from '../platform/detector';
 import { CentipedeProfile, ProfileRecommendation } from '../platform/types';
 import { HOME_VISUALS, HomeVisual } from './CentipedeWorldVisual';
+import { AccessibilitySettings } from './AccessibilitySettings';
 
 interface SettingsPanelProps {
   adapter: KingdomAdapter;
@@ -47,7 +48,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter, homeVisua
         <Sliders className="w-7 h-7 text-slate-400" />
         <div>
           <h2 className="text-2xl font-bold text-white">Desktop App Settings</h2>
-          <p className="text-slate-400 text-sm">The Kingdom API endpoint is configurable here. Profile and storage displays are illustrative, not host system controls.</p>
+          <p className="text-slate-400 text-sm">Configure this browser client and choose accessibility preferences for this browser.</p>
         </div>
       </div>
 
@@ -57,6 +58,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter, homeVisua
           <span>{savedMessage}</span>
         </div>
       )}
+
+      <AccessibilitySettings />
 
       <section aria-labelledby="home-visual-heading" className="rounded-2xl border border-slate-700 bg-slate-800/60 p-5 shadow-xl sm:p-6">
         <div className="mb-4 flex items-center gap-3">

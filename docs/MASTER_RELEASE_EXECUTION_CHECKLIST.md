@@ -914,6 +914,10 @@ Do not invent precise measurements from an image when they cannot be reliably de
 
 ---
 
+## Supplemental accessibility and two-way Segmentor communication checklist
+
+The numbered requirements 520–630 are maintained in [ACCESSIBILITY_EXPANSION_CHECKLIST.md](ACCESSIBILITY_EXPANSION_CHECKLIST.md) and are part of this release checklist. They extend the accessibility, multimodal, speech, persistence, and test-persona requirements below.
+
 # PHASE 21 — DRAWING → USABLE ARTIFACT
 
 Support:

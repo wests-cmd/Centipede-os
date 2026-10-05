@@ -31,20 +31,20 @@ This status page maps the versioned [Master Release Execution Checklist](MASTER_
 | 22 | Object to CAD | **MISSING** | No multi-view measured object reconstruction workflow. |
 | 23 | CAD copilot | **MISSING** | No editable CAD understanding and parametric editing workflow. |
 | 24 | CAD/print validation | **MISSING** | No geometry/slicing/G-code validation or authorized printer execution pipeline. |
-| 25 | Accessibility | **PARTIAL** | Some accessible patterns exist; no full accessibility settings/profile set or workflow-level proof. |
-| 26 | Visual accessibility | **PARTIAL** | Semantic/keyboard/reduced-motion support is present in places; screen-reader, scaling, contrast, and no-color-only coverage require audit. |
+| 25 | Accessibility | **PARTIAL** | Settings now has browser-persisted starting profiles, display/input comfort controls, speech rate, and an optional first-run link. Full requested profiles and workflow-level proof remain open. |
+| 26 | Visual accessibility | **PARTIAL** | Added text scaling, high contrast, reduced motion/transparency, larger targets, and a global visible focus ring. Full screen-reader support, magnifier, accessible light theme, color-blind options, and full no-color-only audit remain open. |
 | 27 | Hearing accessibility | **PARTIAL** | Visual status/warnings exist; live captions and end-to-end no-audio coverage are not proven. |
 | 28 | Mobility/dexterity accessibility | **PARTIAL** | Keyboard-operable controls exist in places; voice/switch-control and full keyboard-only workflows are not proven. |
 | 29 | Cognitive/reading accessibility | **PARTIAL** | Some onboarding/explanation UI exists; simple-language and resume/focus modes are not complete. |
-| 30 | Speech accessibility | **PARTIAL** | Text interactions provide an alternative to voice; adjustable recognition and the required speech controls are not proven. |
-| 31 | Accessibility persistence | **MISSING** | Persistence through update, repair, rollback, reboot, and recovery is not established. |
+| 30 | Speech accessibility | **PARTIAL** | Text remains available, and optional browser speech output has configurable rate/voice/pitch/volume controls. No speech recognition, adaptive timing, vocabulary, or complete text alternative coverage. |
+| 31 | Accessibility persistence | **PARTIAL** | Preferences persist in browser local storage and reapply when the app opens. Preservation through system update, repair, rollback, migration, install, login, and recovery is not implemented. |
 | 32 | Multi-device/multi-machine | **PARTIAL** | Phone pairing and companion/API paths exist; trusted device presence, remote task recovery, and quarantine workflows are not proven. |
 | 33 | Mobile companion | **PARTIAL — signed distribution BLOCKED** | Android/iOS project references and pairing shells exist. Production signing, store compliance, and complete companion workflows are not verified. |
 | 34 | Resource modes | **PARTIAL** | Some low-resource choices exist; measured PERFORMANCE/BALANCED/LOW POWER/ULTRALIGHT behavior and the <5 GB target need artifact evidence. |
 | 35 | UI | **PARTIAL** | Centipede desktop shell and application areas exist; checklist navigation, modes, health/repair/update/recovery areas remain incomplete. |
 | 36 | Kingdom security invariants | **PARTIAL** | Kingdom authorization boundaries exist in the tool path. Camera, printer, plugin, remote-node, and full revocation invariants are not all implemented/proven. |
 | 37 | Doomsday testing | **PARTIAL** | Unit/adversarial tests exist. The specified update/recovery, device, camera, microphone, printer, and accessibility attack/failure suite has not run. |
-| 38 | Accessibility test personas | **MISSING** | No real workflow evidence for the listed test personas. |
+| 38 | Accessibility test personas | **MISSING** | Unit tests cover preference presets, persistence, and style application; no real screen-reader, keyboard-only, voice-only, low-vision, no-audio, or recovery workflow personas have been tested. |
 | 39 | Repository consolidation | **PARTIAL** | Current reality docs and one release target gate are identified; stale historical claims remain and need systematic review. |
 | 40 | Release proof | **NOT PROVEN** | The master sequence requires exact published artifact download/install, clean-environment boot, update/rollback/repair/recovery, persistence, accessibility, and smoke evidence. That full sequence is not available. |
 
@@ -68,3 +68,23 @@ This status page maps the versioned [Master Release Execution Checklist](MASTER_
 6. Full clean-install/update/rollback/repair/recovery/accessibility release sequence has not been demonstrated.
 
 Do not mark this master release **PROVEN** until the exact phase requirements above have reproducible evidence and the release proof sequence succeeds.
+
+## Supplemental accessibility requirements 520–630
+
+The complete user-supplied list is recorded in [ACCESSIBILITY_EXPANSION_CHECKLIST.md](ACCESSIBILITY_EXPANSION_CHECKLIST.md) and referenced from the master checklist. The repository is missing most of these requirements:
+
+| Requirement range | Status | Current state |
+|---|---|---|
+| 520–532 Segmentor speech output, conversation, interruption, private speech, and secret filtering | **PARTIAL** | User-triggered browser TTS can speak final/approval responses; rate, voice, pitch, volume, repeat, pause, resume, and stop are available. Common credential patterns are redacted. Natural voice conversation, barge-in, private device routing, universal secret filtering, and progress/critical alert speech are missing. |
+| 533 Accessibility profiles | **PARTIAL** | Added Default, Low Vision, Low Dexterity, Cognitive/Reading, and Custom presets for currently supported display/control options. Screen Reader, hearing, voice-control, and other requested profiles are not fully implemented. |
+| 534–552 Blind/low-vision and spoken image/CAD descriptions | **PARTIAL** | Basic screen-reader semantics, global keyboard focus styling, text scale, contrast, reduced effects, and larger targets are present. No magnifier, complete semantic audit, camera/image/CAD description, or spatial description mode. |
+| 553–561 Hearing access and transcripts | **MISSING** | No live captions, voice transcript, notification captioning, speaker identification, or phone haptics. Critical UI state is rendered as visible text, but this is not a complete alert system. |
+| 562–575 Mobility and dexterity | **PARTIAL** | Larger targets and browser keyboard focus are supported. Voice navigation/targets, switch control, sticky/slow/filter keys, timing controls, custom shortcuts, and one-handed mode are missing. |
+| 576–589 Cognitive and reading support | **PARTIAL** | First-run guidance and technical detail disclosures exist. Global simple-language, step-by-step, reduced UI, explain-before-acting, focus, and resume support remain missing. |
+| 590–597 Speech accessibility | **PARTIAL** | Speech output speed is configurable and text input remains available. Speech-recognition sensitivity/timing, custom vocabulary, personalization, and wake-word alternatives are missing. |
+| 598–602 Mixed-input accessibility | **MISSING** | No continuous voice/touch/camera/CAD shared-context workflow is proven. |
+| 603–607 Emergency accessibility controls | **MISSING** | No universal Segmentor stop or emergency microphone/camera/sensor controls or accessible Safe Mode. |
+| 608–614 Persistence through system lifecycle | **PARTIAL** | Browser preferences survive app reload in the same origin. Preservation through update, repair, rollback, migration, recovery, install, and unlock is missing. |
+| 615–630 Accessibility personas | **MISSING** | Current unit checks validate the preference logic only; no real user-workflow persona results exist. |
+
+Recent implementation and tests: [accessibility settings source](../src/components/AccessibilitySettings.tsx), [accessibility preference model](../src/platform/accessibility.ts), [browser speech output](../src/components/SpeechOutput.tsx), and `tests/reality/accessibility.test.ts`.
