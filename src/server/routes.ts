@@ -43,6 +43,9 @@ export class ApiRouter {
     }
 
     if (req.path === '/api/v1/mobile/pair/initiate' && req.method === 'POST') {
+      if (!req.isLocalAdmin) {
+        return { status: 403, error: 'FORBIDDEN: Pairing codes can only be created from the Centipede host.' };
+      }
       const name = req.body?.deviceName || 'Mobile Companion';
       const pairing = deviceTrustManager.initiatePairing(name, 'MOBILE_APP', req.body?.endpoint);
       return { status: 200, data: pairing };
@@ -55,7 +58,7 @@ export class ApiRouter {
 
     // Device administration is available only through a loopback connection.
     // A LAN client can complete a short-lived pairing but cannot enumerate or
-    // revoke other devices.
+    // revoke other devices. Headers such as Host and Sec-Fetch-Site are not authority.
     if (req.isLocalAdmin && req.path === '/api/v1/mobile/devices' && req.method === 'GET') {
       const devices = deviceTrustManager.getPairedDevices().map(({ sessionToken: _token, pairingCode: _code, ...device }) => device);
       return { status: 200, data: { devices } };
@@ -76,6 +79,9 @@ export class ApiRouter {
 
     if (req.path === '/api/v1/mobile/revoke' && req.method === 'POST') {
       const targetDeviceId = req.body?.deviceId || auth.device?.deviceId || '';
+      if (targetDeviceId !== auth.device?.deviceId) {
+        return { status: 403, error: 'FORBIDDEN: A paired device can only revoke its own session.' };
+      }
       const revoked = deviceTrustManager.revokeDevice(targetDeviceId);
       return { status: 200, data: { revoked } };
     }

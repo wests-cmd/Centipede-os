@@ -1,4 +1,5 @@
 import { apiRouter, ApiRequest } from './routes';
+import { isLoopbackPeerAddress } from './requestTrust';
 
 let nodeHttp: any = null;
 try {
@@ -49,6 +50,7 @@ export class CentipedeServer {
             method: req.method,
             headers: req.headers,
             body,
+            isLocalAdmin: isLoopbackPeerAddress(req.socket?.remoteAddress),
           };
 
           const apiRes = await apiRouter.handleRequest(apiReq);

@@ -16,6 +16,19 @@ describe('Centipede API Server & Transport Test Suite', () => {
     expect(centipedeServer.getMode()).toBe('REAL_HTTP_SERVER');
   });
 
+  it('denies pairing-code creation when local-admin authority is absent, regardless of spoofed request headers', async () => {
+    const response = await centipedeServer.dispatch({
+      path: '/api/v1/mobile/pair/initiate',
+      method: 'POST',
+      headers: { host: 'localhost:3099', 'sec-fetch-site': 'same-origin' },
+      body: { deviceName: 'Untrusted remote client' },
+      isLocalAdmin: false,
+    });
+
+    expect(response.status).toBe(403);
+    expect(response.error).toContain('only be created from the Centipede host');
+  });
+
   it('2. Responds to GET /api/v1/health over real HTTP socket', async () => {
     const res = await fetch(`http://localhost:${TEST_PORT}/api/v1/health`);
     expect(res.status).toBe(200);
@@ -103,30 +116,46 @@ describe('Centipede API Server & Transport Test Suite', () => {
     expect(clients[0].deviceId).not.toBe(clients[1].deviceId);
     expect(clients[0].token).not.toBe(clients[1].token);
 
+    const crossDeviceRevoke = await centipedeServer.dispatch({
+      path: '/api/v1/mobile/revoke',
+      method: 'POST',
+      headers: { Authorization: `Bearer ${clients[1].token}` },
+      body: { deviceId: clients[0].deviceId },
+      isLocalAdmin: false,
+    });
+    expect(crossDeviceRevoke.status).toBe(403);
+    expect(crossDeviceRevoke.error).toContain('only revoke its own session');
+
     // Simulate Android losing the service endpoint; iOS remains online.
     await expect(fetch('http://127.0.0.1:1/api/v1/health', { signal: AbortSignal.timeout(1000) })).rejects.toThrow();
-    const iosRevoke = await fetch(`${baseUrl}/api/v1/mobile/revoke`, {
+    const iosRevoke = await centipedeServer.dispatch({
+      path: '/api/v1/mobile/revoke',
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${clients[1].token}` },
-      body: JSON.stringify({ deviceId: clients[1].deviceId }),
+      headers: { Authorization: `Bearer ${clients[1].token}` },
+      body: { deviceId: clients[1].deviceId },
+      isLocalAdmin: false,
     });
     expect(iosRevoke.status).toBe(200);
-    expect((await iosRevoke.json()).revoked).toBe(true);
+    expect(iosRevoke.data?.revoked).toBe(true);
 
     // Android reconnects to the same live service and remains authenticated.
-    const androidRevoke = await fetch(`${baseUrl}/api/v1/mobile/revoke`, {
+    const androidRevoke = await centipedeServer.dispatch({
+      path: '/api/v1/mobile/revoke',
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${clients[0].token}` },
-      body: JSON.stringify({ deviceId: clients[0].deviceId }),
+      headers: { Authorization: `Bearer ${clients[0].token}` },
+      body: { deviceId: clients[0].deviceId },
+      isLocalAdmin: false,
     });
     expect(androidRevoke.status).toBe(200);
-    expect((await androidRevoke.json()).revoked).toBe(true);
+    expect(androidRevoke.data?.revoked).toBe(true);
 
     // Revoked credentials must fail after connectivity returns.
-    const revokedRetry = await fetch(`${baseUrl}/api/v1/mobile/revoke`, {
+    const revokedRetry = await centipedeServer.dispatch({
+      path: '/api/v1/mobile/revoke',
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${clients[1].token}` },
-      body: JSON.stringify({ deviceId: clients[1].deviceId }),
+      headers: { Authorization: `Bearer ${clients[1].token}` },
+      body: { deviceId: clients[1].deviceId },
+      isLocalAdmin: false,
     });
     expect(revokedRetry.status).toBe(403);
   });
