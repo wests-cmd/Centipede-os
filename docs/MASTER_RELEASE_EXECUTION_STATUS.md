@@ -52,6 +52,7 @@ This status page maps the supplied **Master Release Execution Checklist** to the
 
 - Removed the fabricated Kingdom patch/version/release notes and no-op success/rollback UI; the panel now reports observed connection/version and states the update limitation.
 - Changed unprobed Centipede, Kingdom, and model service health to `UNKNOWN`; removed invented fixed latency.
+- Changed missing Kingdom task/mode/running telemetry to `UNKNOWN` in user-facing status text; offline state no longer turns cached absence into a `STOPPED` claim or starts an engine without a live connection/status.
 - Removed guessed storage category totals, fixed `NORMAL` pressure, synthetic disk metrics, and the executor's false emergency-disk claim. Browser quota is labeled as browser-origin data, not physical disk capacity.
 - Removed guessed CPU/memory/storage defaults from profile suggestions and first-run display. The suggestion is explicitly a heuristic, and unknown measurements remain unknown.
 - Replaced the natural-language storage query's invented 512/256 GB report with an explicit unavailable message.

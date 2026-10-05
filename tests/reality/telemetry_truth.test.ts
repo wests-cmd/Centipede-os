@@ -61,4 +61,15 @@ describe('Reality Regression Suite — Hardware Telemetry Truth', () => {
     expect(explanation).toContain('does not measure physical disk usage');
     expect(explanation).not.toContain('512 GB');
   });
+
+  it('6. Status explanation does not turn missing fields into STOPPED or discovery-active claims', () => {
+    const processor = new ResultProcessor();
+    const intent = { type: 'QUERY_STATUS' } as Intent;
+    const result = { status: 'SUCCESS', data: {} } as Parameters<typeof processor.formatUserExplanation>[1];
+    const explanation = processor.formatUserExplanation(intent, result);
+    expect(explanation).toContain('UNKNOWN');
+    expect(explanation).toContain('unknown mode');
+    expect(explanation).not.toContain('STOPPED');
+    expect(explanation).not.toContain('discovery active');
+  });
 });

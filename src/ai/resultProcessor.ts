@@ -18,7 +18,7 @@ export class ResultProcessor {
       case 'QUERY_STORAGE':
         return 'Host storage information is unavailable: this browser app does not measure physical disk usage. Browser storage quota is not the same as free disk space.';
       case 'QUERY_STATUS':
-        return `Kingdom Engine Version ${result.data?.version ? 'v' + result.data.version : 'discovery active'} is ${result.data?.running ? 'RUNNING' : 'STOPPED'} in ${result.data?.mode || 'adaptive'} mode.`;
+        return `Kingdom Engine Version ${result.data?.version ? 'v' + String(result.data.version).replace(/^v/i, '') : 'unknown'} is ${typeof result.data?.running === 'boolean' ? (result.data.running ? 'RUNNING' : 'STOPPED') : 'UNKNOWN'} in ${result.data?.mode || 'unknown'} mode.`;
       case 'START_RUNTIME':
         return 'Kingdom runtime engine started successfully.';
       case 'STOP_RUNTIME':

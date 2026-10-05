@@ -141,14 +141,14 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
               Kingdom:{' '}
               <span className="text-slate-200 font-mono">
                 {connectionState === 'CONNECTED' && runtimeInfo.connectedKingdomVersion
-                  ? `v${runtimeInfo.connectedKingdomVersion}`
+                  ? `${runtimeInfo.connectedKingdomVersion.startsWith('v') ? '' : 'v'}${runtimeInfo.connectedKingdomVersion}`
                   : runtimeInfo.lastKnownKingdomVersion
-                  ? `v${runtimeInfo.lastKnownKingdomVersion} (Offline)`
+                  ? `${runtimeInfo.lastKnownKingdomVersion.startsWith('v') ? '' : 'v'}${runtimeInfo.lastKnownKingdomVersion} (Offline)`
                   : 'Offline'}
               </span>
             </span>
-            <span className="text-slate-400">Mode: <span className="text-purple-400 font-mono capitalize">{status?.mode || 'OFFLINE'}</span></span>
-            <span className="text-slate-400">Active Tasks: <span className="text-emerald-400 font-mono">{status?.tasks?.running || 0}</span></span>
+            <span className="text-slate-400">Mode: <span className="text-purple-400 font-mono capitalize">{connectionState === 'CONNECTED' && status ? status.mode : 'Unknown'}</span></span>
+            <span className="text-slate-400">Active Tasks: <span className="text-emerald-400 font-mono">{connectionState === 'CONNECTED' && status ? status.tasks.running : 'Unknown'}</span></span>
           </div>
 
           <div
