@@ -1,4 +1,4 @@
-import { syncSha256 } from '../security/cryptoUtils';
+import { syncSha256, generateSecureRandomHex } from '../security/cryptoUtils';
 
 function canonicalizeObject(obj: any): any {
   if (obj === null || typeof obj !== 'object') {
@@ -132,7 +132,7 @@ export class CapabilityGrantEngine {
     contextOptions: CapabilityGrantOptions = {}
   ): CapabilityGrant {
     this.purgeExpiredGrants();
-    const grantId = `grant_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const grantId = `grant_${Date.now()}_${generateSecureRandomHex(8)}`;
     const grant: CapabilityGrant = {
       grantId,
       agentId,
