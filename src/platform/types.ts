@@ -4,7 +4,7 @@ export type CentipedeProfile = 'COMMANDER' | 'KNIGHT' | 'SCOUT' | 'FULL_CENTIPED
 
 export interface ProfileRecommendation {
   recommendedProfile: CentipedeProfile;
-  suitabilityScore: number;
+  suitabilityScore: number | null;
   explanation: string;
   hardwareSummary: string;
 }

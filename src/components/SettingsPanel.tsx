@@ -119,7 +119,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter, homeVisua
         <div className="bg-slate-900 border border-slate-700/80 p-3.5 rounded-xl text-xs space-y-1">
           <div className="text-slate-300 font-bold flex items-center justify-between">
             <span>Reported hardware: {profileRec?.hardwareSummary || 'Not available'}</span>
-            {profileRec && <span className="text-slate-400 font-mono">Heuristic: {profileRec.suitabilityScore}/100</span>}
+            {profileRec && <span className="text-slate-400 font-mono">{profileRec.suitabilityScore === null ? 'Not scored' : `Heuristic: ${profileRec.suitabilityScore}/100`}</span>}
           </div>
           <p className="text-slate-400">{profileRec?.explanation || 'Hardware information could not be read. Select a profile manually.'}</p>
         </div>

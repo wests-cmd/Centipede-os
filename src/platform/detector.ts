@@ -23,7 +23,7 @@ export class PlatformDetector {
     if (!hasCpuAndMemory) {
       return {
         recommendedProfile: 'SEGMENTOR_RECOMMENDATION',
-        suitabilityScore: 0,
+        suitabilityScore: null,
         explanation: 'A profile recommendation is unavailable because the browser did not report both CPU cores and memory. Choose a profile manually or run Centipede on a platform that can report these values.',
         hardwareSummary: `${cores ?? 'Unknown'} CPU cores • ${ramGb === null ? 'Unknown' : `${ramGb} GB`} memory • Host disk unavailable`,
       };

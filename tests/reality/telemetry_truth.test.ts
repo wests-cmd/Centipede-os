@@ -49,6 +49,7 @@ describe('Reality Regression Suite — Hardware Telemetry Truth', () => {
     };
     const recommendation = platformDetector.getProfileRecommendation(hardware);
     expect(recommendation.recommendedProfile).toBe('SEGMENTOR_RECOMMENDATION');
+    expect(recommendation.suitabilityScore).toBeNull();
     expect(recommendation.hardwareSummary).toContain('Unknown CPU cores');
     expect(recommendation.explanation).toContain('unavailable');
   });
