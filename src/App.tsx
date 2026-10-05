@@ -15,6 +15,7 @@ import { CentipedeAI } from './components/CentipedeAI';
 import { SettingsPanel } from './components/SettingsPanel';
 import { MemoryApp } from './components/MemoryApp';
 import { SkillsApp } from './components/SkillsApp';
+import { DoctorApp } from './components/DoctorApp';
 import { MapsApp } from './components/MapsApp';
 import { Window } from './components/Window';
 import { FirstRunWizard } from './components/FirstRunWizard';
@@ -167,6 +168,12 @@ export const App: React.FC = () => {
         return (
           <Window id="win_set" title="System Settings" icon={Sliders} isOpen={true} onClose={() => setActiveAppId('launcher')}>
           <SettingsPanel adapter={kingdomAdapter} homeVisual={homeVisual} onHomeVisualChange={changeHomeVisual} />
+          </Window>
+        );
+      case 'doctor':
+        return (
+          <Window id="win_doctor" title="Centipede Doctor & Repair" icon={ShieldAlert} isOpen={true} onClose={() => setActiveAppId('launcher')}>
+            <DoctorApp adapter={kingdomAdapter} connectionState={connectionState} runtimeStatus={status} />
           </Window>
         );
       default:

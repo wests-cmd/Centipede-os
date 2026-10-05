@@ -26,6 +26,7 @@ import {
   Brain,
   Map,
   Cpu,
+  Stethoscope,
 } from 'lucide-react';
 
 interface DesktopShellProps {
@@ -119,6 +120,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
     { id: 'files', name: 'File Explorer', icon: Folder },
     { id: 'terminal', name: 'Terminal CLI', icon: Terminal },
     { id: 'settings', name: 'Settings', icon: Sliders },
+    { id: 'doctor', name: 'Doctor & Repair', icon: Stethoscope },
   ];
 
   return (

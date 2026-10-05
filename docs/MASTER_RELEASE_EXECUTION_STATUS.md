@@ -21,7 +21,7 @@ This status page maps the versioned [Master Release Execution Checklist](MASTER_
 | 12 | Skills | **PARTIAL** | Trusted skill engine exists; complete lifecycle, dependency resolution, promotion, rollback, and live update proof remain open. |
 | 13 | Plugins, MCP, external tools | **MISSING** | No complete signed, sandboxed plugin registry and lifecycle is established. Existing tools still must pass Kingdom authorization. |
 | 14 | Workflow/SOP engine | **PARTIAL** | Workflow engine and persistence exist; versioning, schedule/event triggers, checkpoints, and recovery are not fully demonstrated. |
-| 15 | Centipede Doctor | **MISSING** | No user-facing system diagnosis and repair workflow with safe support bundle is complete. |
+| 15 | Centipede Doctor | **PARTIAL** | A read-only Doctor page checks app, browser network, live Kingdom connection/runtime/compatibility, and model catalog response. Host storage/resources, Docker, updates, and recovery are explicitly not configured; no repair or safe support bundle exists. |
 | 16 | Proactive Segmentor | **MISSING** | No verified unified proactive monitoring/notification system with spam controls. |
 | 17 | Camera and vision | **MISSING** | Browser permission capability checks do not constitute a camera manager, safe streaming, recording control, or local vision workflow. |
 | 18 | 3D printer vision | **MISSING** | No printer monitoring/vision integration or separately authorized control path is proven. |
@@ -56,6 +56,7 @@ This status page maps the versioned [Master Release Execution Checklist](MASTER_
 - Removed guessed storage category totals, fixed `NORMAL` pressure, synthetic disk metrics, and the executor's false emergency-disk claim. Browser quota is labeled as browser-origin data, not physical disk capacity.
 - Removed guessed CPU/memory/storage defaults from profile suggestions and first-run display. The suggestion is explicitly a heuristic, and unknown measurements remain unknown.
 - Replaced the natural-language storage query's invented 512/256 GB report with an explicit unavailable message.
+- Added a read-only Centipede Doctor page with truthful `PASS`, `WARNING`, `FAIL`, and `NOT CONFIGURED` checks. It performs a read-only Kingdom model catalog request and does not run repairs.
 
 ## Immediate release blockers
 
