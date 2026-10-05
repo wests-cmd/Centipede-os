@@ -8,22 +8,21 @@ export const MobileCompanionApp: React.FC = () => {
   const [confirmCode, setConfirmCode] = useState<string>('');
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [pairedDevices, setPairedDevices] = useState<TrustedDevice[]>([]);
+  const [canManageDevices, setCanManageDevices] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [pasteText, setPasteText] = useState<string>('');
   const [ingestionResult, setIngestionResult] = useState<IngestedContent | null>(null);
 
-  const isLocalAdmin = typeof window !== 'undefined' && ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
   const refreshDevices = async () => {
-    if (!isLocalAdmin) {
-      setPairedDevices([]);
-      return;
-    }
     try {
       const response = await fetch('/api/v1/mobile/devices');
-      if (!response.ok) throw new Error('Open the Centipede desktop on this computer to manage trusted devices.');
+      if (!response.ok) throw new Error('Device management is available only when Centipede confirms this connection comes from the host computer.');
       const data = await response.json();
       setPairedDevices(data.devices || []);
+      setCanManageDevices(true);
     } catch (error) {
+      setCanManageDevices(false);
+      setPairedDevices([]);
       setStatusMessage(error instanceof Error ? error.message : 'Could not reach the Centipede pairing service.');
     }
   };
@@ -109,7 +108,7 @@ export const MobileCompanionApp: React.FC = () => {
           </div>
         </div>
 
-        {isLocalAdmin && (
+        {canManageDevices && (
           <button
             onClick={() => void handleInitiatePairing()}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-cyan-600 sm:w-auto sm:rounded-xl"
@@ -182,7 +181,7 @@ export const MobileCompanionApp: React.FC = () => {
         </div>
 
         {pairedDevices.length === 0 ? (
-          <p className="text-slate-400 text-sm italic">{isLocalAdmin ? 'No companion devices paired. Create a code, then enter it on the phone.' : 'Pairing is connected. Device management is available from Centipede on the desktop.'}</p>
+          <p className="text-slate-400 text-sm italic">{canManageDevices ? 'No companion devices paired. Create a code, then enter it on the phone.' : 'Device management is available only from a connection the Centipede host recognizes as local. Create pairing codes on that computer.'}</p>
         ) : (
           <div className="space-y-3">
             {pairedDevices.map((dev) => (

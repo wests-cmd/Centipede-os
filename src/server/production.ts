@@ -1,6 +1,7 @@
 import { join, normalize } from 'node:path';
 import { networkInterfaces } from 'node:os';
 import { apiRouter, ApiRequest } from './routes';
+import { isLoopbackPeerAddress } from './requestTrust';
 
 const root = process.cwd();
 const webRoot = join(root, 'dist');
@@ -14,7 +15,6 @@ const hostnames = process.env.HOST
   : ['127.0.0.1', ...(lanAddress ? [lanAddress] : [])];
 const publicUrl = process.env.PUBLIC_URL || (lanAddress ? `http://${lanAddress}:${port}` : `http://localhost:${port}`);
 const rateWindows = new Map<string, { startsAt: number; count: number }>();
-const loopback = (address?: string | null) => address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1';
 const hostnameFromHeader = (host: string) => host.startsWith('[') ? host.slice(1, host.indexOf(']')) : host.split(':')[0];
 
 const serverOptions: Omit<Parameters<typeof Bun.serve>[0], 'hostname'> = {
@@ -42,16 +42,12 @@ const serverOptions: Omit<Parameters<typeof Bun.serve>[0], 'hostname'> = {
           ? `http://${requestHost}`
           : publicUrl;
       }
-      const requestHost = request.headers.get('host') || '';
-      const hostName = hostnameFromHeader(requestHost);
-      const browserLocalhostRequest = ['localhost', '127.0.0.1', '::1'].includes(hostName)
-        && request.headers.get('sec-fetch-site') === 'same-origin';
       const apiRequest: ApiRequest = {
         path: url.pathname,
         method: request.method as ApiRequest['method'],
         headers: Object.fromEntries(request.headers.entries()),
         body,
-        isLocalAdmin: loopback(server.requestIP(request)?.address) || browserLocalhostRequest,
+        isLocalAdmin: isLoopbackPeerAddress(server.requestIP(request)?.address),
       };
       const address = server.requestIP(request)?.address || 'unknown';
       const limitedRoute = url.pathname === '/api/v1/mobile/pair/confirm' || url.pathname === '/api/v1/mobile/pair/initiate';

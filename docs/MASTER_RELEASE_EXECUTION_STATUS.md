@@ -7,7 +7,7 @@ This status page maps the versioned [Master Release Execution Checklist](MASTER_
 | Phase | Requirement | Status | Current evidence / primary remaining work |
 |---|---|---|---|
 | 0 | Repository interrogation | **PARTIAL** | Release/configuration, runtime, UI, and telemetry paths have been inspected in this work. Complete file-by-file inventory and adversarial proof of every subsystem remains open. |
-| 1 | Self-update system | **MISSING** | `src/platform/targetUpdateChecker.ts` checks target metadata; it is not a downloader, installer, signed-feed verifier, atomic updater, or rollback manager. |
+| 1 | Self-update system | **MISSING** | `src/platform/targetUpdateChecker.ts` now rejects malformed/inconsistent target records, unsafe artifact names, hash errors, protocol/architecture mismatches, and downgrade/replay identities. It is still not connected to release discovery and is not a downloader, signature verifier, installer, atomic activator, or rollback manager. |
 | 2 | Self-repair and recovery | **MISSING** | No verified repair executor, safe/recovery mode, or known-good recovery store. |
 | 3 | Persistent user state | **PARTIAL** | Persistence exists in selected workflow/memory/browser paths. No complete SYSTEM/APP/USER/SECRET/CACHE/LOG scheme or migration backup/rollback proof. |
 | 4 | Persistent agent runtime | **PARTIAL** | Workflow persistence exists; detached execution, task checkpoint recovery, and safe post-reboot resume are not demonstrated. |
@@ -42,7 +42,7 @@ This status page maps the versioned [Master Release Execution Checklist](MASTER_
 | 33 | Mobile companion | **PARTIAL — signed distribution BLOCKED** | Android/iOS project references and pairing shells exist. Production signing, store compliance, and complete companion workflows are not verified. |
 | 34 | Resource modes | **PARTIAL** | Some low-resource choices exist; measured PERFORMANCE/BALANCED/LOW POWER/ULTRALIGHT behavior and the <5 GB target need artifact evidence. |
 | 35 | UI | **PARTIAL** | Centipede desktop shell and application areas exist; checklist navigation, modes, health/repair/update/recovery areas remain incomplete. |
-| 36 | Kingdom security invariants | **PARTIAL** | Kingdom authorization boundaries exist in the tool path. Camera, printer, plugin, remote-node, and full revocation invariants are not all implemented/proven. |
+| 36 | Kingdom security invariants | **PARTIAL** | Pair-code creation and device administration now require a server-confirmed loopback peer; request headers do not grant local authority. A paired mobile session can revoke only itself. The Docker/reverse-proxy local-admin path is not certified. Camera, printer, plugin, remote-node, and full revocation invariants remain open. |
 | 37 | Doomsday testing | **PARTIAL** | Unit/adversarial tests exist. The specified update/recovery, device, camera, microphone, printer, and accessibility attack/failure suite has not run. |
 | 38 | Accessibility test personas | **MISSING** | Unit tests cover preference presets, persistence, and style application; no real screen-reader, keyboard-only, voice-only, low-vision, no-audio, or recovery workflow personas have been tested. |
 | 39 | Repository consolidation | **PARTIAL** | Current reality docs and one release target gate are identified; stale historical claims remain and need systematic review. |
@@ -57,6 +57,8 @@ This status page maps the versioned [Master Release Execution Checklist](MASTER_
 - Removed guessed CPU/memory/storage defaults from profile suggestions and first-run display. The suggestion is explicitly a heuristic, and unknown measurements remain unknown.
 - Replaced the natural-language storage query's invented 512/256 GB report with an explicit unavailable message.
 - Added a read-only Centipede Doctor page with truthful `PASS`, `WARNING`, `FAIL`, and `NOT CONFIGURED` checks. It performs a read-only Kingdom model catalog request and does not run repairs.
+- Hardened update metadata checks against downgrade/replay and malformed release entries; this does not provide an updater.
+- Removed header-based local-admin inference from the pairing API. Pair codes are created only from a server-confirmed loopback peer, and paired devices can revoke only their own session.
 
 ## Immediate release blockers
 
