@@ -29,6 +29,21 @@ describe('Centipede API Server & Transport Test Suite', () => {
     expect(response.error).toContain('only be created from the Centipede host');
   });
 
+  it('denies localhost pairing-code requests initiated by a hostile browser origin', async () => {
+    const response = await fetch(`http://localhost:${TEST_PORT}/api/v1/mobile/pair/initiate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Origin: 'https://attacker.example',
+        'Sec-Fetch-Site': 'cross-site',
+      },
+      body: JSON.stringify({ deviceName: 'Cross-origin request' }),
+    });
+
+    expect(response.status).toBe(403);
+    expect((await response.json()).error).toContain('only be created from the Centipede host');
+  });
+
   it('2. Responds to GET /api/v1/health over real HTTP socket', async () => {
     const res = await fetch(`http://localhost:${TEST_PORT}/api/v1/health`);
     expect(res.status).toBe(200);
