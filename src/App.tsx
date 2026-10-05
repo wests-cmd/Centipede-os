@@ -15,8 +15,10 @@ import { CentipedeAI } from './components/CentipedeAI';
 import { SettingsPanel } from './components/SettingsPanel';
 import { MemoryApp } from './components/MemoryApp';
 import { SkillsApp } from './components/SkillsApp';
+import { DoctorApp } from './components/DoctorApp';
 import { MapsApp } from './components/MapsApp';
 import { Window } from './components/Window';
+import { applyAccessibilitySettings, DEFAULT_ACCESSIBILITY_SETTINGS, loadAccessibilitySettings } from './platform/accessibility';
 import { FirstRunWizard } from './components/FirstRunWizard';
 import { HOME_VISUALS, HomeVisual } from './components/CentipedeWorldVisual';
 import { ApprovalRequest, ConnectionState, RuntimeStatus } from './types';
@@ -52,6 +54,15 @@ export const App: React.FC = () => {
   });
 
   useEffect(() => {
+    try {
+      const accessibility = typeof window !== 'undefined'
+        ? loadAccessibilitySettings(window.localStorage)
+        : DEFAULT_ACCESSIBILITY_SETTINGS;
+      applyAccessibilitySettings(accessibility, document.documentElement);
+    } catch {
+      applyAccessibilitySettings(DEFAULT_ACCESSIBILITY_SETTINGS, document.documentElement);
+    }
+
     const unsubConn = kingdomAdapter.subscribeConnection(setConnectionState);
     const unsubStatus = kingdomAdapter.subscribeStatus(setStatus);
 
@@ -169,6 +180,12 @@ export const App: React.FC = () => {
           <SettingsPanel adapter={kingdomAdapter} homeVisual={homeVisual} onHomeVisualChange={changeHomeVisual} />
           </Window>
         );
+      case 'doctor':
+        return (
+          <Window id="win_doctor" title="Centipede Doctor & Repair" icon={ShieldAlert} isOpen={true} onClose={() => setActiveAppId('launcher')}>
+            <DoctorApp adapter={kingdomAdapter} connectionState={connectionState} runtimeStatus={status} />
+          </Window>
+        );
       default:
         return (
           <AppLauncher
@@ -182,7 +199,18 @@ export const App: React.FC = () => {
   };
 
   if (!isFirstRunCompleted) {
-    return <FirstRunWizard onComplete={() => setIsFirstRunCompleted(true)} />;
+    return (
+      <FirstRunWizard onComplete={() => {
+        setIsFirstRunCompleted(true);
+        try {
+          const showAccessibility = localStorage.getItem('centipede_accessibility_setup_requested') === 'true';
+          localStorage.removeItem('centipede_accessibility_setup_requested');
+          if (showAccessibility) setActiveAppId('settings');
+        } catch {
+          // The optional accessibility setup offer may be skipped when storage is unavailable.
+        }
+      }} />
+    );
   }
 
   return (

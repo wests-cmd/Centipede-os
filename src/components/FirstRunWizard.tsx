@@ -29,6 +29,7 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
   const [kingdomUrl, setKingdomUrl] = useState<string>('http://localhost:8000');
   const [kingdomStatus, setKingdomStatus] = useState<string>('CHECKING');
   const [deviceName, setDeviceName] = useState<string>('Centipede Workstation');
+  const [accessibilityHelpWanted, setAccessibilityHelpWanted] = useState(false);
 
   useEffect(() => {
     platformDetector.detectRuntimeInfo().then((info) => {
@@ -53,10 +54,15 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
   };
 
   const handleFinish = () => {
-    localStorage.setItem('centipede_first_run_completed', 'true');
-    localStorage.setItem('centipede_device_name', deviceName);
-    localStorage.setItem('centipede_selected_profile', selectedProfile);
-    localStorage.setItem('centipede_kingdom_url', kingdomUrl);
+    try {
+      localStorage.setItem('centipede_first_run_completed', 'true');
+      localStorage.setItem('centipede_device_name', deviceName);
+      localStorage.setItem('centipede_selected_profile', selectedProfile);
+      localStorage.setItem('centipede_kingdom_url', kingdomUrl);
+      localStorage.setItem('centipede_accessibility_setup_requested', String(accessibilityHelpWanted));
+    } catch {
+      // Setup can finish for this session when browser storage is unavailable.
+    }
     onComplete();
   };
 
@@ -117,6 +123,20 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
                 <p className="text-[11px] text-slate-400">Configure this browser client and review browser-reported device estimates.</p>
               </div>
             </div>
+
+            <section aria-labelledby="first-run-accessibility-heading" className="mx-auto max-w-2xl rounded-xl border border-cyan-900 bg-slate-900/80 p-4 text-left">
+              <h3 id="first-run-accessibility-heading" className="text-sm font-semibold text-white">Would you like help setting up accessibility features?</h3>
+              <p className="mt-1 text-xs text-slate-300">Choose this to open Accessibility settings after setup. You can skip it and change these settings later.</p>
+              <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-3 text-sm text-slate-100">
+                <input
+                  type="checkbox"
+                  checked={accessibilityHelpWanted}
+                  onChange={(event) => setAccessibilityHelpWanted(event.target.checked)}
+                  className="h-5 w-5 accent-cyan-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200"
+                />
+                <span>Yes, open accessibility settings when setup is done</span>
+              </label>
+            </section>
           </div>
         )}
 
@@ -132,7 +152,7 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
                 <Globe className="w-6 h-6 text-cyan-400" />
                 <div>
                   <div className="text-xs font-bold text-white">Platform OS</div>
-                  <div className="text-xs text-slate-400">{runtimeInfo?.platform.os || 'Linux Workstation'} ({runtimeInfo?.platform.architecture})</div>
+                  <div className="text-xs text-slate-400">{runtimeInfo?.platform.os || 'Unknown'} ({runtimeInfo?.platform.architecture || 'Unknown'})</div>
                 </div>
               </div>
 
@@ -140,7 +160,9 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
                 <Cpu className="w-6 h-6 text-indigo-400" />
                 <div>
                   <div className="text-xs font-bold text-white">Browser-Reported CPU & Memory</div>
-                  <div className="text-xs text-slate-400">{runtimeInfo?.hardware.cpuCores || 4} logical cores • approximately {Math.round((runtimeInfo?.hardware.totalMemoryMb || 8192) / 1024)} GB RAM</div>
+                  <div className="text-xs text-slate-400">
+                    {runtimeInfo?.hardware.cpuCores ?? 'Unknown'} reported logical cores • {runtimeInfo?.hardware.totalMemoryMb ? `approximately ${Math.round(runtimeInfo.hardware.totalMemoryMb / 1024)} GB RAM` : 'memory unavailable'}
+                  </div>
                 </div>
               </div>
 
@@ -148,7 +170,11 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
                 <HardDrive className="w-6 h-6 text-emerald-400" />
                 <div>
                   <div className="text-xs font-bold text-white">Browser Storage Estimate</div>
-                  <div className="text-xs text-slate-400">Approximately {runtimeInfo?.hardware.storageAvailableGb || 64} GB available to this browser origin</div>
+                  <div className="text-xs text-slate-400">
+                    {runtimeInfo?.hardware.storageAvailableGb !== null && runtimeInfo?.hardware.storageAvailableGb !== undefined
+                      ? `Approximately ${runtimeInfo.hardware.storageAvailableGb} GB available to this browser origin; this is not host disk space.`
+                      : 'Browser storage estimate unavailable; host disk space is not measured.'}
+                  </div>
                 </div>
               </div>
 

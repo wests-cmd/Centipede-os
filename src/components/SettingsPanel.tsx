@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { KingdomAdapter } from '../api/kingdomAdapter';
 import { Sliders, CheckCircle2, RotateCcw, HardDrive, Cpu, Sparkles, Check, Server, Paintbrush } from 'lucide-react';
 import { platformDetector } from '../platform/detector';
-import { CentipedeProfile } from '../platform/types';
+import { CentipedeProfile, ProfileRecommendation } from '../platform/types';
 import { HOME_VISUALS, HomeVisual } from './CentipedeWorldVisual';
+import { AccessibilitySettings } from './AccessibilitySettings';
 
 interface SettingsPanelProps {
   adapter: KingdomAdapter;
@@ -16,24 +17,13 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter, homeVisua
   const [pollInterval, setPollInterval] = useState('3000');
   const [savedMessage, setSavedMessage] = useState('');
   const [selectedProfile, setSelectedProfile] = useState<CentipedeProfile>('FULL_CENTIPEDE');
+  const [profileRec, setProfileRec] = useState<ProfileRecommendation | null>(null);
 
-  const detectedCores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 4 : 4;
-  const detectedRamMb = typeof navigator !== 'undefined' && 'deviceMemory' in navigator ? ((navigator as any).deviceMemory || 8) * 1024 : 8192;
-
-  const profileRec = platformDetector.getProfileRecommendation({
-    cpuCores: detectedCores,
-    cpuCoresProvenance: 'LOCAL_DETECTED',
-    totalMemoryMb: detectedRamMb,
-    totalMemoryMbProvenance: 'LOCAL_DETECTED',
-    availableMemoryMb: Math.round(detectedRamMb * 0.5),
-    availableMemoryMbProvenance: 'LOCAL_DETECTED',
-    storageTotalGb: 128,
-    storageTotalGbProvenance: 'LOCAL_DETECTED',
-    storageAvailableGb: 64,
-    storageAvailableGbProvenance: 'LOCAL_DETECTED',
-    gpuAvailable: false,
-    gpuProvenance: 'UNAVAILABLE',
-  });
+  useEffect(() => {
+    platformDetector.detectRuntimeInfo()
+      .then((runtime) => setProfileRec(platformDetector.getProfileRecommendation(runtime.hardware)))
+      .catch(() => setProfileRec(null));
+  }, []);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +48,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter, homeVisua
         <Sliders className="w-7 h-7 text-slate-400" />
         <div>
           <h2 className="text-2xl font-bold text-white">Desktop App Settings</h2>
-          <p className="text-slate-400 text-sm">The Kingdom API endpoint is configurable here. Profile and storage displays are illustrative, not host system controls.</p>
+          <p className="text-slate-400 text-sm">Configure this browser client and choose accessibility preferences for this browser.</p>
         </div>
       </div>
 
@@ -68,6 +58,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter, homeVisua
           <span>{savedMessage}</span>
         </div>
       )}
+
+      <AccessibilitySettings />
 
       <section aria-labelledby="home-visual-heading" className="rounded-2xl border border-slate-700 bg-slate-800/60 p-5 shadow-xl sm:p-6">
         <div className="mb-4 flex items-center gap-3">
@@ -122,17 +114,17 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter, homeVisua
           </div>
           <span className="px-3 py-1 bg-purple-950/80 border border-purple-500/40 text-purple-300 font-mono text-xs font-semibold rounded-full flex items-center space-x-1.5">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Recommended: {profileRec.recommendedProfile}</span>
+            <span>{profileRec ? `Suggestion: ${profileRec.recommendedProfile}` : 'Suggestion unavailable'}</span>
           </span>
         </div>
 
         {/* Hardware Suitability Explanation Banner */}
         <div className="bg-slate-900 border border-slate-700/80 p-3.5 rounded-xl text-xs space-y-1">
           <div className="text-slate-300 font-bold flex items-center justify-between">
-            <span>Hardware Assessment: {profileRec.hardwareSummary}</span>
-            <span className="text-emerald-400 font-mono font-semibold">Score: {profileRec.suitabilityScore}/100</span>
+            <span>Reported hardware: {profileRec?.hardwareSummary || 'Not available'}</span>
+            {profileRec && <span className="text-slate-400 font-mono">{profileRec.suitabilityScore === null ? 'Not scored' : `Heuristic: ${profileRec.suitabilityScore}/100`}</span>}
           </div>
-          <p className="text-slate-400">{profileRec.explanation}</p>
+          <p className="text-slate-400">{profileRec?.explanation || 'Hardware information could not be read. Select a profile manually.'}</p>
         </div>
 
         {/* Profile Choice Grid */}
@@ -173,56 +165,17 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter, homeVisua
           <div className="flex items-center space-x-3">
             <HardDrive className="w-6 h-6 text-blue-400" />
             <div>
-              <h3 className="text-lg font-bold text-white">Storage Layout Preview</h3>
-              <p className="text-xs text-slate-400">Illustrative sample values only; this browser app does not measure or manage host disk storage.</p>
+              <h3 className="text-lg font-bold text-white">Host storage</h3>
+              <p className="text-xs text-slate-400">This browser app cannot inspect disk usage or manage host storage.</p>
             </div>
           </div>
-          <span className="px-3 py-1 bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 font-mono text-xs font-semibold rounded-full flex items-center space-x-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>Pressure: NORMAL</span>
+          <span className="px-3 py-1 bg-slate-900 border border-slate-700 text-slate-300 font-mono text-xs font-semibold rounded-full">
+            Not measured
           </span>
         </div>
-
-        {/* Overall Storage Progress Bar */}
-        <div className="space-y-2">
-          <div className="w-full bg-slate-900 rounded-full h-4 overflow-hidden flex border border-slate-700">
-            <div className="bg-blue-500 h-full" style={{ width: '12%' }} title="System Files (31 GB)"></div>
-            <div className="bg-purple-500 h-full" style={{ width: '20%' }} title="Virtual Machines (52 GB)"></div>
-            <div className="bg-cyan-500 h-full" style={{ width: '11%' }} title="Docker Workloads (28 GB)"></div>
-            <div className="bg-emerald-500 h-full" style={{ width: '8%' }} title="AI Models (21 GB)"></div>
-            <div className="bg-amber-500 h-full" style={{ width: '9%' }} title="User Files (22 GB)"></div>
-            <div className="bg-rose-500 h-full" style={{ width: '5%' }} title="Apps & Skills (19 GB)"></div>
-            <div className="bg-slate-700 h-full" style={{ width: '35%' }} title="Free Space (256 GB)"></div>
-          </div>
-        </div>
-
-        {/* Storage Breakdown List */}
-        <div className="grid grid-cols-2 gap-4 text-xs font-mono">
-          <div className="p-3 bg-slate-900/60 border border-slate-700/60 rounded-xl flex justify-between items-center">
-            <span className="text-slate-300">Protected System (/system)</span>
-            <span className="text-blue-400 font-bold">31 GB</span>
-          </div>
-          <div className="p-3 bg-slate-900/60 border border-slate-700/60 rounded-xl flex justify-between items-center">
-            <span className="text-slate-300">Virtual Machines (/data/vms)</span>
-            <span className="text-purple-400 font-bold">52 GB</span>
-          </div>
-          <div className="p-3 bg-slate-900/60 border border-slate-700/60 rounded-xl flex justify-between items-center">
-            <span className="text-slate-300">Docker Pools (/data/containers)</span>
-            <span className="text-cyan-400 font-bold">28 GB</span>
-          </div>
-          <div className="p-3 bg-slate-900/60 border border-slate-700/60 rounded-xl flex justify-between items-center">
-            <span className="text-slate-300">AI Models (/data/models)</span>
-            <span className="text-emerald-400 font-bold">21 GB</span>
-          </div>
-          <div className="p-3 bg-slate-900/60 border border-slate-700/60 rounded-xl flex justify-between items-center">
-            <span className="text-slate-300">User Files (/home)</span>
-            <span className="text-amber-400 font-bold">22 GB</span>
-          </div>
-          <div className="p-3 bg-slate-900/60 border border-slate-700/60 rounded-xl flex justify-between items-center">
-            <span className="text-slate-300">Kingdom Data (/data/kingdom)</span>
-            <span className="text-slate-200 font-bold">4 GB</span>
-          </div>
-        </div>
+        <p className="rounded-xl border border-slate-700 bg-slate-900/70 p-4 text-sm text-slate-300">
+          Disk totals, free space, and system storage pressure are unavailable here. No storage pressure or free-space claim is being made.
+        </p>
       </div>
 
       <form onSubmit={handleSave} className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 space-y-6 shadow-xl">

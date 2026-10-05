@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { deviceTrustManager, TrustedDevice } from '../security/deviceTrust';
+import { TrustedDevice } from '../security/deviceTrust';
 import { contentIngestionPipeline, IngestedContent } from '../ingest/pipeline';
-import { QrCode, Smartphone, ShieldCheck, ShieldAlert, Key, UploadCloud, Camera, RefreshCw, CheckCircle, AlertTriangle } from 'lucide-react';
+import { QrCode, Smartphone, ShieldCheck, Key, UploadCloud, Camera, RefreshCw, AlertTriangle } from 'lucide-react';
 
 export const MobileCompanionApp: React.FC = () => {
   const [pairingData, setPairingData] = useState<{ deviceId: string; pairingCode: string; qrData: string } | null>(null);
@@ -12,37 +12,69 @@ export const MobileCompanionApp: React.FC = () => {
   const [pasteText, setPasteText] = useState<string>('');
   const [ingestionResult, setIngestionResult] = useState<IngestedContent | null>(null);
 
-  const refreshDevices = () => {
-    setPairedDevices(deviceTrustManager.getPairedDevices());
+  const isLocalAdmin = typeof window !== 'undefined' && ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+  const refreshDevices = async () => {
+    if (!isLocalAdmin) {
+      setPairedDevices([]);
+      return;
+    }
+    try {
+      const response = await fetch('/api/v1/mobile/devices');
+      if (!response.ok) throw new Error('Open the Centipede desktop on this computer to manage trusted devices.');
+      const data = await response.json();
+      setPairedDevices(data.devices || []);
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Could not reach the Centipede pairing service.');
+    }
   };
 
   useEffect(() => {
     refreshDevices();
   }, []);
 
-  const handleInitiatePairing = () => {
-    const data = deviceTrustManager.initiatePairing('Mobile Companion App', 'MOBILE_APP');
-    setPairingData(data);
-    setStatusMessage('Pairing initiated. Enter PIN or scan QR code on mobile device.');
-  };
-
-  const handleConfirmPairing = () => {
-    const res = deviceTrustManager.confirmPairing(confirmCode || pairingData?.pairingCode || '');
-    if (res.success && res.sessionToken) {
-      setSessionToken(res.sessionToken);
-      setStatusMessage('Device successfully paired and authenticated!');
-      setPairingData(null);
-      setConfirmCode('');
-      refreshDevices();
-    } else {
-      setStatusMessage(`Pairing failed: ${res.error}`);
+  const handleInitiatePairing = async () => {
+    try {
+      const response = await fetch('/api/v1/mobile/pair/initiate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceName: 'Mobile Companion', endpoint: window.location.origin }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not start pairing.');
+      setPairingData(data);
+      setStatusMessage('Pairing code created by the Centipede service. On your phone, open its address and enter this code.');
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Could not reach the Centipede pairing service.');
     }
   };
 
-  const handleRevokeDevice = (deviceId: string) => {
-    deviceTrustManager.revokeDevice(deviceId);
+  const handleConfirmPairing = async () => {
+    try {
+      const response = await fetch('/api/v1/mobile/pair/confirm', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pairingCode: confirmCode.trim() }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success || !result.sessionToken) throw new Error(result.error || 'Pairing failed.');
+      setSessionToken(result.sessionToken);
+      setStatusMessage('This phone is paired with the Centipede service.');
+      setPairingData(null);
+      setConfirmCode('');
+      await refreshDevices();
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Could not reach the Centipede pairing service.');
+    }
+  };
+
+  const handleRevokeDevice = async (deviceId: string) => {
+    const response = await fetch('/api/v1/mobile/revoke', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ deviceId }),
+    });
+    if (!response.ok) {
+      setStatusMessage('Could not revoke this device. Open Centipede on the desktop to manage trusted devices.');
+      return;
+    }
     setStatusMessage(`Device "${deviceId}" access revoked.`);
-    refreshDevices();
+    await refreshDevices();
   };
 
   const handleSimulateMobileIngest = async (type: IngestedContent['sourceType']) => {
@@ -70,20 +102,22 @@ export const MobileCompanionApp: React.FC = () => {
             <Smartphone className="w-8 h-8" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white sm:text-2xl">Mobile Companion Prototype</h2>
+            <h2 className="text-xl font-bold text-white sm:text-2xl">Mobile Companion</h2>
             <p className="text-xs text-slate-400 mt-1">
-              This browser demo simulates pairing locally. It does not connect a remote phone or provide native Android/iOS apps.{/* REALITY-LINT-ALLOW: reason = "Accurate user-facing disclosure of the local-only mobile prototype" */}
+              Connect a phone browser to this Centipede service on the same trusted network. Native Android and iOS apps are not included yet.
             </p>
           </div>
         </div>
 
-        <button
-          onClick={handleInitiatePairing}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-cyan-600 sm:w-auto sm:rounded-xl"
-        >
-          <QrCode className="w-4 h-4" />
-          <span>Pair New Companion</span>
-        </button>
+        {isLocalAdmin && (
+          <button
+            onClick={() => void handleInitiatePairing()}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-cyan-600 sm:w-auto sm:rounded-xl"
+          >
+            <QrCode className="w-4 h-4" />
+            <span>Create Pairing Code</span>
+          </button>
+        )}
       </div>
 
       {statusMessage && (
@@ -108,8 +142,9 @@ export const MobileCompanionApp: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
             <div className="flex flex-col items-center justify-center p-6 bg-slate-950 border border-slate-800 rounded-xl">
-              <QrCode className="w-32 h-32 text-cyan-400 mb-2" />
-              <div className="text-[10px] text-slate-500 font-mono text-center">Scan with Centipede Mobile App</div>
+              <Smartphone className="w-20 h-20 text-cyan-400 mb-3" />
+              <div className="text-xs text-slate-300 text-center">On your phone, open this Centipede address and enter the code:</div>
+              <div className="mt-2 break-all text-center font-mono text-xs text-cyan-300">{pairingData.qrData ? JSON.parse(pairingData.qrData).centipedeEndpoint : window.location.origin}</div>
             </div>
 
             <div className="space-y-4">
@@ -120,28 +155,19 @@ export const MobileCompanionApp: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs text-slate-400 font-medium">Confirm PIN Code on Device</label>
-                <div className="flex space-x-2 mt-1">
-                  <input
-                    type="text"
-                    value={confirmCode}
-                    onChange={(e) => setConfirmCode(e.target.value)}
-                    placeholder={pairingData.pairingCode}
-                    className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-500"
-                  />
-                  <button
-                    onClick={handleConfirmPairing}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition-colors"
-                  >
-                    Confirm
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         </div>
       )}
+
+      <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-5">
+        <label className="text-sm font-semibold text-white">Join this Centipede from your phone</label>
+        <p className="mt-1 text-xs text-slate-400">Create a code on the desktop, open the address shown there on your phone, then enter that code here.</p>
+        <div className="mt-3 flex gap-2">
+          <input type="text" inputMode="numeric" maxLength={6} value={confirmCode} onChange={(e) => setConfirmCode(e.target.value.replace(/\D/g, ''))} placeholder="6-digit code" aria-label="Pairing code" className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-white focus:border-cyan-500 focus:outline-none" />
+          <button onClick={() => void handleConfirmPairing()} disabled={confirmCode.length !== 6} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">Connect</button>
+        </div>
+      </div>
 
       {/* Paired Device Trust List */}
       <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6">
@@ -150,13 +176,13 @@ export const MobileCompanionApp: React.FC = () => {
             <ShieldCheck className="w-5 h-5 text-emerald-400" />
             <h3 className="text-lg font-bold text-white">Trusted Paired Devices ({pairedDevices.length})</h3>
           </div>
-          <button onClick={refreshDevices} className="text-slate-400 hover:text-white p-1">
+          <button onClick={() => void refreshDevices()} aria-label="Refresh paired devices" className="text-slate-400 hover:text-white p-1">
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>
 
         {pairedDevices.length === 0 ? (
-          <p className="text-slate-400 text-sm italic">No companion devices paired. Pair a phone or tablet above.</p>
+          <p className="text-slate-400 text-sm italic">{isLocalAdmin ? 'No companion devices paired. Create a code, then enter it on the phone.' : 'Pairing is connected. Device management is available from Centipede on the desktop.'}</p>
         ) : (
           <div className="space-y-3">
             {pairedDevices.map((dev) => (
@@ -199,18 +225,18 @@ export const MobileCompanionApp: React.FC = () => {
       <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 space-y-4">
         <div className="flex items-center space-x-2">
           <UploadCloud className="w-5 h-5 text-indigo-400" />
-          <h3 className="text-lg font-bold text-white">Mobile Ingestion & Knowledge Ingest</h3>
+          <h3 className="text-lg font-bold text-white">Local Ingestion Preview</h3>
         </div>
 
         <p className="text-xs text-slate-400">
-          Mobile uploads enter the Content Ingestion Pipeline as <code className="text-amber-300 bg-slate-950 px-1 py-0.5 rounded">UNTRUSTED_EXTERNAL_DATA</code> and cannot bypass ZeroTrust permission bounds.
+          This preview runs in this browser only. Its sample content is classified as <code className="text-amber-300 bg-slate-950 px-1 py-0.5 rounded">UNTRUSTED_EXTERNAL_DATA</code>; it is not uploaded from or sent to a paired phone.
         </p>
 
         <textarea
           rows={3}
           value={pasteText}
           onChange={(e) => setPasteText(e.target.value)}
-          placeholder="Paste or simulate content uploaded from mobile device (e.g. Invoice text, photo capture OCR, task instruction)..."
+          placeholder="Paste sample text to preview the local ingestion checks..."
           className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-100 text-xs font-mono focus:outline-none focus:border-cyan-500"
         />
 
@@ -228,7 +254,7 @@ export const MobileCompanionApp: React.FC = () => {
             className="flex items-center space-x-1.5 bg-slate-700 hover:bg-slate-600 text-white font-medium px-3.5 py-2 rounded-xl text-xs transition-colors border border-slate-600"
           >
             <Camera className="w-4 h-4 text-purple-400" />
-            <span>Simulate Photo Capture</span>
+            <span>Preview Photo Ingest</span>
           </button>
         </div>
 

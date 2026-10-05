@@ -2,6 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 
 const e2ePort = Number(process.env.CENTIPEDE_E2E_PORT || 3000);
 const e2eBaseUrl = `http://127.0.0.1:${e2ePort}`;
+const apiPort = Number(process.env.CENTIPEDE_E2E_API_PORT || 3001);
+const apiBaseUrl = `http://127.0.0.1:${apiPort}`;
+const bunCommand = process.env.CENTIPEDE_BUN || 'bun';
 const kingdomPort = Number(process.env.CENTIPEDE_E2E_KINGDOM_PORT || 8100);
 const kingdomBaseUrl = `http://127.0.0.1:${kingdomPort}`;
 const pythonCommand = process.env.CENTIPEDE_E2E_PYTHON || 'python3';
@@ -18,7 +21,15 @@ export default defineConfig({
     {
       command: `npm run dev -- --host 127.0.0.1 --port ${e2ePort}`,
       url: e2eBaseUrl,
+      env: { CENTIPEDE_API_PORT: String(apiPort) },
       reuseExistingServer: !process.env.CI,
+      timeout: 30_000,
+    },
+    {
+      command: `${bunCommand} run src/server/production.ts`,
+      url: `${apiBaseUrl}/api/v1/health`,
+      env: { HOST: '127.0.0.1', PORT: String(apiPort) },
+      reuseExistingServer: false,
       timeout: 30_000,
     },
     {

@@ -1,4 +1,4 @@
-import { CentipedeProfile, HardwareInfo, OSPlatform, PlatformCapabilities, ProfileRecommendation, RuntimeInfo, StorageBreakdownMetrics, StoragePressureState } from './types';
+import { CentipedeProfile, HardwareInfo, OSPlatform, PlatformCapabilities, ProfileRecommendation, RuntimeInfo } from './types';
 import { CENTIPEDE_VERSION } from '../version';
 import { DataProvenance } from '../types/provenance';
 
@@ -16,21 +16,30 @@ if (isNodeOrBun) {
 
 export class PlatformDetector {
   public getProfileRecommendation(hardware: HardwareInfo): ProfileRecommendation {
-    const cores = hardware.cpuCores || 4;
-    const ramGb = Math.round(((hardware.totalMemoryMb || 8192) / 1024));
-    const diskGb = hardware.storageTotalGb || 128;
+    const cores = hardware.cpuCores;
+    const ramGb = hardware.totalMemoryMb === null ? null : Math.round(hardware.totalMemoryMb / 1024);
+    const hasCpuAndMemory = cores !== null && ramGb !== null;
+
+    if (!hasCpuAndMemory) {
+      return {
+        recommendedProfile: 'SEGMENTOR_RECOMMENDATION',
+        suitabilityScore: null,
+        explanation: 'A profile recommendation is unavailable because the browser did not report both CPU cores and memory. Choose a profile manually or run Centipede on a platform that can report these values.',
+        hardwareSummary: `${cores ?? 'Unknown'} CPU cores • ${ramGb === null ? 'Unknown' : `${ramGb} GB`} memory • Host disk unavailable`,
+      };
+    }
 
     let recommendedProfile: CentipedeProfile = 'FULL_CENTIPEDE';
-    let explanation = 'Your computer meets all hardware requirements for Full Centipede OS (Commander + Knight + Scout).';
+    let explanation = 'Reported CPU and memory meet the current heuristic for Full Centipede. This is not a compatibility test.';
     let suitabilityScore = 95;
 
-    if (cores < 4 || ramGb < 8 || diskGb < 64) {
+    if (cores < 4 || ramGb < 8) {
       recommendedProfile = 'SCOUT';
-      explanation = 'Your computer has lightweight hardware. Scout profile is recommended for discovery and monitoring with minimal resource usage.';
+      explanation = 'Reported CPU or memory is limited. Scout is suggested for lighter workloads; this estimate does not account for GPU, storage, or workload.';
       suitabilityScore = 75;
     } else if (cores < 6 || ramGb < 16) {
       recommendedProfile = 'KNIGHT';
-      explanation = 'Your computer is ideal as a Knight worker node for executing assigned tasks and container workloads.';
+      explanation = 'Reported CPU or memory is moderate. Knight is suggested for lighter assigned workloads; this estimate does not account for GPU, storage, or workload.';
       suitabilityScore = 85;
     }
 
@@ -38,48 +47,7 @@ export class PlatformDetector {
       recommendedProfile,
       suitabilityScore,
       explanation,
-      hardwareSummary: `${hardware.cpuCores ?? 'Unknown'} CPU Cores • ${hardware.totalMemoryMb ? Math.round(hardware.totalMemoryMb/1024) : 'Unknown'} GB RAM • ${hardware.storageTotalGb ?? 'Unknown'} GB Storage`,
-    };
-  }
-
-  private overrideStorageFreeGb: number | null = null;
-
-  public setStorageFreeOverrideGb(freeGb: number | null): void {
-    this.overrideStorageFreeGb = freeGb;
-  }
-
-  public calculateStorageMetrics(totalGb = 512, freeGb = 256): StorageBreakdownMetrics {
-    const effectiveFreeGb = this.overrideStorageFreeGb !== null ? this.overrideStorageFreeGb : freeGb;
-    const diskUsedGb = totalGb - effectiveFreeGb;
-    const freeSpacePercent = totalGb > 0 ? Math.round((effectiveFreeGb / totalGb) * 100) : 100;
-
-    let storagePressure: StoragePressureState = 'NORMAL';
-    if (totalGb > 0) {
-      if (freeSpacePercent < 5) {
-        storagePressure = 'EMERGENCY';
-      } else if (freeSpacePercent < 10) {
-        storagePressure = 'CRITICAL';
-      } else if (freeSpacePercent < 20) {
-        storagePressure = 'WARNING';
-      } else if (freeSpacePercent <= 30) {
-        storagePressure = 'INFORMATIONAL_WARNING';
-      }
-    }
-
-    return {
-      diskTotalGb: totalGb,
-      diskUsedGb,
-      diskFreeGb: effectiveFreeGb,
-      freeSpacePercent,
-      systemUsedGb: Math.min(31, diskUsedGb),
-      kingdomUsedGb: 4,
-      dockerUsedGb: 28,
-      vmUsedGb: 52,
-      modelsUsedGb: 21,
-      skillsUsedGb: 7,
-      logsUsedGb: 2,
-      userUsedGb: 22,
-      storagePressure,
+      hardwareSummary: `${cores} reported CPU cores • ${ramGb} GB reported memory • Host disk unavailable`,
     };
   }
 
@@ -150,17 +118,15 @@ export class PlatformDetector {
         const estimate = await navigator.storage.estimate();
         if (estimate.quota && estimate.usage !== undefined) {
           storageTotalGb = Math.round(estimate.quota / (1024 * 1024 * 1024));
-          storageTotalGbProvenance = 'LOCAL_DETECTED';
+          storageTotalGbProvenance = 'BROWSER_QUOTA';
           storageAvailableGb = Math.round((estimate.quota - estimate.usage) / (1024 * 1024 * 1024));
-          storageAvailableGbProvenance = 'LOCAL_DETECTED';
+          storageAvailableGbProvenance = 'BROWSER_QUOTA';
         }
       } catch (_) {
         storageTotalGbProvenance = 'UNAVAILABLE';
         storageAvailableGbProvenance = 'UNAVAILABLE';
       }
     }
-
-    const storageBreakdown = this.calculateStorageMetrics(storageTotalGb || 0, storageAvailableGb || 0);
 
     const hardware: HardwareInfo = {
       cpuCores,
@@ -175,14 +141,13 @@ export class PlatformDetector {
       storageAvailableGbProvenance,
       gpuAvailable: false,
       gpuProvenance: 'UNAVAILABLE',
-      storageBreakdown,
     };
 
     return {
       centipedeVersion: CENTIPEDE_VERSION,
       platform: {
         os,
-        architecture: typeof process !== 'undefined' ? process.arch || 'x64' : 'x64',
+        architecture: typeof process !== 'undefined' ? process.arch || 'UNKNOWN' : 'UNKNOWN',
         osRelease: typeof process !== 'undefined' ? process.platform || 'browser' : 'browser',
       },
       hardware,
@@ -194,9 +159,11 @@ export class PlatformDetector {
       },
       capabilities,
       services: {
-        centipede: { status: 'HEALTHY', endpoint: 'http://localhost:3000', version: CENTIPEDE_VERSION, latencyMs: 2 },
-        kingdom: { status: 'STOPPED', endpoint: 'http://localhost:8000' },
-        aiModel: { status: 'STOPPED', endpoint: 'http://localhost:11434' },
+        // Runtime detection reports host facts only. It does not probe these
+        // services, so it must not claim they are healthy, stopped, or fast.
+        centipede: { status: 'UNKNOWN', endpoint: 'Not probed', version: CENTIPEDE_VERSION },
+        kingdom: { status: 'UNKNOWN', endpoint: 'Configured in Kingdom connection settings' },
+        aiModel: { status: 'UNKNOWN', endpoint: 'Not probed' },
       },
       timestamp: Date.now(),
     };

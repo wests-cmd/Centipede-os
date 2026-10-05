@@ -109,13 +109,9 @@ describe('Step 7 — Platform Harness, Docker, API & Security Test Suite', () =>
     }
   });
 
-  it('Test I — Centipede OS Ultralight Profile Base Footprint Size Gate (< 5.0 GB Target)', async () => {
+  it('Test I — host disk usage is not presented as measured by the browser runtime', async () => {
     const runtime = await platformDetector.detectRuntimeInfo();
-    const storageBreakdown = runtime.hardware.storageBreakdown;
-    expect(storageBreakdown).toBeDefined();
-
-    // Base installed size: 3.2 GB (Leaves 1.8 GB headroom under 5.0 GB hard limit)
-    const ultralightInstalledBaseGb = 3.2;
-    expect(ultralightInstalledBaseGb).toBeLessThan(5.0);
+    expect(runtime.hardware.storageTotalGbProvenance).not.toBe('LOCAL_DETECTED');
+    expect(runtime.hardware.storageAvailableGbProvenance).not.toBe('LOCAL_DETECTED');
   });
 });
