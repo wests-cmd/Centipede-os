@@ -64,7 +64,7 @@ export interface PlatformCapabilities {
 }
 
 export interface ServiceHealth {
-  status: 'HEALTHY' | 'DEGRADED' | 'UNHEALTHY' | 'STOPPED';
+  status: 'HEALTHY' | 'DEGRADED' | 'UNHEALTHY' | 'STOPPED' | 'UNKNOWN';
   endpoint: string;
   version?: string;
   latencyMs?: number;

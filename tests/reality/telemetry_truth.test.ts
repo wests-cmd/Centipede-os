@@ -19,4 +19,12 @@ describe('Reality Regression Suite — Hardware Telemetry Truth', () => {
       expect(info.hardware.cpuCores).toBeNull();
     }
   });
+
+  it('3. Does not claim service health or latency without performing a service probe', async () => {
+    const info = await platformDetector.detectRuntimeInfo();
+    expect(info.services.centipede.status).toBe('UNKNOWN');
+    expect(info.services.kingdom.status).toBe('UNKNOWN');
+    expect(info.services.aiModel.status).toBe('UNKNOWN');
+    expect(info.services.centipede.latencyMs).toBeUndefined();
+  });
 });

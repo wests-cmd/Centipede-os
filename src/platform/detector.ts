@@ -194,9 +194,11 @@ export class PlatformDetector {
       },
       capabilities,
       services: {
-        centipede: { status: 'HEALTHY', endpoint: 'http://localhost:3000', version: CENTIPEDE_VERSION, latencyMs: 2 },
-        kingdom: { status: 'STOPPED', endpoint: 'http://localhost:8000' },
-        aiModel: { status: 'STOPPED', endpoint: 'http://localhost:11434' },
+        // Runtime detection reports host facts only. It does not probe these
+        // services, so it must not claim they are healthy, stopped, or fast.
+        centipede: { status: 'UNKNOWN', endpoint: 'Not probed', version: CENTIPEDE_VERSION },
+        kingdom: { status: 'UNKNOWN', endpoint: 'Configured in Kingdom connection settings' },
+        aiModel: { status: 'UNKNOWN', endpoint: 'Not probed' },
       },
       timestamp: Date.now(),
     };
