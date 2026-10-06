@@ -17,7 +17,7 @@ The primary CI and CodeQL checks passed on the PR head. The separate Copilot sec
 
 ## Boot recovery candidate
 
-A boot/recovery workstream is under review on branch `codex/live-kingdom-read-proxy-and-app-updates`. The ISO builder now configures a named Safe Graphics failsafe boot choice, firmware package inclusion, explicit BIOS + UEFI bootloaders, required signed UEFI components, Centipede `/etc/os-release` identity, ISO label metadata, and an internal SHA-256 file list. CI was extended to test BIOS normal boot, BIOS Safe Graphics, and Secure Boot UEFI normal/Safe Graphics from the exact ISO artifact. These are **candidate source changes only** until that workflow builds and passes. The user-reported physical machine has not yet been retested, and the broader recovery gaps are listed in [BOOT_RECOVERY_CHECKLIST.md](BOOT_RECOVERY_CHECKLIST.md).
+A boot/recovery workstream was merged from PR [#117](https://github.com/wests-cmd/Centipede-os/pull/117) as `dbc95eed00d51d91709b392431a9ce5998813171`. Platform workflow [37413139746](https://github.com/wests-cmd/Centipede-os/actions/runs/37413139746) built the exact ISO, Live USB copy, and QEMU disk, then passed BIOS normal, BIOS Safe Graphics, signed UEFI normal, and signed UEFI Safe Graphics boot-to-desktop checks. The run also uploaded QEMU screenshots and serial logs. These candidate artifacts are **not a new public stable release**. The user's physical PC/monitor has not been retested, and the broader recovery gaps are listed in [BOOT_RECOVERY_CHECKLIST.md](BOOT_RECOVERY_CHECKLIST.md).
 ## Target status
 
 | Target | Gate | Current public status | Current main evidence |
@@ -31,7 +31,7 @@ A boot/recovery workstream is under review on branch `codex/live-kingdom-read-pr
 | iOS | BLOCKED for device distribution | No signed iPhone IPA | iOS Simulator app passed launch smoke; Apple distribution signing/provisioning and explicit enablement are required. |
 | Kingdom service | PARTIAL | Server-side read-only proxy to an external service | This local audit connected through the Centipede proxy to a Docker Kingdom service and read its actual v1TAS/protocol 1.4 status, Knight list, models, and security status. The service reported `running=false`, no Ollama models, and no OpenAI-compatible provider. No task was submitted or runtime started. |
 
-The branch workflow artifact for ISO/USB/VM was about 3.35 GB combined. Its three image files duplicate the ISO for USB and package it as QEMU media. The image includes free everyday apps, which increase download size.
+The platform run 37413139746 ISO/USB/VM workflow artifact was about 4.66 GB combined. The bundle includes the ISO, a byte-identical USB copy, and a QEMU disk image; download only the needed ISO if storage or bandwidth is limited. The image includes free everyday apps, which increase download size.
 
 ## User-facing install limits
 
