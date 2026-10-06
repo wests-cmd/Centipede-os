@@ -114,9 +114,9 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
         <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
           <div>
             <h2 id="everyday-apps-heading" className="text-lg font-semibold text-white">Everyday apps</h2>
-            <p className="mt-1 text-sm text-slate-400">Included in the Debian desktop; no subscriptions required.</p>
+            <p className="mt-1 text-sm text-slate-400">Included with Centipede OS; no subscriptions required.</p>
           </div>
-          <p className="text-xs text-slate-500">On Debian, open the Applications menu in the top panel.</p>
+          <p className="text-xs text-slate-500">On Centipede OS, open the Applications menu in the top panel.</p>
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
