@@ -45,15 +45,25 @@ for path in [
     Path('/usr/share/plymouth/themes/centipede/centipede-boot.png'),
     Path('/usr/share/icons/hicolor/scalable/apps/centipede.svg'),
     Path('/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml'),
+    Path('/etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml'),
+    Path('/etc/live/config.conf.d/centipede.conf'),
+    Path('/etc/skel/.config/autostart/centipede-desktop.desktop'),
     Path('/etc/skel/.config/gtk-3.0/settings.ini'),
     Path('/etc/lightdm/lightdm-gtk-greeter.conf.d/50-centipede.conf'),
+    Path('/etc/lightdm/lightdm.conf.d/99-centipede.conf'),
     Path('/etc/default/grub.d/50-centipede.cfg'),
 ]:
     assert path.is_file() and path.stat().st_size > 0, f'Missing Centipede branding: {path}'
 assert 'centipede-workspace.png' in Path('/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml').read_text()
+live_config = Path('/etc/live/config.conf.d/centipede.conf').read_text()
+assert 'LIVE_USERNAME="centipede"' in live_config
+assert 'LIVE_USER_FULLNAME="Centipede OS"' in live_config
+assert 'LIVE_HOSTNAME="centipede"' in live_config
 greeter_branding = Path('/etc/lightdm/lightdm-gtk-greeter.conf.d/50-centipede.conf').read_text()
 assert '/usr/share/backgrounds/centipede/centipede-workspace.png' in greeter_branding
 assert '/usr/share/icons/hicolor/scalable/apps/centipede.svg' in greeter_branding
+seat_branding = Path('/etc/lightdm/lightdm.conf.d/99-centipede.conf').read_text()
+assert 'autologin-user=centipede' in seat_branding
 assert 'Debian' not in (root / 'branding/centipede/branding.desc').read_text()
 assert 'Debian' not in Path('/etc/lightdm/lightdm-gtk-greeter.conf.d/50-centipede.conf').read_text()
 assert 'Debian' not in Path('/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml').read_text()

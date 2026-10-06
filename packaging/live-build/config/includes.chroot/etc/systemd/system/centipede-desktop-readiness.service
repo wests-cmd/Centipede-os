@@ -1,7 +1,7 @@
 [Unit]
 Description=Verify Centipede desktop readiness
-After=graphical.target
-Wants=graphical.target
+After=lightdm.service centipede-web.service
+Wants=centipede-web.service
 
 [Service]
 Type=oneshot

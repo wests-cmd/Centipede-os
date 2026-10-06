@@ -21,6 +21,9 @@ fi
 for file in "$GRUB_DIR"/*.cfg "$ISOLINUX_DIR"/*.cfg; do
   [ -f "$file" ] || continue
   sed -i \
+    -e 's/^[[:space:]]*MENU TITLE.*/MENU TITLE Centipede OS/I' \
+    -e 's/^[[:space:]]*UI[[:space:]]\+gfxboot\([.]c32\)\?$/UI vesamenu.c32/I' \
+    -e '/^[[:space:]]*gfxboot\([[:space:]].*\)\?$/Id' \
     -e '/^[[:space:]]*menuentry .*fail-safe mode/s/".*"/"Centipede OS (Safe Graphics)"/' \
     -e '/^[[:space:]]*menu label .*fail-safe mode/Is/.*$/MENU LABEL Centipede OS (Safe Graphics)/' \
     -e '/^[[:space:]]*menuentry "Live system/s/".*"/"Start Centipede OS"/' \
@@ -32,6 +35,24 @@ for file in "$GRUB_DIR"/*.cfg "$ISOLINUX_DIR"/*.cfg; do
     -e 's/--class[[:space:]]\+debian\(-live\)\?//g' \
     "$file"
 done
+
+# Replace the distro's gfxboot splash (which carries its logo and title) with
+# the standard image-capable menu renderer before applying our own menu art.
+BIOS_CONFIG="$ISOLINUX_DIR/isolinux.cfg"
+if [ ! -f "$BIOS_CONFIG" ]; then
+  for file in "$ISOLINUX_DIR"/*.cfg; do
+    [ -f "$file" ] || continue
+    BIOS_CONFIG="$file"
+    break
+  done
+fi
+[ -f "$BIOS_CONFIG" ] || { echo 'Generated BIOS menu configuration is missing.' >&2; exit 1; }
+if ! grep -RqiE '^[[:space:]]*UI[[:space:]]+vesamenu\.c32' "$ISOLINUX_DIR"; then
+  sed -i '1i UI vesamenu.c32' "$BIOS_CONFIG"
+fi
+if ! grep -RqiE '^[[:space:]]*MENU[[:space:]]+TITLE[[:space:]]+Centipede OS' "$ISOLINUX_DIR"; then
+  sed -i '1i MENU TITLE Centipede OS' "$BIOS_CONFIG"
+fi
 
 GRUB_CONFIG="$GRUB_DIR/grub.cfg"
 [ -f "$GRUB_CONFIG" ] || { echo 'Generated GRUB configuration is missing.' >&2; exit 1; }
@@ -73,5 +94,10 @@ grep -Fq 'background_image $prefix/centipede-menu.png' "$GRUB_CONFIG" || { echo 
 grep -Rqs 'MENU BACKGROUND centipede-menu.png' "$ISOLINUX_DIR" || { echo 'Centipede BIOS background was not installed.' >&2; exit 1; }
 if grep -REi '^[[:space:]]*(menuentry|menu[[:space:]]+label).*Debian' "$GRUB_DIR" "$ISOLINUX_DIR"; then
   echo 'A boot-menu label still exposes Debian branding.' >&2
+  exit 1
+fi
+grep -RqiE '^[[:space:]]*MENU[[:space:]]+TITLE[[:space:]]+Centipede OS' "$ISOLINUX_DIR" || { echo 'Centipede BIOS menu title is missing.' >&2; exit 1; }
+if grep -RqiE '^[[:space:]]*(UI[[:space:]]+gfxboot|gfxboot[[:space:]])' "$ISOLINUX_DIR"; then
+  echo 'The distro gfxboot splash still overrides Centipede boot artwork.' >&2
   exit 1
 fi

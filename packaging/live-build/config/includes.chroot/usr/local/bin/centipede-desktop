@@ -3,6 +3,28 @@ set -eu
 mkdir -p "$HOME/.cache"
 exec >>"$HOME/.cache/centipede-desktop.log" 2>&1
 echo "Waiting for local Centipede web service"
+
+# Apply the branded defaults to the live account too. live-config creates its
+# session account during boot, so relying only on /etc/skel is not sufficient.
+xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/image-path \
+  --create -t string -s /usr/share/backgrounds/centipede/centipede-workspace.png || true
+xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image \
+  --create -t string -s /usr/share/backgrounds/centipede/centipede-workspace.png || true
+xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/image-style \
+  --create -t int -s 5 || true
+xfdesktop --reload || true
+
+# Rename the default panel launcher at runtime without depending on its plugin
+# number, which can vary with the installed XFCE panel package.
+menu_plugin=$(xfconf-query -c xfce4-panel -lv 2>/dev/null | sed -n '/applicationsmenu/s/:.*//p' | head -n 1 || true)
+case "$menu_plugin" in
+  */plugins/plugin-*)
+    xfconf-query -c xfce4-panel -p "$menu_plugin/button-title" --create -t string -s 'Centipede OS' || true
+    xfconf-query -c xfce4-panel -p "$menu_plugin/button-icon" --create -t string -s 'centipede' || true
+    xfconf-query -c xfce4-panel -p "$menu_plugin/show-button-title" --create -t bool -s true || true
+    ;;
+esac
+
 attempt=0
 until python3 -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:3000/", timeout=2).close()'; do
   attempt=$((attempt + 1))

@@ -4,9 +4,9 @@
 
 ## Current release update — 2026-10-06
 
-The current stable release is still [`v1.0.0`](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0). A custom-branded [`v1.0.1-rc.3 preview`](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.1-rc.3) is now published. Its release run built the web bundle, Docker image, hybrid ISO/Live USB image, and QEMU optical-media image; release manifest and SHA-256 checksums are attached. CI booted the exact ISO to the desktop in standard BIOS, Safe Graphics BIOS, signed UEFI, and signed UEFI Safe Graphics modes. Docker smoke checks passed.
+The current public stable release is [`v1.0.0`](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0). Release candidate [`v1.0.1-rc.3`](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.1-rc.3) is published but is not the recommended download. The `v1.0.1-rc.4` image build was stopped before publication: QEMU showed a Debian splash/menu and a generic XFCE desktop, and the desktop readiness marker was missing. That visible result does not meet the Centipede product identity requirement.
 
-The preview is for **live use only**. The guided installer has not passed installation to a separate disposable disk, reboot, and source-media safety verification. Android signed APK and iOS device IPA were not published because signing credentials are not configured. The release manifest marks those targets `BLOCKED`. No stable v1.0.1 release is authorized by this evidence.
+The current branch fixes the BIOS menu renderer/title/artwork, sets the live account display name to Centipede OS, applies the classic dark wallpaper to live sessions, and starts the web desktop from the live account profile. These changes still need a fresh exact-image build and visual BIOS/UEFI review. Do not publish the candidate until those checks pass. The installer remains live-preview-only until it has been installed onto a separate disposable VM disk, rebooted, and passed source-media protection checks. Android signed APK and iOS device IPA remain blocked because distribution signing is not configured.
 
 The target descriptions in the historical sections below record earlier audits and CI runs; for current downloadable artifacts and gate status, use this update and the linked live [ship reality matrix](SHIP_REALITY_MATRIX.md).
 
