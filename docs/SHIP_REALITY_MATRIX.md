@@ -1,6 +1,6 @@
 # CENTIPEDE OS — SHIP REALITY MATRIX
 
-**Public release:** Centipede `1.0.0` (`package.json`)
+**Public release:** Centipede `1.0.0`; installer candidate `1.0.1` (`package.json`)
 **Desktop refresh merge:** `f17a9365f223572dc0ea411dfbfdf214eee3ed5a`
 **Kingdom compatibility:** protocol major `1`; contract version `1.4.0`
 **Authoritative target gates:** [`release/targets.json`](../release/targets.json)
@@ -17,6 +17,14 @@
 | Android | Capacitor project; debug APK built and verified in CI | BLOCKED for stable distribution | No signed release APK. Signing keystore, pinned certificate fingerprint, and explicit workflow enablement are needed. |
 | iOS | Capacitor project; iOS Simulator app launched in CI | BLOCKED for device distribution | Simulator build is not installable on iPhone. Apple distribution signing/provisioning and explicit enablement are needed. |
 | Kingdom service | Separate project and deployment | EXTERNAL | No live Kingdom deployment was connected for the platform build. |
+
+## v1.0.1 disk-installer candidate
+
+The current branch adds Calamares to the Debian live image as a guided disk installer. Its configuration requires an explicit target choice, starts without a partition operation preselected, displays a final install confirmation, requires 32 GiB of storage and 2 GiB of RAM, and attempts to make the live boot disk read-only before Calamares enumerates install targets. If source-media identification or write protection fails, the installer exits without opening Calamares.
+
+This is not yet a public release. The installer image must pass a virtual-machine install onto a separate disposable target disk, reboot into the installed Centipede system, verify that the live boot disk was never writable/selected, and pass the existing BIOS/UEFI boot matrix before `v1.0.1` can be published as stable. The current workflow still proves image build and live boot only; no installation result has been recorded yet.
+
+The live system and current installer do not implement automatic graphics fallback, low-memory mode, diagnostics export, interrupted-install recovery, installed-system updates, or update rollback. Review the [disk installation guide](INSTALLATION_GUIDE.md) and [installer limits](DISK_INSTALLATION_GUIDE.md); back up data before any install.
 
 The successful current-main candidate checks ran on PR source commit `1f99f79eddb3dd06bd86dbc55074b20993f87d0b`; that source was merged as `f17a9365f223572dc0ea411dfbfdf214eee3ed5a`. CodeQL and primary CI passed. A separate Copilot reviewer failed before analysis because its configured model was unsupported. That result is not a clean review; it reported no source finding.
 

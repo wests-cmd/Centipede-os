@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install Centipede OS
+Comment=Install Centipede OS onto a computer
+Exec=/usr/local/bin/centipede-installer
+Icon=system-software-install
+Terminal=false
+Categories=System;
+StartupNotify=true

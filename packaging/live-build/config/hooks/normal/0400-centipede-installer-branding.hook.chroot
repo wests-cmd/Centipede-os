@@ -1,0 +1,41 @@
+#!/bin/sh
+set -eu
+
+# The Debian settings package provides the tested Calamares module ordering
+# and Debian live-media integration. Replace only its Debian-labelled menu
+# launcher; the installer itself remains Calamares.
+rm -f /usr/share/applications/install-debian.desktop
+if command -v update-desktop-database >/dev/null 2>&1; then
+  update-desktop-database /usr/share/applications || true
+fi
+
+python3 - <<'PY'
+from pathlib import Path
+import yaml
+
+root = Path('/etc/calamares')
+settings = yaml.safe_load((root / 'settings.conf').read_text())
+partition = yaml.safe_load((root / 'modules/partition.conf').read_text())
+welcome = yaml.safe_load((root / 'modules/welcome.conf').read_text())
+branding = yaml.safe_load((root / 'branding/centipede/branding.desc').read_text())
+assert settings.get('branding') == 'centipede'
+assert settings.get('prompt-install') is True
+assert settings.get('dont-chroot') is False
+assert any('partition' in phase.get('show', []) for phase in settings['sequence'] if isinstance(phase, dict))
+exec_steps = {module for phase in settings['sequence'] if isinstance(phase, dict) for module in phase.get('exec', [])}
+assert {'mount', 'unpackfs', 'fstab', 'users', 'grubcfg', 'bootloader', 'initramfs'} <= exec_steps
+assert partition.get('initialPartitioningChoice') == 'none'
+assert partition.get('initialSwapChoice') == 'none'
+assert welcome['requirements']['requiredStorage'] >= 32
+assert '@CENTIPEDE_VERSION@' not in (root / 'branding/centipede/branding.desc').read_text()
+assert branding['strings']['productName'] == 'Centipede OS'
+assert (root / 'branding/centipede/centipede-logo.png').is_file()
+assert Path('/usr/bin/calamares').is_file()
+assert Path('/usr/bin/pkexec').is_file()
+assert Path('/usr/bin/xhost').is_file()
+assert Path('/usr/bin/zenity').is_file()
+assert Path('/usr/local/bin/centipede-installer').stat().st_mode & 0o111
+assert Path('/usr/local/libexec/centipede-installer-root').stat().st_mode & 0o111
+PY
+sh -n /usr/local/bin/centipede-installer
+sh -n /usr/local/libexec/centipede-installer-root

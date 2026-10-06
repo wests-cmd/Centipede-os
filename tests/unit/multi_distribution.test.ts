@@ -70,16 +70,16 @@ describe('Centipede release target contract', () => {
   });
 
   it('offers only a newer artifact whose version, path, checksum, size, target, and Kingdom protocol agree', () => {
-    const result = TargetUpdateChecker.checkTargetUpdateAvailable('iso', '1.0.0+iso.1', manifestFor('iso'));
+    const result = TargetUpdateChecker.checkTargetUpdateAvailable('iso', `${packageJson.version}+iso.1`, manifestFor('iso'));
 
     expect(result.updateAvailable).toBe(true);
     expect(result.isCoreUpdate).toBe(false);
     expect(result.metadata).toMatchObject({
-      latestArtifactVersion: `1.0.0+iso.${config.targets.iso.revision}`,
+      latestArtifactVersion: `${packageJson.version}+iso.${config.targets.iso.revision}`,
       requiredKingdomProtocol: 'v1.0+',
       architecture: 'x86_64',
       sha256: sha,
-      downloadLocation: 'https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.0/centipede-os-1.0.0-x86_64.iso',
+      downloadLocation: `https://github.com/wests-cmd/Centipede-os/releases/download/v${packageJson.version}/centipede-os-${packageJson.version}-x86_64.iso`,
     });
   });
 
@@ -109,8 +109,8 @@ describe('Centipede release target contract', () => {
     const sameRevision = manifestFor('iso');
     const olderRevision = manifestFor('iso', { targetInfo: { revision: Math.max(1, config.targets.iso.revision - 1) } });
 
-    expect(TargetUpdateChecker.checkTargetUpdateAvailable('iso', '1.0.0+iso.1', coreDowngrade).updateAvailable).toBe(false);
-    const currentIdentity = `1.0.0+iso.${config.targets.iso.revision}`;
+    expect(TargetUpdateChecker.checkTargetUpdateAvailable('iso', `${packageJson.version}+iso.1`, coreDowngrade).updateAvailable).toBe(false);
+    const currentIdentity = `${packageJson.version}+iso.${config.targets.iso.revision}`;
     expect(TargetUpdateChecker.checkTargetUpdateAvailable('iso', currentIdentity, sameRevision).updateAvailable).toBe(false);
     expect(TargetUpdateChecker.checkTargetUpdateAvailable('iso', currentIdentity, olderRevision).updateAvailable).toBe(false);
     expect(TargetUpdateChecker.checkTargetUpdateAvailable('iso', '2.0.0+iso.1', sameRevision).updateAvailable).toBe(false);
