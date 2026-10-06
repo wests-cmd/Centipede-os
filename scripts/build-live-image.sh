@@ -46,7 +46,7 @@ lb config \
   --iso-volume "CENTIPEDE_OS_${VERSION}" \
   --bootappend-live-failsafe "boot=live components username=centipede hostname=centipede nomodeset vga=normal console=ttyS0,115200n8" \
   --security true \
-  --bootappend-live "boot=live components username=centipede hostname=centipede console=ttyS0,115200n8 ignore_loglevel"
+  --bootappend-live "boot=live components username=centipede hostname=centipede splash console=ttyS0,115200n8 ignore_loglevel"
 lb build
 
 ISO_SOURCE="${BUILD}/live-image-amd64.hybrid.iso"

@@ -1,6 +1,6 @@
 # CENTIPEDE OS — SHIP REALITY MATRIX
 
-**Public release:** Centipede `1.0.0`; installer candidate `1.0.1` (`package.json`)
+**Public release:** Centipede `1.0.0`; branded installer update candidate `1.0.1` (`package.json`)
 **Desktop refresh merge:** `f17a9365f223572dc0ea411dfbfdf214eee3ed5a`
 **Kingdom compatibility:** protocol major `1`; contract version `1.4.0`
 **Authoritative target gates:** [`release/targets.json`](../release/targets.json)
@@ -10,7 +10,7 @@
 | Target | What actually exists | Gate | Publication status |
 |---|---|---|---|
 | Desktop web bundle | React/Vite app; tarball published in v1.0.0 | BUILDABLE | The updated desktop design is on `main`, but only the earlier bundle is published. |
-| Bootable ISO | Debian live-build hybrid amd64 ISO; QEMU reached the refreshed desktop readiness marker | BUILDABLE | v1.0.0 image is public. Updated image built in [platform run 36805229329](https://github.com/wests-cmd/Centipede-os/actions/runs/36805229329), not yet in a new release. |
+| Bootable ISO | Centipede-branded hybrid amd64 live ISO; custom boot menu, splash, login screen, desktop wallpaper, and Calamares artwork are included in the candidate source | BUILDABLE | v1.0.0 image is public. The v1.0.1 branding update needs a fresh build and boot review; it is not yet published. |
 | Live USB | Same hybrid ISO bytes as the ISO asset | BUILDABLE | v1.0.0 image is public. Updated output is validated but unpublished. Flashing it erases the selected USB. |
 | VM image | QEMU qcow2 virtual optical-media image; structural and guest boot checks pass | BUILDABLE | v1.0.0 image is public. Updated output is validated but unpublished. Attach it as virtual CD media; it is not an installed hard disk. |
 | Docker image | Centipede web app container; HTTP/CSS/health check passed | BUILDABLE | v1.0.0 archive is public. The updated image is CI-only and is not pushed to a registry. It does not include Kingdom. |
@@ -18,11 +18,11 @@
 | iOS | Capacitor project; iOS Simulator app launched in CI | BLOCKED for device distribution | Simulator build is not installable on iPhone. Apple distribution signing/provisioning and explicit enablement are needed. |
 | Kingdom service | Separate project and deployment | EXTERNAL | No live Kingdom deployment was connected for the platform build. |
 
-## v1.0.1 disk-installer candidate
+## v1.0.1 branded disk-installer candidate
 
 The current branch adds Calamares to the Debian live image as a guided disk installer. Its configuration requires an explicit target choice, starts without a partition operation preselected, displays a final install confirmation, requires 32 GiB of storage and 2 GiB of RAM, and attempts to make the live boot disk read-only before Calamares enumerates install targets. If source-media identification or write protection fails, the installer exits without opening Calamares.
 
-This is not yet a public release. The installer image must pass a virtual-machine install onto a separate disposable target disk, reboot into the installed Centipede system, verify that the live boot disk was never writable/selected, and pass the existing BIOS/UEFI boot matrix before `v1.0.1` can be published as stable. The current workflow still proves image build and live boot only; no installation result has been recorded yet. Do not use the candidate image to erase or install onto a real drive.
+The candidate now has a custom Centipede identity across its boot artwork, startup splash, login screen, desktop background, and installer. The build validates those identity files rather than silently accepting a missing logo or splash. This is not yet a public release. The installer image must pass a virtual-machine install onto a separate disposable target disk, reboot into the installed Centipede system, verify that the live boot disk was never writable/selected, and pass the existing BIOS/UEFI boot matrix before `v1.0.1` can be published as stable. The current workflow still proves image build and live boot only; no installation result has been recorded yet. Do not use the candidate image to erase or install onto a real drive.
 
 The live system and current installer do not implement automatic graphics fallback, low-memory mode, diagnostics export, interrupted-install recovery, installed-system updates, or update rollback. Review the [disk installation guide](INSTALLATION_GUIDE.md) and [installer limits](DISK_INSTALLATION_GUIDE.md); back up data before any install.
 

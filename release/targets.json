@@ -20,24 +20,24 @@
     },
     "iso": {
       "status": "BUILDABLE",
-      "revision": 4,
+      "revision": 5,
       "artifact": "centipede-os-{version}-x86_64.iso",
       "architecture": "x86_64",
-      "description": "Debian live-build hybrid live image with XFCE desktop, free everyday apps, and an embedded guided disk installer. Disk install safety remains under validation; always back up data before proceeding."
+      "description": "Centipede-branded hybrid live image with custom boot menus, startup splash, desktop, login, and installer identity; XFCE desktop, free everyday apps, and guided disk installer. Disk install safety remains under validation; always back up data before proceeding."
     },
     "live-usb": {
       "status": "BUILDABLE",
-      "revision": 4,
+      "revision": 5,
       "artifact": "centipede-os-{version}-live-usb-x86_64.iso",
       "architecture": "x86_64",
-      "description": "Same hybrid live and guided installer image bytes with a USB-specific filename, validated byte-identical and writable to USB media. Writing it erases the selected USB."
+      "description": "Same Centipede-branded hybrid live and guided installer image bytes with a USB-specific filename, validated byte-identical and writable to USB media. Writing it erases the selected USB."
     },
     "vm": {
       "status": "BUILDABLE",
-      "revision": 4,
+      "revision": 5,
       "artifact": "centipede-os-{version}-x86_64.qcow2",
       "architecture": "x86_64",
-      "description": "QEMU qcow2 optical-media image converted from the bootable live and guided installer image; attach as virtual CD media, not as an installed system disk."
+      "description": "QEMU qcow2 optical-media image converted from the Centipede-branded live and guided installer image; attach as virtual CD media, not as an installed system disk."
     },
     "android": {
       "status": "BLOCKED",

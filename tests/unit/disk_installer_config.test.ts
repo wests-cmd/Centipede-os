@@ -45,3 +45,45 @@ describe('guided disk installer release configuration', () => {
     expect(guide).toMatch(/update rollback are not included yet/);
   });
 });
+
+describe('Centipede OS visual identity', () => {
+  const config = 'packaging/live-build/config';
+
+  it('includes custom artwork for each public boot and desktop surface', () => {
+    const artwork = [
+      'includes.chroot/usr/share/backgrounds/centipede/centipede-mark.svg',
+      'includes.chroot/usr/share/backgrounds/centipede/centipede-workspace.svg',
+      'includes.chroot/usr/share/backgrounds/centipede/centipede-workspace.png',
+      'includes.chroot/usr/share/backgrounds/centipede/centipede-menu.svg',
+      'includes.chroot/usr/share/backgrounds/centipede/centipede-menu.png',
+      'includes.chroot/usr/share/plymouth/themes/centipede/centipede.plymouth',
+      'includes.chroot/usr/share/plymouth/themes/centipede/centipede.script',
+      'includes.chroot/usr/share/plymouth/themes/centipede/centipede-boot.svg',
+      'includes.chroot/usr/share/plymouth/themes/centipede/centipede-boot.png',
+      'includes.chroot/etc/calamares/branding/centipede/centipede-logo.png',
+      'includes.chroot/usr/share/icons/hicolor/scalable/apps/centipede.svg',
+    ];
+    for (const asset of artwork) expect(readFileSync(join(root, config, asset)).byteLength).toBeGreaterThan(0);
+  });
+
+  it('configures the user workspace, login screen, boot identity, and installer with the Centipede brand', () => {
+    const desktop = read(`${config}/includes.chroot/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml`);
+    const greeter = read(`${config}/includes.chroot/etc/lightdm/lightdm-gtk-greeter.conf.d/50-centipede.conf`);
+    const osIdentity = read(`${config}/hooks/normal/0200-centipede-identity.hook.chroot`);
+    const bootMenu = read(`${config}/hooks/normal/0300-centipede-boot-menu.hook.binary`);
+    const installerBrand = read(`${config}/includes.chroot/etc/calamares/branding/centipede/branding.desc`);
+    const packageList = read(`${config}/package-lists/centipede.list.chroot`);
+
+    expect(desktop).toContain('/usr/share/backgrounds/centipede/centipede-workspace.png');
+    expect(greeter).toContain('background=/usr/share/backgrounds/centipede/centipede-workspace.png');
+    expect(greeter).toContain('logo=/usr/share/icons/hicolor/scalable/apps/centipede.svg');
+    expect(osIdentity).toContain('GRUB_DISTRIBUTOR="Centipede OS"');
+    expect(osIdentity).toContain('GRUB_BACKGROUND="/usr/share/backgrounds/centipede/centipede-menu.png"');
+    expect(osIdentity).toContain('plymouth-set-default-theme centipede');
+    expect(bootMenu).toContain('background_image $prefix/centipede-menu.png');
+    expect(bootMenu).toContain('MENU BACKGROUND centipede-menu.png');
+    expect(bootMenu).toContain('"Start Centipede OS"');
+    expect(installerBrand).toContain('productName: Centipede OS');
+    expect(packageList).toContain('plymouth-themes');
+  });
+});

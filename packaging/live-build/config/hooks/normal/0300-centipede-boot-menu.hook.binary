@@ -5,9 +5,13 @@ set -eu
 # Rename visible labels after generation while preserving the generated commands.
 GRUB_DIR=boot/grub
 ISOLINUX_DIR=isolinux
+MENU_ART=../config/includes.chroot/usr/share/backgrounds/centipede/centipede-menu.png
 for dir in "$GRUB_DIR" "$ISOLINUX_DIR"; do
   [ -d "$dir" ] || { echo "Expected boot menu directory missing: $dir" >&2; exit 1; }
 done
+[ -s "$MENU_ART" ] || { echo 'Centipede boot-menu artwork is missing.' >&2; exit 1; }
+cp "$MENU_ART" "$GRUB_DIR/centipede-menu.png"
+cp "$MENU_ART" "$ISOLINUX_DIR/centipede-menu.png"
 
 if ! grep -Rqs "fail-safe mode" "$GRUB_DIR" "$ISOLINUX_DIR"; then
   echo "Live-build produced no failsafe menu entries." >&2
@@ -18,13 +22,40 @@ for file in "$GRUB_DIR"/*.cfg "$ISOLINUX_DIR"/*.cfg; do
   [ -f "$file" ] || continue
   sed -i \
     -e '/^[[:space:]]*menuentry .*fail-safe mode/s/".*"/"Centipede OS (Safe Graphics)"/' \
-    -e '/^[[:space:]]*menu label .*fail-safe mode/s/.*$/menu label Centipede OS (Safe Graphics)/' \
+    -e '/^[[:space:]]*menu label .*fail-safe mode/Is/.*$/MENU LABEL Centipede OS (Safe Graphics)/' \
     -e '/^[[:space:]]*menuentry "Live system/s/".*"/"Start Centipede OS"/' \
-    -e '/^[[:space:]]*menu label .*Live system/s/.*$/menu label Start Centipede OS/' \
-    -e 's/Debian GNU\/Linux/Centipede OS/g' \
-    -e 's/Debian Live/Centipede OS/g' \
+    -e '/^[[:space:]]*menuentry "Debian GNU\/Linux.*Live/s/"[^"]*"/"Start Centipede OS"/' \
+    -e '/^[[:space:]]*menu label .*Live system/Is/.*$/MENU LABEL Start Centipede OS/' \
+    -e '/^[[:space:]]*menu label .*Debian GNU\/Linux/Is/.*$/MENU LABEL Start Centipede OS/' \
+    -e 's/Debian GNU\/Linux[^"]*/Centipede OS/g' \
+    -e 's/Debian Live[^"]*/Centipede OS/g' \
+    -e 's/--class[[:space:]]\+debian\(-live\)\?//g' \
     "$file"
+done
+
+GRUB_CONFIG="$GRUB_DIR/grub.cfg"
+[ -f "$GRUB_CONFIG" ] || { echo 'Generated GRUB configuration is missing.' >&2; exit 1; }
+if ! grep -Fq 'background_image $prefix/centipede-menu.png' "$GRUB_CONFIG"; then
+  sed -i '1i\
+insmod png\
+background_image $prefix/centipede-menu.png\
+set menu_color_normal=light-gray/black\
+set menu_color_highlight=black/light-cyan\
+' "$GRUB_CONFIG"
+fi
+
+for file in "$ISOLINUX_DIR"/*.cfg; do
+  [ -f "$file" ] || continue
+  if grep -Eqi '^[[:space:]]*UI[[:space:]]+vesamenu\.c32' "$file" && ! grep -Fq 'MENU BACKGROUND centipede-menu.png' "$file"; then
+    sed -i '/^[[:space:]]*UI[[:space:]]\+vesamenu\.c32/Ia MENU BACKGROUND centipede-menu.png' "$file"
+  fi
 done
 
 grep -Rqs 'Safe Graphics' "$GRUB_DIR" || { echo 'Safe Graphics entry missing from GRUB menu.' >&2; exit 1; }
 grep -Rqs 'Safe Graphics' "$ISOLINUX_DIR" || { echo 'Safe Graphics entry missing from BIOS menu.' >&2; exit 1; }
+grep -Fq 'background_image $prefix/centipede-menu.png' "$GRUB_CONFIG" || { echo 'Centipede GRUB background was not installed.' >&2; exit 1; }
+grep -Rqs 'MENU BACKGROUND centipede-menu.png' "$ISOLINUX_DIR" || { echo 'Centipede BIOS background was not installed.' >&2; exit 1; }
+if grep -REi '^[[:space:]]*(menuentry|menu[[:space:]]+label).*Debian' "$GRUB_DIR" "$ISOLINUX_DIR"; then
+  echo 'A boot-menu label still exposes Debian branding.' >&2
+  exit 1
+fi

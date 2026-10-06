@@ -9,7 +9,7 @@ This checklist tracks the boot-failure report from a physical USB boot. The exac
 - [x] Configure hybrid ISO boot with the BIOS Syslinux path and UEFI GRUB path.
 - [x] Require signed UEFI boot components instead of silently falling back to unsigned GRUB.
 - [x] Include available Debian firmware packages, including firmware from the `non-free-firmware` archive.
-- [x] Set Centipede product identity in `/etc/os-release`, hostname, console issue text, and ISO application/publisher/volume metadata. Retain `ID_LIKE=debian` and Debian package/license notices.
+- [x] Set Centipede product identity in `/etc/os-release`, hostname, console issue text, ISO metadata, boot artwork, startup splash, login screen, desktop wallpaper, and guided installer. Keep machine-readable base compatibility and required package/license notices separate from user-facing product identity.
 - [x] Embed a SHA-256 file list in the ISO and retain the existing external release manifest/checksum validation.
 - [x] Extend tagged platform CI to boot the exact candidate ISO in legacy BIOS normal mode, BIOS Safe Graphics mode, and signed UEFI normal/Safe Graphics modes. The existing boot readiness marker requires LightDM, Chromium, the local app, and the daily-use apps to be ready.
 
@@ -17,7 +17,7 @@ The build and QEMU checks above passed on PR commit `7d4f09ad36e868f280854fb0301
 
 ## Required work before making broad hardware claims
 
-- [ ] Rebuild and inspect the generated GRUB and ISOLINUX menus, ISO label, `/etc/os-release`, and all installed-system branding locations. This live image does not currently provide a disk installer, so there is no installed-system boot menu to validate yet.
+- [ ] Rebuild and inspect the generated GRUB/ISOLINUX menus, ISO label, `/etc/os-release`, and branded splash/login/desktop/installer in the exact candidate image. Validate installed-system boot branding only after a disposable disk install and reboot passes.
 - [x] Verify the signed UEFI image boots with Secure Boot enabled in QEMU in normal and Safe Graphics modes.
 - [ ] Verify signed UEFI boot on a physical Secure Boot machine; document how to disable Secure Boot only if validation fails and support is intentionally dropped.
 - [ ] Add an automatic graphical failure path that reaches a readable console/recovery UI when LightDM or the display server cannot start. A menu choice alone is not automatic fallback.

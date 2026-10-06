@@ -13,6 +13,7 @@ python3 - <<'PY'
 from pathlib import Path
 import yaml
 import xml.etree.ElementTree as ET
+import subprocess
 
 root = Path('/etc/calamares')
 settings = yaml.safe_load((root / 'settings.conf').read_text())
@@ -32,6 +33,27 @@ assert welcome['requirements']['requiredStorage'] >= 32
 assert '@CENTIPEDE_VERSION@' not in (root / 'branding/centipede/branding.desc').read_text()
 assert branding['strings']['productName'] == 'Centipede OS'
 assert (root / 'branding/centipede/centipede-logo.png').is_file()
+assert (root / 'branding/centipede/centipede-logo.png').stat().st_size > 10_000
+for path in [
+    Path('/usr/share/backgrounds/centipede/centipede-workspace.png'),
+    Path('/usr/share/backgrounds/centipede/centipede-menu.png'),
+    Path('/usr/share/plymouth/themes/centipede/centipede-boot.png'),
+    Path('/usr/share/icons/hicolor/scalable/apps/centipede.svg'),
+    Path('/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml'),
+    Path('/etc/skel/.config/gtk-3.0/settings.ini'),
+    Path('/etc/lightdm/lightdm-gtk-greeter.conf.d/50-centipede.conf'),
+    Path('/etc/default/grub.d/50-centipede.cfg'),
+]:
+    assert path.is_file() and path.stat().st_size > 0, f'Missing Centipede branding: {path}'
+assert 'centipede-workspace.png' in Path('/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml').read_text()
+assert 'Centipede OS' in Path('/etc/lightdm/lightdm-gtk-greeter.conf.d/50-centipede.conf').read_text()
+assert 'Debian' not in (root / 'branding/centipede/branding.desc').read_text()
+assert 'Debian' not in Path('/etc/lightdm/lightdm-gtk-greeter.conf.d/50-centipede.conf').read_text()
+assert 'Debian' not in Path('/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml').read_text()
+grub_branding = Path('/etc/default/grub.d/50-centipede.cfg').read_text()
+assert 'GRUB_DISTRIBUTOR="Centipede OS"' in grub_branding
+assert 'GRUB_BACKGROUND="/usr/share/backgrounds/centipede/centipede-menu.png"' in grub_branding
+assert subprocess.check_output(['plymouth-set-default-theme'], text=True).strip() == 'centipede'
 assert Path('/usr/bin/calamares').is_file()
 assert Path('/usr/bin/pkexec').is_file()
 assert Path('/usr/bin/xhost').is_file()

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs>
+    <linearGradient id="bg" x1=".08" y1=".04" x2=".95" y2="1">
+      <stop offset="0" stop-color="#08111e"/>
+      <stop offset=".55" stop-color="#101c2b"/>
+      <stop offset="1" stop-color="#102f3a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx=".79" cy=".47" r=".62">
+      <stop offset="0" stop-color="#1cb9a8" stop-opacity=".3"/>
+      <stop offset="1" stop-color="#1cb9a8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ribbon" x1=".15" y1=".9" x2=".88" y2=".08">
+      <stop offset="0" stop-color="#4989ff" stop-opacity=".12"/>
+      <stop offset=".5" stop-color="#27d8c4" stop-opacity=".52"/>
+      <stop offset="1" stop-color="#b1f5d6" stop-opacity=".27"/>
+    </linearGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="#c9e6ed" stroke-opacity=".035" stroke-width="1"/>
+    </pattern>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="34"/></filter>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#bg)"/>
+  <rect width="1920" height="1080" fill="url(#glow)"/>
+  <rect width="1920" height="1080" fill="url(#grid)"/>
+  <ellipse cx="1515" cy="520" rx="390" ry="420" fill="#19cdbb" opacity=".08" filter="url(#soft)"/>
+  <path d="M1235 108c312-186 649 78 548 396-66 208-287 302-481 222-170-70-233-255-141-394 75-113 239-152 352-85 94 55 124 164 69 248-44 67-141 88-204 43" fill="none" stroke="#1be0ca" stroke-opacity=".055" stroke-width="125" stroke-linecap="round"/>
+  <path d="M1217 126c319-194 682 86 572 415-71 213-306 313-507 226-181-79-248-278-148-427 82-122 262-164 385-88 104 65 136 184 75 275-49 74-157 97-228 47" fill="none" stroke="url(#ribbon)" stroke-width="3" stroke-dasharray="2 24" stroke-linecap="round"/>
+  <g fill="#a9f2de" opacity=".5">
+    <circle cx="1376" cy="101" r="5"/><circle cx="1704" cy="178" r="5"/><circle cx="1811" cy="508" r="5"/>
+    <circle cx="1640" cy="793" r="5"/><circle cx="1349" cy="741" r="5"/><circle cx="1279" cy="443" r="5"/>
+  </g>
+  <g transform="translate(158 325) scale(.52)"><image href="centipede-mark.svg" width="512" height="512"/></g>
+  <text x="165" y="650" fill="#ecf8fb" font-family="Inter, 'Segoe UI', sans-serif" font-size="56" font-weight="650" letter-spacing="11">CENTIPEDE OS</text>
+  <rect x="169" y="692" width="70" height="4" rx="2" fill="#37d9c2"/>
+  <text x="169" y="750" fill="#aec5d2" font-family="Inter, 'Segoe UI', sans-serif" font-size="25" font-weight="400" letter-spacing=".5">Your workspace. Ready when you are.</text>
+  <text x="169" y="1010" fill="#76919e" font-family="Inter, 'Segoe UI', sans-serif" font-size="14" letter-spacing="4">CENTIPEDE  ·  A QUIETER KIND OF COMPUTING</text>
+</svg>

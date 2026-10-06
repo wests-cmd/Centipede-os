@@ -1,6 +1,6 @@
 # Centipede OS
 
-Centipede OS is a Debian live desktop with the Centipede web app. Kingdom is a separate service; it is not included in the download.
+Centipede OS is a free desktop operating system with a custom Centipede-branded live workspace and the Centipede web app. Kingdom is a separate service; it is not included in the download.
 
 ## Download and try Centipede
 
@@ -17,7 +17,7 @@ Need a different format or want to see every available file? Visit the [Centiped
 Use an empty USB drive with at least 8 GB free (16 GB is a comfortable choice). Copy anything you need from it first; writing the image erases the USB.
 
 1. Click **Download Centipede OS v1.0.0 for USB** above and save the `.iso` file.
-2. Download and open [balenaEtcher](https://etcher.balena.io/). It is a free USB writing app; Debian also recommends it for writing live images.
+2. Download and open [balenaEtcher](https://etcher.balena.io/). It is a free USB writing app for operating system images.
 3. In Etcher, click **Flash from file** and choose the Centipede `.iso` you downloaded.
 4. Click **Select target**. Choose your USB drive by its name and size. Check carefully that it is the USB drive, not another drive.
 5. Click **Flash!** and approve the erase warning. Wait for Etcher to say the flash is complete, then close it and safely eject the USB.
@@ -33,7 +33,7 @@ Use an empty USB drive with at least 8 GB free (16 GB is a comfortable choice). 
 
 If the PC does not show a boot menu, restart and try the other common key or look up “boot menu” plus the PC maker and model. Do not change Secure Boot or firmware settings as a first troubleshooting step.
 
-> **What you download:** v1.0.0 is the current published stable image. It contains the original XFCE/Chromium desktop. The refreshed desktop and everyday app set have not yet been published in a new release.
+> **What you download:** v1.0.0 is the current published stable image. A custom Centipede boot menu, startup splash, login screen, desktop background, and installer look are being prepared for the v1.0.1 update; that update is not published yet.
 
 > **Disk installer status:** The published v1.0.0 image is a live system and cannot install Centipede to an internal disk. A disk-installer candidate is being reviewed in [PR #119](https://github.com/wests-cmd/Centipede-os/pull/119), but installation to a separate test disk and reboot have not yet been verified. Do not use candidate images to install or erase a disk. This README will link a new release only after those checks pass.
 
@@ -43,7 +43,7 @@ If the PC does not show a boot menu, restart and try the other common key or loo
 
 ## What is included
 
-The project contains a browser-based desktop application, a Debian live image, a Docker image, and Android/iOS app projects. The live desktop runs Centipede in Chromium. The new desktop design separates common apps from Centipede tools. Its Debian image build includes Chromium, LibreOffice Writer/Calc, Thunderbird, and VLC; these changes need a new tagged release before they become the public stable USB download.
+The project contains a browser-based desktop application, a Centipede live image, a Docker image, and Android/iOS app projects. The live desktop runs Centipede in Chromium. The desktop design separates common apps from Centipede tools. The upcoming branded image includes Chromium, LibreOffice Writer/Calc, Thunderbird, and VLC; these changes need a new tagged release before they become the public stable USB download.
 
 The interface is a client for Kingdom, a separately operated service. Centipede does not include Kingdom or gain control of the host PC. Some panels are prototypes or use local example data. The browser companion can enroll a phone against the running Centipede service: open Centipede on the host computer at `http://localhost:3000`, create a one-time code, then open the printed phone address on the same network and enter the code there. The API requires a loopback socket peer and a localhost request host for code creation and device administration; browser origin and Fetch Metadata checks further reject cross-origin requests. Request headers alone cannot grant local authority. Pairing uses plain HTTP, so keep it on a private, trusted network and never expose the port to the internet. Pairing records last only for the current server session. Docker or reverse-proxy setups are not certified for host device administration when their API sees a bridge/proxy peer instead of loopback. This is device enrollment only; the native Android/iOS apps and mobile task/approval workflows are not ready. The live image has limited hardware firmware and may not support every Wi-Fi or graphics device.
 
@@ -55,7 +55,7 @@ When a newer browser app is served by the Centipede server, same-line patch upda
 
 The live-image build keeps normal graphics enabled and provides a separate **Centipede OS (Safe Graphics)** boot choice with `nomodeset` and conservative video settings. If normal startup shows a black screen or an unsupported display mode, reboot the USB, choose **Safe Graphics**, and report the result. The ISO build targets legacy BIOS and UEFI; its build now requires signed UEFI components for Secure Boot and fails if those packages are unavailable. This candidate still needs its tagged CI boot tests before it can replace the public download.
 
-The image uses Centipede OS identity in `/etc/os-release` while retaining `ID_LIKE=debian` for compatibility and Debian attribution. See [boot and recovery checklist](docs/BOOT_RECOVERY_CHECKLIST.md) for what is implemented, what remains unverified, and what blocks a production claim.
+The operating system uses Centipede OS identity across the boot menu, startup splash, login screen, desktop, and installer. Required notices for included upstream components remain available in the system's legal documentation. See [branding details](docs/BRANDING.md) and the [boot and recovery checklist](docs/BOOT_RECOVERY_CHECKLIST.md) for what's included, what's unverified, and what blocks a production claim.
 ## Current release and target status
 
 - The current public release is [Centipede OS v1.0.0](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0).
