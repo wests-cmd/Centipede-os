@@ -14,6 +14,7 @@ const downloaded = join(releaseDir, 'platforms');
 const version = packageJson.version;
 const stableTag = `v${version}`;
 const ref = process.env.GITHUB_REF ?? '';
+const releaseTag = ref.startsWith('refs/tags/') ? ref.slice('refs/tags/'.length) : stableTag;
 const channel = ref === `refs/tags/${stableTag}` ? 'stable' : 'candidate';
 if (channel === 'stable' && releaseConfig.publicationGate.stable !== 'VERIFIED') {
   throw new Error(`Stable release is blocked: ${releaseConfig.publicationGate.reason}`);
@@ -75,7 +76,7 @@ for (const [target, targetConfig] of Object.entries(releaseConfig.targets)) {
 }
 
 const combined = {
-  product: 'Centipede OS', coreVersion: version, centipedeVersion: version, release: stableTag,
+  product: 'Centipede OS', coreVersion: version, centipedeVersion: version, release: releaseTag,
   releaseChannel: channel, gitCommit, sourceDirty,
   kingdom: { protocol: CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL, protocolMajor: KINGDOM_PROTOCOL_MAJOR, contractVersion: KINGDOM_CONTRACT_SPEC.contractVersion },
   targets: releaseConfig.targets, artifacts,

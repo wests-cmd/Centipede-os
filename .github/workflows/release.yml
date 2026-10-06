@@ -69,5 +69,8 @@ jobs:
             release/release-manifest.json
             release/SHA256SUMS
           draft: false
-          prerelease: false
+          name: Centipede OS ${{ github.ref_name }}
+          prerelease: ${{ contains(github.ref_name, '-rc.') }}
+          body: >-
+            ${{ contains(github.ref_name, '-rc.') && 'PRE-RELEASE CANDIDATE: the Centipede-branded live system is available to try. The guided disk installer has not passed a separate-target install/reboot and source-media safety test. Use live mode only; do not install to a real disk.' || 'Verified stable Centipede OS release. See the release notes and target manifests for platform-specific capabilities.' }}
           generate_release_notes: true
