@@ -20,8 +20,10 @@ import { MapsApp } from './components/MapsApp';
 import { Window } from './components/Window';
 import { applyAccessibilitySettings, DEFAULT_ACCESSIBILITY_SETTINGS, loadAccessibilitySettings } from './platform/accessibility';
 import { FirstRunWizard } from './components/FirstRunWizard';
+import { AppUpdateManager } from './components/AppUpdateManager';
 import { HOME_VISUALS, HomeVisual } from './components/CentipedeWorldVisual';
 import { ApprovalRequest, ConnectionState, RuntimeStatus } from './types';
+import { CENTIPEDE_VERSION } from './version';
 import { Brain, Cpu, Map, Server, Shield, Activity, Folder, Terminal as TermIcon, Sliders, Bot, Search, Smartphone, Grid, ShieldAlert } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -220,6 +222,7 @@ export const App: React.FC = () => {
       setActiveAppId={setActiveAppId}
       pendingApprovalsCount={pendingApprovalsCount}
     >
+      <AppUpdateManager currentVersion={CENTIPEDE_VERSION} />
       {renderActiveView()}
     </DesktopShell>
   );

@@ -43,6 +43,13 @@ export class KingdomApiError extends Error {
   }
 }
 
+export function getDefaultKingdomApiUrl(): string {
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin}/api/v1/kingdom`;
+  }
+  return 'http://localhost:8000';
+}
+
 export class KingdomAdapter {
   private baseUrl: string;
   private wsUrl: string;
@@ -82,7 +89,7 @@ export class KingdomAdapter {
   private discoveredCapabilities: Record<string, boolean> = {};
   private endpointRegexCache: Map<string, RegExp> = new Map();
 
-  constructor(baseUrl: string = 'http://localhost:8000') {
+  constructor(baseUrl: string = getDefaultKingdomApiUrl()) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
     this.wsUrl = this.baseUrl.replace(/^http/, 'ws') + '/ws';
   }
@@ -95,6 +102,18 @@ export class KingdomAdapter {
 
   public getBaseUrl(): string {
     return this.baseUrl;
+  }
+
+  public getDefaultBaseUrl(): string {
+    return getDefaultKingdomApiUrl();
+  }
+
+  private usesCentipedeReadProxy(): boolean {
+    try {
+      return new URL(this.baseUrl).pathname.replace(/\/$/, '') === '/api/v1/kingdom';
+    } catch {
+      return false;
+    }
   }
 
   public getConnectionState(): ConnectionState {
@@ -332,7 +351,7 @@ export class KingdomAdapter {
     if (this.compatibilityInfo.status !== 'INCOMPATIBLE_PROTOCOL') {
       if (this.connectionState !== 'CONNECTED' && this.connectionState !== 'NEGOTIATING' && this.connectionState !== 'VALIDATING') {
         this.notifyConnection('CONNECTED');
-        this.initWebSocket();
+        if (!this.usesCentipedeReadProxy()) this.initWebSocket();
       }
     }
   }

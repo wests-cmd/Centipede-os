@@ -45,11 +45,13 @@ export class CentipedeServer {
             }
           }
 
+          const requestUrl = new URL(req.url || '/', 'http://localhost');
           const apiReq: ApiRequest = {
-            path: req.url ? req.url.split('?')[0] : '/',
+            path: requestUrl.pathname,
             method: req.method,
             headers: req.headers,
             body,
+            query: requestUrl.search,
             isLocalAdmin: isLocalAdminRequest(
               req.socket?.remoteAddress,
               req.headers,

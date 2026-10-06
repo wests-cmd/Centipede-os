@@ -3,35 +3,35 @@
   "targets": {
     "desktop": {
       "status": "BUILDABLE",
-      "revision": 2,
+      "revision": 3,
       "artifact": "centipede-os-{version}-desktop-web-bundle.tar.gz",
       "architecture": "any",
       "description": "Built web application bundle; requires a web server and an independently operated Kingdom service."
     },
     "iso": {
       "status": "BUILDABLE",
-      "revision": 2,
+      "revision": 3,
       "artifact": "centipede-os-{version}-x86_64.iso",
       "architecture": "x86_64",
       "description": "Debian live-build hybrid boot ISO with XFCE desktop, maximized Centipede browser window, and free everyday apps."
     },
     "live-usb": {
       "status": "BUILDABLE",
-      "revision": 2,
+      "revision": 3,
       "artifact": "centipede-os-{version}-live-usb-x86_64.iso",
       "architecture": "x86_64",
       "description": "Same hybrid ISO bytes with a USB-specific filename, validated byte-identical and writable to USB media."
     },
     "vm": {
       "status": "BUILDABLE",
-      "revision": 2,
+      "revision": 3,
       "artifact": "centipede-os-{version}-x86_64.qcow2",
       "architecture": "x86_64",
       "description": "QEMU qcow2 disk image converted from the bootable live image and structurally checked."
     },
     "android": {
       "status": "BLOCKED",
-      "revision": 2,
+      "revision": 3,
       "artifact": "centipede-android-{version}-release.apk",
       "architecture": "universal",
       "description": "Capacitor Android application; stable release requires the project's Android signing secrets.",
@@ -39,7 +39,7 @@
     },
     "ios": {
       "status": "BLOCKED",
-      "revision": 2,
+      "revision": 3,
       "artifact": "centipede-ios-{version}.ipa",
       "architecture": "arm64",
       "description": "Capacitor iOS device app; stable device distribution requires Apple distribution signing and provisioning. TestFlight upload is outside this workflow.",
@@ -47,7 +47,7 @@
     },
     "docker": {
       "status": "BUILDABLE",
-      "revision": 2,
+      "revision": 3,
       "artifact": "centipede-docker-image-{version}.tar",
       "architecture": "linux/amd64",
       "description": "Built and smoke-tested Docker image exported as a loadable image tar archive."

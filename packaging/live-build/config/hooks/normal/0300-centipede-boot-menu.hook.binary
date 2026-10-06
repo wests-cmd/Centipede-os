@@ -1,0 +1,30 @@
+#!/bin/sh
+set -eu
+
+# live-build invokes binary hooks with its working directory set to binary/.
+# Rename visible labels after generation while preserving the generated commands.
+GRUB_DIR=boot/grub
+ISOLINUX_DIR=isolinux
+for dir in "$GRUB_DIR" "$ISOLINUX_DIR"; do
+  [ -d "$dir" ] || { echo "Expected boot menu directory missing: $dir" >&2; exit 1; }
+done
+
+if ! grep -Rqs "fail-safe mode" "$GRUB_DIR" "$ISOLINUX_DIR"; then
+  echo "Live-build produced no failsafe menu entries." >&2
+  exit 1
+fi
+
+for file in "$GRUB_DIR"/*.cfg "$ISOLINUX_DIR"/*.cfg; do
+  [ -f "$file" ] || continue
+  sed -i \
+    -e '/^[[:space:]]*menuentry .*fail-safe mode/s/".*"/"Centipede OS (Safe Graphics)"/' \
+    -e '/^[[:space:]]*menu label .*fail-safe mode/s/.*$/menu label Centipede OS (Safe Graphics)/' \
+    -e '/^[[:space:]]*menuentry "Live system/s/".*"/"Start Centipede OS"/' \
+    -e '/^[[:space:]]*menu label .*Live system/s/.*$/menu label Start Centipede OS/' \
+    -e 's/Debian GNU\/Linux/Centipede OS/g' \
+    -e 's/Debian Live/Centipede OS/g' \
+    "$file"
+done
+
+grep -Rqs 'Safe Graphics' "$GRUB_DIR" || { echo 'Safe Graphics entry missing from GRUB menu.' >&2; exit 1; }
+grep -Rqs 'Safe Graphics' "$ISOLINUX_DIR" || { echo 'Safe Graphics entry missing from BIOS menu.' >&2; exit 1; }

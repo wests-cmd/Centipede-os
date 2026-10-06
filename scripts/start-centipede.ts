@@ -13,7 +13,11 @@ execFileSync('bun', ['run', 'build'], { cwd: rootDir, stdio: 'inherit' });
 
 const kingdomUrl = process.env.KINGDOM_API_URL || 'http://localhost:8000';
 try {
-  const response = await fetch(`${kingdomUrl}/status`, { signal: AbortSignal.timeout(2000) });
+  const token = process.env.KINGDOM_API_TOKEN;
+  const response = await fetch(`${kingdomUrl}/status`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    signal: AbortSignal.timeout(2000),
+  });
   console.log(response.ok
     ? `[ONLINE] Kingdom service responded at ${kingdomUrl}`
     : `[STANDBY] Kingdom service returned ${response.status}; Centipede remains available locally.`);

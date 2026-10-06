@@ -4,6 +4,10 @@ buildscript {
     
     repositories {
         google()
+        // Use Google's read-only Maven Central mirror first. Some hosted CI
+        // runners receive HTTP 403 from repo.maven.apache.org; keeping the
+        // canonical endpoint second preserves the standard fallback.
+        maven { url 'https://maven-central.storage-download.googleapis.com/maven2/' }
         mavenCentral()
     }
     dependencies {
@@ -20,6 +24,7 @@ apply from: "variables.gradle"
 allprojects {
     repositories {
         google()
+        maven { url 'https://maven-central.storage-download.googleapis.com/maven2/' }
         mavenCentral()
     }
 }

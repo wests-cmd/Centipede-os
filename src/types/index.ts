@@ -147,6 +147,9 @@ export interface SecurityStatus {
   registered_nodes: number;
   pending_approvals_count: number;
   audit_logs_count?: number;
+  zero_trust?: boolean;
+  deny_by_default?: boolean;
+  capabilities_count?: number;
 }
 
 export interface SecurityNode {
