@@ -45,6 +45,15 @@ The project contains a browser-based desktop application, a Debian live image, a
 
 The interface is a client for Kingdom, a separately operated service. Centipede does not include Kingdom or gain control of the host PC. Some panels are prototypes or use local example data. The browser companion can enroll a phone against the running Centipede service: open Centipede on the host computer at `http://localhost:3000`, create a one-time code, then open the printed phone address on the same network and enter the code there. The API requires a loopback socket peer and a localhost request host for code creation and device administration; browser origin and Fetch Metadata checks further reject cross-origin requests. Request headers alone cannot grant local authority. Pairing uses plain HTTP, so keep it on a private, trusted network and never expose the port to the internet. Pairing records last only for the current server session. Docker or reverse-proxy setups are not certified for host device administration when their API sees a bridge/proxy peer instead of loopback. This is device enrollment only; the native Android/iOS apps and mobile task/approval workflows are not ready. The live image has limited hardware firmware and may not support every Wi-Fi or graphics device.
 
+
+## App updates
+
+When a newer browser app is served by the Centipede server, same-line patch updates refresh automatically. Minor or major version changes show a prompt first. The notice names the updated browser page, JavaScript, and styles; the browser controls the transfer and does not expose a reliable byte count. This refresh updates the browser app only. Updating an installed OS image, USB, Docker image, Kingdom service, or user files requires a separate release/install process.
+## Boot troubleshooting
+
+The live-image build keeps normal graphics enabled and provides a separate **Centipede OS (Safe Graphics)** boot choice with `nomodeset` and conservative video settings. If normal startup shows a black screen or an unsupported display mode, reboot the USB, choose **Safe Graphics**, and report the result. The ISO build targets legacy BIOS and UEFI; its build now requires signed UEFI components for Secure Boot and fails if those packages are unavailable. This candidate still needs its tagged CI boot tests before it can replace the public download.
+
+The image uses Centipede OS identity in `/etc/os-release` while retaining `ID_LIKE=debian` for compatibility and Debian attribution. See [boot and recovery checklist](docs/BOOT_RECOVERY_CHECKLIST.md) for what is implemented, what remains unverified, and what blocks a production claim.
 ## Current release and target status
 
 - The current public release is [Centipede OS v1.0.0](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0).
@@ -79,7 +88,9 @@ bun install --frozen-lockfile
 bun start
 ```
 
-The app prints its local URL. It listens on the loopback address and the first private IPv4 interface it finds so a phone can reach it without opening every interface. Kingdom-backed features need a separately deployed Kingdom service and a reachable API endpoint.
+The app prints its local URL. It listens on the loopback address and the first private IPv4 interface it finds so a phone can reach it without opening every interface. The browser uses Centipede&apos;s same-origin, read-only Kingdom proxy so the Kingdom credential stays on the server.
+
+To connect Kingdom, configure `KINGDOM_API_URL` and `KINGDOM_API_TOKEN` in the Centipede server environment. A host process can use `http://127.0.0.1:8000`; a Centipede container can use `http://host.docker.internal:8000` when Kingdom is published on the host at port 8000. Use a least-privilege credential where Kingdom supports it, keep it out of source control, and never paste it into the browser URL field. The proxy exposes read-only status/catalog data from localhost requests; it does not forward task submissions or privileged changes.
 
 For phone pairing, keep the app running and open it on the host computer using `http://localhost:3000`. Create a pairing code there, then open the printed phone address on a phone connected to the same trusted network and enter the one-time six-digit code. If a firewall asks, allow Centipede only on your private network. Pairing uses plain HTTP. Docker users can set `CENTIPEDE_PUBLIC_URL` to the PC's LAN address (for example, `http://192.168.1.20:3000`) for the phone-facing address, but the current loopback-only admin gate means Docker bridge/reverse-proxy management may be unavailable; that setup is not certified yet.
 

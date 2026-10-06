@@ -52,9 +52,17 @@ while time.monotonic() < deadline:
     ).returncode == 0
     if last_app_ready and last_browser_ready and last_lightdm_ready and last_apps_ready:
         message = "CENTIPEDE_DESKTOP_READY: LightDM, Chromium, local web app, and everyday apps are ready"
+        command_line = open("/proc/cmdline", encoding="ascii").read().split()
+        graphics_marker = (
+            "CENTIPEDE_SAFE_GRAPHICS_ENABLED: nomodeset is active"
+            if "nomodeset" in command_line
+            else "CENTIPEDE_STANDARD_GRAPHICS_BOOT: nomodeset is absent"
+        )
+        print(graphics_marker, flush=True)
         print(message, flush=True)
         try:
             with open("/dev/ttyS0", "w", encoding="ascii", buffering=1) as serial:
+                serial.write(graphics_marker + "\r\n")
                 serial.write(message + "\r\n")
         except OSError as error:
             print(f"Could not write serial readiness marker: {error}", file=sys.stderr, flush=True)

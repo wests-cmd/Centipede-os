@@ -24,8 +24,8 @@ const serverOptions: Omit<Parameters<typeof Bun.serve>[0], 'hostname'> = {
   async fetch(request, server) {
     const url = new URL(request.url);
     if (url.pathname.startsWith('/api/')) {
-      if (!['GET', 'POST', 'DELETE', 'OPTIONS'].includes(request.method)) {
-        return Response.json({ error: 'Method not allowed.' }, { status: 405, headers: { Allow: 'GET, POST, DELETE, OPTIONS' } });
+      if (!['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'].includes(request.method)) {
+        return Response.json({ error: 'Method not allowed.' }, { status: 405, headers: { Allow: 'GET, POST, PUT, DELETE, OPTIONS' } });
       }
       if (request.method === 'OPTIONS') return new Response(null, { status: 204 });
       let body: unknown;
@@ -47,6 +47,7 @@ const serverOptions: Omit<Parameters<typeof Bun.serve>[0], 'hostname'> = {
         method: request.method as ApiRequest['method'],
         headers: Object.fromEntries(request.headers.entries()),
         body,
+        query: url.search,
         isLocalAdmin: isLocalAdminRequest(
           server.requestIP(request)?.address,
           Object.fromEntries(request.headers.entries()),

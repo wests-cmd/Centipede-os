@@ -2,12 +2,14 @@ import { deviceTrustManager } from '../security/deviceTrust';
 import { platformDetector } from '../platform/detector';
 import { configManager } from '../config';
 import { CENTIPEDE_VERSION } from '../version';
+import { proxyKingdomRead } from './kingdomReadProxy';
 
 export interface ApiRequest {
   path: string;
-  method: 'GET' | 'POST' | 'DELETE';
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   headers?: Record<string, string>;
   body?: any;
+  query?: string;
   /** Set only by the HTTP adapter after checking the socket peer address. */
   isLocalAdmin?: boolean;
 }
@@ -41,6 +43,9 @@ export class ApiRouter {
       const runtimeInfo = await platformDetector.detectRuntimeInfo();
       return { status: 200, data: runtimeInfo };
     }
+
+    const kingdomRead = await proxyKingdomRead(req);
+    if (kingdomRead) return kingdomRead;
 
     if (req.path === '/api/v1/mobile/pair/initiate' && req.method === 'POST') {
       if (!req.isLocalAdmin) {

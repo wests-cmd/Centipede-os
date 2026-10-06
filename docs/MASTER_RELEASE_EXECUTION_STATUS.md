@@ -7,7 +7,7 @@ This status page maps the versioned [Master Release Execution Checklist](MASTER_
 | Phase | Requirement | Status | Current evidence / primary remaining work |
 |---|---|---|---|
 | 0 | Repository interrogation | **PARTIAL** | Release/configuration, runtime, UI, and telemetry paths have been inspected in this work. Complete file-by-file inventory and adversarial proof of every subsystem remains open. |
-| 1 | Self-update system | **MISSING** | `src/platform/targetUpdateChecker.ts` now rejects malformed/inconsistent target records, unsafe artifact names, hash errors, protocol/architecture mismatches, and downgrade/replay identities. It is still not connected to release discovery and is not a downloader, signature verifier, installer, atomic activator, or rollback manager. |
+| 1 | Self-update system | **PARTIAL (browser app only)** | `src/components/AppUpdateManager.tsx` reloads same-line patch versions automatically and prompts for minor/major changes after checking `/api/v1/health`. It fetches the page and hashed assets from a server already updated by an operator. It does not discover/download signed release artifacts, update an installed OS/image, install atomically, or roll back. |
 | 2 | Self-repair and recovery | **MISSING** | No verified repair executor, safe/recovery mode, or known-good recovery store. |
 | 3 | Persistent user state | **PARTIAL** | Persistence exists in selected workflow/memory/browser paths. No complete SYSTEM/APP/USER/SECRET/CACHE/LOG scheme or migration backup/rollback proof. |
 | 4 | Persistent agent runtime | **PARTIAL** | Workflow persistence exists; detached execution, task checkpoint recovery, and safe post-reboot resume are not demonstrated. |

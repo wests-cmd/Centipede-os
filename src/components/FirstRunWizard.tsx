@@ -26,7 +26,7 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
   const [step, setStep] = useState<number>(1);
   const [runtimeInfo, setRuntimeInfo] = useState<RuntimeInfo | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<CentipedeProfile>('FULL_CENTIPEDE');
-  const [kingdomUrl, setKingdomUrl] = useState<string>('http://localhost:8000');
+  const [kingdomUrl, setKingdomUrl] = useState<string>(() => kingdomAdapter.getBaseUrl());
   const [kingdomStatus, setKingdomStatus] = useState<string>('CHECKING');
   const [deviceName, setDeviceName] = useState<string>('Centipede Workstation');
   const [accessibilityHelpWanted, setAccessibilityHelpWanted] = useState(false);

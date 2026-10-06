@@ -15,8 +15,12 @@ npm --prefix "$ROOT" run build
 rm -rf "$BUILD"
 mkdir -p "$BUILD/config/includes.chroot/opt/centipede/web" "$OUT/iso" "$OUT/live-usb" "$OUT/vm"
 cp -a "$CONFIG/." "$BUILD/config/"
+find "$BUILD/config" -type d -name __pycache__ -prune -exec rm -rf {} +
+find "$BUILD/config" -type f -name '*.py[co]' -delete
 cp -a "$ROOT/dist/." "$BUILD/config/includes.chroot/opt/centipede/web/"
-chmod +x "$BUILD/config/hooks/normal/0100-centipede-systemd.hook.chroot"
+mkdir -p "$BUILD/config/includes.chroot/etc/centipede"
+printf '%s\n' "$VERSION" > "$BUILD/config/includes.chroot/etc/centipede/version"
+chmod +x "$BUILD/config/hooks/normal/0100-centipede-systemd.hook.chroot" "$BUILD/config/hooks/normal/0200-centipede-identity.hook.chroot" "$BUILD/config/hooks/normal/0300-centipede-boot-menu.hook.binary"
 
 cd "$BUILD"
 lb config \
@@ -30,8 +34,17 @@ lb config \
   --mirror-chroot-security https://security.debian.org/debian-security \
   --mirror-binary https://deb.debian.org/debian \
   --mirror-binary-security https://security.debian.org/debian-security \
-  --firmware-chroot false \
-  --security false \
+  --firmware-chroot true \
+  --bootloaders "syslinux grub-efi" \
+  --uefi-secure-boot enable \
+  --checksums sha256 \
+  --memtest memtest86+ \
+  --iso-application "Centipede OS live system" \
+  --iso-preparer "Centipede OS release build" \
+  --iso-publisher "Centipede OS contributors" \
+  --iso-volume "CENTIPEDE_OS_${VERSION}" \
+  --bootappend-live-failsafe "boot=live components username=centipede hostname=centipede nomodeset vga=normal console=ttyS0,115200n8" \
+  --security true \
   --bootappend-live "boot=live components username=centipede hostname=centipede console=ttyS0,115200n8 ignore_loglevel"
 lb build
 
