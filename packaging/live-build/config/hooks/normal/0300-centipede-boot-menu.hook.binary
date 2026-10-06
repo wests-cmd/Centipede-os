@@ -1,10 +1,10 @@
 #!/bin/sh
 set -eu
 
-# Debian live-build creates the same live choices for BIOS and UEFI. Rename
-# their visible labels after generation while preserving the generated commands.
-GRUB_DIR=binary/boot/grub
-ISOLINUX_DIR=binary/isolinux
+# live-build invokes binary hooks with its working directory set to binary/.
+# Rename visible labels after generation while preserving the generated commands.
+GRUB_DIR=boot/grub
+ISOLINUX_DIR=isolinux
 for dir in "$GRUB_DIR" "$ISOLINUX_DIR"; do
   [ -d "$dir" ] || { echo "Expected boot menu directory missing: $dir" >&2; exit 1; }
 done
