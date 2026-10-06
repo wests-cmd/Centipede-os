@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core';
 import React, { useEffect, useState } from 'react';
 import { platformDetector } from '../platform/detector';
 import { RuntimeInfo, CentipedeProfile } from '../platform/types';
@@ -23,12 +24,13 @@ interface FirstRunWizardProps {
 }
 
 export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) => {
+  const mobileCompanion = Capacitor.isNativePlatform();
   const [step, setStep] = useState<number>(1);
   const [runtimeInfo, setRuntimeInfo] = useState<RuntimeInfo | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<CentipedeProfile>('FULL_CENTIPEDE');
   const [kingdomUrl, setKingdomUrl] = useState<string>(() => kingdomAdapter.getBaseUrl());
   const [kingdomStatus, setKingdomStatus] = useState<string>('CHECKING');
-  const [deviceName, setDeviceName] = useState<string>('Centipede Workstation');
+  const [deviceName, setDeviceName] = useState<string>(mobileCompanion ? 'Centipede Mobile' : 'Centipede Workstation');
   const [accessibilityHelpWanted, setAccessibilityHelpWanted] = useState(false);
 
   useEffect(() => {
@@ -42,6 +44,7 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
   }, [kingdomUrl]);
 
   const checkKingdomConnection = async () => {
+    if (mobileCompanion && !kingdomUrl.trim()) { setKingdomStatus('CONFIGURE YOUR KINGDOM HTTPS ADDRESS'); return; }
     setKingdomStatus('CHECKING');
     try {
       kingdomAdapter.setBaseUrl(kingdomUrl);
@@ -77,7 +80,7 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
             C
           </div>
           <div>
-            <h1 className="text-lg font-bold text-white">Centipede Desktop Web App Setup</h1>
+            <h1 className="text-lg font-bold text-white">{mobileCompanion ? 'Centipede Mobile Setup' : 'Centipede Desktop Web App Setup'}</h1>
             <p className="text-xs text-slate-400">Version v{CENTIPEDE_VERSION} • Browser Application Configuration</p>
           </div>
         </div>
@@ -103,7 +106,7 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
             </div>
             <h2 className="text-2xl font-black text-white">Welcome to Centipede</h2>
             <p className="text-sm text-slate-300 max-w-xl mx-auto leading-relaxed">
-              Centipede is a browser-based desktop application. Kingdom is a separate service that must be deployed and configured independently. This bundle is not a bootable operating system.
+              {mobileCompanion ? 'Centipede is a mobile companion for your separately operated Kingdom service. It does not run the Kingdom backend or boot an operating system on your phone. Enter your reachable HTTPS server address to connect.' : 'Centipede is a browser-based desktop application. Kingdom is a separate service that must be deployed and configured independently. This bundle is not a bootable operating system.'}
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left max-w-2xl mx-auto pt-4">
@@ -305,7 +308,7 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
                   type="text"
                   value={kingdomUrl}
                   onChange={(e) => setKingdomUrl(e.target.value)}
-                  placeholder="http://localhost:8000"
+                  placeholder={mobileCompanion ? 'https://your-computer.your-tailnet.ts.net' : 'http://localhost:8000'}
                   className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
                 />
                 <button
