@@ -64,6 +64,8 @@ jobs:
             release/iso/*
             release/live-usb/*
             release/vm/*
+            release/android/*
+            release/ios/*
             release/docker/*
             release/manifests/*.json
             release/release-manifest.json

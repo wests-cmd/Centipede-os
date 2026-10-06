@@ -3,6 +3,11 @@ name: Centipede platform builds
 on:
   workflow_call:
   workflow_dispatch:
+    inputs:
+      signed_android:
+        description: Build a publisher-signed Android APK for validation
+        type: boolean
+        default: false
   push:
     branches:
       - 'codex/**'
@@ -54,7 +59,7 @@ jobs:
 
   android-release:
     name: Signed Android release APK
-    if: github.ref_type == 'tag' && vars.CENTIPEDE_ENABLE_SIGNED_ANDROID_RELEASE == 'true'
+    if: (github.ref_type == 'tag' || (github.event_name == 'workflow_dispatch' && inputs.signed_android)) && vars.CENTIPEDE_ENABLE_SIGNED_ANDROID_RELEASE == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:

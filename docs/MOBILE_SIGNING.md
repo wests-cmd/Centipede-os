@@ -1,0 +1,7 @@
+# Centipede mobile signing
+
+Android uses encrypted repository secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`, plus the public certificate variable `ANDROID_EXPECTED_CERT_SHA256`. After provisioning the publisher identity, enable `CENTIPEDE_ENABLE_SIGNED_ANDROID_RELEASE=true`. The platform workflow’s manual `signed_android` input permits signed validation without publishing or changing tags.
+
+Keep `release/targets.json` Android status BLOCKED until that signed validation succeeds. Then mark the target BUILDABLE for a new release source commit and tag. The publication workflow includes Android and iOS output directories, and the manifest generator requires the build-job checksum for each enabled artifact. Do not attach untracked or unsigned mobile artifacts or move an existing release tag.
+
+iPhone distribution requires Apple-issued certificate/private-key P12 and a provisioning profile matching `com.westscmd.centipedeos`, with the corresponding team and profile name. Required secrets: `IOS_CERTIFICATE_BASE64`, `IOS_CERTIFICATE_PASSWORD`, `IOS_PROVISIONING_PROFILE_BASE64`, `IOS_TEAM_ID`, `IOS_PROFILE_NAME`. Enable `CENTIPEDE_ENABLE_SIGNED_IOS_RELEASE=true` only after valid signing is configured; iOS remains BLOCKED until signed device distribution is verified. An App Store Connect IPA is for TestFlight/App Store distribution through Apple, not unrestricted installation from GitHub. There is currently no Apple developer account supplied for these apps.
