@@ -46,7 +46,9 @@ for path in [
 ]:
     assert path.is_file() and path.stat().st_size > 0, f'Missing Centipede branding: {path}'
 assert 'centipede-workspace.png' in Path('/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml').read_text()
-assert 'Centipede OS' in Path('/etc/lightdm/lightdm-gtk-greeter.conf.d/50-centipede.conf').read_text()
+greeter_branding = Path('/etc/lightdm/lightdm-gtk-greeter.conf.d/50-centipede.conf').read_text()
+assert '/usr/share/backgrounds/centipede/centipede-workspace.png' in greeter_branding
+assert '/usr/share/icons/hicolor/scalable/apps/centipede.svg' in greeter_branding
 assert 'Debian' not in (root / 'branding/centipede/branding.desc').read_text()
 assert 'Debian' not in Path('/etc/lightdm/lightdm-gtk-greeter.conf.d/50-centipede.conf').read_text()
 assert 'Debian' not in Path('/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml').read_text()
