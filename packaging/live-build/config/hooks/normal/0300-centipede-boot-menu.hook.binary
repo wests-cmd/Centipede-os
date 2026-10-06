@@ -51,6 +51,22 @@ for file in "$ISOLINUX_DIR"/*.cfg; do
   fi
 done
 
+# live-build versions can place the menu UI in an included file or omit the
+# explicit UI line; put the setting in the root BIOS config so it is always
+# read before included menu entries.
+if ! grep -Rqs 'MENU BACKGROUND centipede-menu.png' "$ISOLINUX_DIR"; then
+  BIOS_CONFIG="$ISOLINUX_DIR/isolinux.cfg"
+  if [ ! -f "$BIOS_CONFIG" ]; then
+    for file in "$ISOLINUX_DIR"/*.cfg; do
+      [ -f "$file" ] || continue
+      BIOS_CONFIG="$file"
+      break
+    done
+  fi
+  [ -f "$BIOS_CONFIG" ] || { echo 'Generated BIOS menu configuration is missing.' >&2; exit 1; }
+  sed -i '1i MENU BACKGROUND centipede-menu.png' "$BIOS_CONFIG"
+fi
+
 grep -Rqs 'Safe Graphics' "$GRUB_DIR" || { echo 'Safe Graphics entry missing from GRUB menu.' >&2; exit 1; }
 grep -Rqs 'Safe Graphics' "$ISOLINUX_DIR" || { echo 'Safe Graphics entry missing from BIOS menu.' >&2; exit 1; }
 grep -Fq 'background_image $prefix/centipede-menu.png' "$GRUB_CONFIG" || { echo 'Centipede GRUB background was not installed.' >&2; exit 1; }
