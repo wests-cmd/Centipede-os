@@ -18,4 +18,4 @@ fi
 xhost "+si:localuser:root" >/dev/null
 cleanup() { xhost "-si:localuser:root" >/dev/null 2>&1 || true; }
 trap cleanup EXIT HUP INT TERM
-pkexec env DISPLAY="$DISPLAY_VALUE" XAUTHORITY="$XAUTH_VALUE" /usr/local/libexec/centipede-installer-root
+pkexec /usr/local/libexec/centipede-installer-root

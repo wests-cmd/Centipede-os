@@ -26,9 +26,14 @@ describe('guided disk installer release configuration', () => {
     expect(rootHelper).toMatch(/blockdev --getro/);
     expect(rootHelper).toMatch(/exec \/usr\/bin\/calamares/);
     expect(rootHelper.indexOf('blockdev --getro')).toBeLessThan(rootHelper.indexOf('exec /usr/bin/calamares'));
-    expect(launcher).toMatch(/pkexec env DISPLAY=/);
-    expect(polkit).toContain('action.lookup("program") === "/usr/local/libexec/centipede-installer-root"');
+    expect(launcher).toMatch(/pkexec \/usr\/local\/libexec\/centipede-installer-root/);
+    expect(launcher).not.toMatch(/pkexec env /);
+    expect(polkit).toContain('action.id === "org.centipede.installer"');
     expect(polkit).toContain('subject.user === "centipede"');
+    const policy = read('packaging/live-build/config/includes.chroot/usr/share/polkit-1/actions/org.centipede.installer.policy');
+    expect(policy).toContain('<action id="org.centipede.installer">');
+    expect(policy).toContain('/usr/local/libexec/centipede-installer-root</annotate>');
+    expect(policy).toContain('org.freedesktop.policykit.exec.allow_gui');
   });
 
   it('sets an honest disk and memory minimum and documents unfinished recovery work', () => {
