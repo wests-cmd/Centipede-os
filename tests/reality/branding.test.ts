@@ -25,8 +25,13 @@ describe('Centipede product branding', () => {
     const readiness = readFileSync(join(root, 'packaging/live-build/config/includes.chroot/etc/systemd/system/centipede-desktop-readiness.service'), 'utf8');
     const bootMenu = readFileSync(join(root, 'packaging/live-build/config/hooks/normal/0300-centipede-boot-menu.hook.binary'), 'utf8');
     expect(lightdm).toContain('autologin-user=centipede');
-    expect(readiness).toContain('After=lightdm.service centipede-web.service');
+    expect(readiness).toContain('After=centipede-web.service');
+    expect(readiness).toContain('WantedBy=multi-user.target');
     expect(readiness).not.toContain('After=graphical.target');
+    const readinessProbe = readFileSync(join(root, 'packaging/live-build/config/includes.chroot/usr/local/libexec/centipede-desktop-readiness.py'), 'utf8');
+    expect(readinessProbe).toContain('def report_serial(message):');
+    expect(readinessProbe).toContain('account={identity}');
+    expect(readinessProbe).toContain('launcher={launcher_detail');
     expect(bootMenu).toContain('MENU TITLE Centipede OS');
     expect(bootMenu).toContain('UI vesamenu.c32');
     expect(bootMenu).toContain('distro gfxboot splash');

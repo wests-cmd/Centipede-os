@@ -224,6 +224,14 @@ jobs:
         run: sudo -E bash scripts/build-live-image.sh
       - name: Restore artifact ownership for QEMU and upload
         run: sudo chown -R "$(id -u):$(id -g)" release/iso release/live-usb release/vm
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: centipede-boot-config-diagnostic
+          path: |
+            build/live/binary/isolinux/
+            build/live/binary/boot/grub/
+          if-no-files-found: warn
       - name: Validate image outputs
         run: |
           VERSION=$(node -p "require('./package.json').version")

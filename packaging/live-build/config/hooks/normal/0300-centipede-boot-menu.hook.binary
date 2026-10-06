@@ -22,7 +22,7 @@ for file in "$GRUB_DIR"/*.cfg "$ISOLINUX_DIR"/*.cfg; do
   [ -f "$file" ] || continue
   sed -i \
     -e 's/^[[:space:]]*MENU TITLE.*/MENU TITLE Centipede OS/I' \
-    -e 's/^[[:space:]]*UI[[:space:]]\+gfxboot\([.]c32\)\?$/UI vesamenu.c32/I' \
+    -e 's/^[[:space:]]*UI[[:space:]]\+gfxboot[^[:space:]]*.*$/UI vesamenu.c32/I' \
     -e '/^[[:space:]]*gfxboot\([[:space:]].*\)\?$/Id' \
     -e '/^[[:space:]]*menuentry .*fail-safe mode/s/".*"/"Centipede OS (Safe Graphics)"/' \
     -e '/^[[:space:]]*menu label .*fail-safe mode/Is/.*$/MENU LABEL Centipede OS (Safe Graphics)/' \
@@ -47,12 +47,16 @@ if [ ! -f "$BIOS_CONFIG" ]; then
   done
 fi
 [ -f "$BIOS_CONFIG" ] || { echo 'Generated BIOS menu configuration is missing.' >&2; exit 1; }
-if ! grep -RqiE '^[[:space:]]*UI[[:space:]]+vesamenu\.c32' "$ISOLINUX_DIR"; then
-  sed -i '1i UI vesamenu.c32' "$BIOS_CONFIG"
-fi
-if ! grep -RqiE '^[[:space:]]*MENU[[:space:]]+TITLE[[:space:]]+Centipede OS' "$ISOLINUX_DIR"; then
-  sed -i '1i MENU TITLE Centipede OS' "$BIOS_CONFIG"
-fi
+# Root config must select the renderer. Checking for a renderer anywhere in
+# an included file can leave the active menu on the distro's gfxboot screen.
+sed -i \
+  -e '1i UI vesamenu.c32' \
+  -e '1i MENU TITLE Centipede OS' \
+  -e '1i MENU BACKGROUND centipede-menu.png' \
+  -e '/^[[:space:]]*UI[[:space:]]/Id' \
+  -e '/^[[:space:]]*MENU[[:space:]]*TITLE[[:space:]]/Id' \
+  -e '/^[[:space:]]*MENU[[:space:]]*BACKGROUND[[:space:]]/Id' \
+  "$BIOS_CONFIG"
 
 GRUB_CONFIG="$GRUB_DIR/grub.cfg"
 [ -f "$GRUB_CONFIG" ] || { echo 'Generated GRUB configuration is missing.' >&2; exit 1; }

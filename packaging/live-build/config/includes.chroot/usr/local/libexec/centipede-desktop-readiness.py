@@ -6,6 +6,14 @@ import subprocess
 import sys
 import time
 import urllib.request
+from pathlib import Path
+
+def report_serial(message):
+    try:
+        with open("/dev/ttyS0", "w", encoding="ascii", buffering=1) as serial:
+            serial.write(message.encode("ascii", "replace").decode("ascii") + "\r\n")
+    except OSError as error:
+        print(f"Could not write readiness report to serial: {error}", file=sys.stderr, flush=True)
 
 def desktop_browser_running(uid):
     for entry in os.scandir("/proc"):
@@ -60,12 +68,8 @@ while time.monotonic() < deadline:
         )
         print(graphics_marker, flush=True)
         print(message, flush=True)
-        try:
-            with open("/dev/ttyS0", "w", encoding="ascii", buffering=1) as serial:
-                serial.write(graphics_marker + "\r\n")
-                serial.write(message + "\r\n")
-        except OSError as error:
-            print(f"Could not write serial readiness marker: {error}", file=sys.stderr, flush=True)
+        report_serial(graphics_marker)
+        report_serial(message)
         sys.exit(0)
     time.sleep(2)
 message = (
@@ -73,4 +77,26 @@ message = (
     f"lightdm={last_lightdm_ready} web={last_app_ready} chromium={last_browser_ready} apps={last_apps_ready}"
 )
 print(message, file=sys.stderr, flush=True)
+try:
+    account = pwd.getpwnam("centipede")
+    identity = f"uid={account.pw_uid} name={account.pw_name} gecos={account.pw_gecos}"
+except KeyError:
+    identity = "centipede account missing"
+processes = []
+for entry in os.scandir("/proc"):
+    if not entry.name.isdigit():
+        continue
+    try:
+        process = Path(entry.path, "comm").read_text(encoding="ascii").strip()
+        if process in {"lightdm", "Xorg", "xfce4-session", "xfdesktop", "xfce4-panel", "chromium"}:
+            processes.append(process)
+    except (FileNotFoundError, PermissionError):
+        continue
+launcher_log = Path("/home/centipede/.cache/centipede-desktop.log")
+launcher_detail = launcher_log.read_text(encoding="utf-8", errors="replace")[-800:] if launcher_log.is_file() else "launcher log missing"
+diagnostic = (
+    f"{message}; account={identity}; processes={','.join(processes) or 'none'}; "
+    f"launcher={launcher_detail.replace(chr(10), ' ')[:800]}"
+)
+report_serial(diagnostic)
 sys.exit(1)

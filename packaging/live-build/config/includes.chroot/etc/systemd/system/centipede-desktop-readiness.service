@@ -1,6 +1,6 @@
 [Unit]
 Description=Verify Centipede desktop readiness
-After=lightdm.service centipede-web.service
+After=centipede-web.service
 Wants=centipede-web.service
 
 [Service]
@@ -9,4 +9,4 @@ ExecStart=/usr/local/libexec/centipede-desktop-readiness.py
 TimeoutStartSec=130
 
 [Install]
-WantedBy=graphical.target
+WantedBy=multi-user.target
