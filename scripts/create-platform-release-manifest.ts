@@ -15,6 +15,9 @@ const version = packageJson.version;
 const stableTag = `v${version}`;
 const ref = process.env.GITHUB_REF ?? '';
 const channel = ref === `refs/tags/${stableTag}` ? 'stable' : 'candidate';
+if (channel === 'stable' && releaseConfig.publicationGate.stable !== 'VERIFIED') {
+  throw new Error(`Stable release is blocked: ${releaseConfig.publicationGate.reason}`);
+}
 const sourceDirty = execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }).trim().length > 0;
 if (channel === 'stable' && sourceDirty) throw new Error('Stable release packaging requires a clean committed tree.');
 

@@ -1,5 +1,15 @@
 {
   "schemaVersion": 1,
+  "publicationGate": {
+    "stable": "BLOCKED",
+    "reason": "The disk installer has not yet been installed onto a separate disposable QEMU disk, rebooted, and verified not to expose the live boot media as a writable target.",
+    "requiredEvidence": [
+      "Install onto a separate disposable virtual target disk.",
+      "Reboot from the installed virtual disk and reach the Centipede desktop.",
+      "Verify the live source medium remained read-only and unavailable as an install target.",
+      "Pass the BIOS and UEFI live-image boot matrix."
+    ]
+  },
   "targets": {
     "desktop": {
       "status": "BUILDABLE",

@@ -43,6 +43,15 @@ describe('Centipede release target contract', () => {
     expect(config.schemaVersion).toBe(1);
   });
 
+  it('keeps stable publication blocked until disk installation evidence is verified', () => {
+    expect(config.publicationGate.stable).toBe('BLOCKED');
+    expect(config.publicationGate.reason).toContain('separate disposable QEMU disk');
+    expect(config.publicationGate.requiredEvidence).toHaveLength(4);
+    const publisher = readFileSync(join(root, 'scripts/create-platform-release-manifest.ts'), 'utf8');
+    expect(publisher).toContain("releaseConfig.publicationGate.stable !== 'VERIFIED'");
+    expect(publisher).toContain('Stable release is blocked');
+  });
+
   it('classifies every target with an artifact name and positive independent revision', () => {
     expect(Object.keys(config.targets).sort()).toEqual(['android', 'desktop', 'docker', 'ios', 'iso', 'live-usb', 'vm']);
     for (const target of Object.values(config.targets) as Array<any>) {
