@@ -1,6 +1,6 @@
 # Install Centipede OS onto a computer
 
-This guide applies only to a Centipede image whose release notes say **Guided disk installation: verified**. The currently published v1.0.0 live image does not include the installer.
+This guide applies only to a Centipede image whose release notes say **Guided disk installation: verified**. The currently published v1.0.0 live image does not include the installer. The v1.0.1 installer candidate in PR #119 is not a public release; its separate-target installation and reboot checks have not passed. Do not install it to a real drive.
 
 ## Before you begin
 
@@ -15,7 +15,7 @@ This guide applies only to a Centipede image whose release notes say **Guided di
 2. Open **Install Centipede OS** from the desktop.
 3. Allow the installer to open with system permission. This is needed to prepare the drive you choose.
 4. Choose your language and keyboard layout.
-5. On the disk screen, select the internal drive only after checking its name and capacity. The USB used to start Centipede is protected and should not be offered as an installation target. If the disk list is confusing or the USB appears as a target, cancel and do not continue.
+5. On a verified release, select the internal drive only after checking its name and capacity. The live USB must not be writable or offered as an installation target. If the disk list is confusing or the USB appears as a target, cancel and do not continue. This protection is still awaiting end-to-end validation in the candidate.
 6. Review the partition plan carefully. It must name the drive you intend to use and show the changes that will be made. The installer starts with no disk operation selected and pauses for a final confirmation before it changes the drive.
 7. Create your user account and continue only when the summary is correct.
 8. Wait for the success screen, shut down, remove the USB, then start the computer again.

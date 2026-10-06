@@ -22,13 +22,13 @@
 
 The current branch adds Calamares to the Debian live image as a guided disk installer. Its configuration requires an explicit target choice, starts without a partition operation preselected, displays a final install confirmation, requires 32 GiB of storage and 2 GiB of RAM, and attempts to make the live boot disk read-only before Calamares enumerates install targets. If source-media identification or write protection fails, the installer exits without opening Calamares.
 
-This is not yet a public release. The installer image must pass a virtual-machine install onto a separate disposable target disk, reboot into the installed Centipede system, verify that the live boot disk was never writable/selected, and pass the existing BIOS/UEFI boot matrix before `v1.0.1` can be published as stable. The current workflow still proves image build and live boot only; no installation result has been recorded yet.
+This is not yet a public release. The installer image must pass a virtual-machine install onto a separate disposable target disk, reboot into the installed Centipede system, verify that the live boot disk was never writable/selected, and pass the existing BIOS/UEFI boot matrix before `v1.0.1` can be published as stable. The current workflow still proves image build and live boot only; no installation result has been recorded yet. Do not use the candidate image to erase or install onto a real drive.
 
 The live system and current installer do not implement automatic graphics fallback, low-memory mode, diagnostics export, interrupted-install recovery, installed-system updates, or update rollback. Review the [disk installation guide](INSTALLATION_GUIDE.md) and [installer limits](DISK_INSTALLATION_GUIDE.md); back up data before any install.
 
 The successful current-main candidate checks ran on PR source commit `1f99f79eddb3dd06bd86dbc55074b20993f87d0b`; that source was merged as `f17a9365f223572dc0ea411dfbfdf214eee3ed5a`. CodeQL and primary CI passed. A separate Copilot reviewer failed before analysis because its configured model was unsupported. That result is not a clean review; it reported no source finding.
 
-The current images are live boot media. They do not install to an internal drive and do not provide a disk installer or persistent user storage. The refreshed ISO/USB/VM build artifact is approximately 3.35 GB combined. See the [beginner USB guide](INSTALLATION_GUIDE.md) before writing the image to removable media.
+The currently published v1.0.0 images are live boot media. They do not install to an internal drive or provide persistent user storage. The refreshed ISO/USB/VM build artifact is approximately 3.35 GB combined. See the [beginner USB guide](INSTALLATION_GUIDE.md) before writing the image to removable media.
 
 ## Q-Man daily-driver completion checklist
 

@@ -35,6 +35,8 @@ If the PC does not show a boot menu, restart and try the other common key or loo
 
 > **What you download:** v1.0.0 is the current published stable image. It contains the original XFCE/Chromium desktop. The refreshed desktop and everyday app set have not yet been published in a new release.
 
+> **Disk installer status:** The published v1.0.0 image is a live system and cannot install Centipede to an internal disk. A disk-installer candidate is being reviewed in [PR #119](https://github.com/wests-cmd/Centipede-os/pull/119), but installation to a separate test disk and reboot have not yet been verified. Do not use candidate images to install or erase a disk. This README will link a new release only after those checks pass.
+
 ### Preview of the upcoming desktop
 
 ![Centipede desktop preview. This refreshed design is not in the v1.0.0 download.](docs/images/centipede-desktop-preview.png)
@@ -58,6 +60,7 @@ The image uses Centipede OS identity in `/etc/os-release` while retaining `ID_LI
 
 - The current public release is [Centipede OS v1.0.0](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0).
 - ISO, USB, QEMU VM, desktop bundle, and Docker assets are published for v1.0.0.
+- v1.0.0 is live-only. The guided disk installer is a v1.0.1 candidate and is not a published download; the separate-target install and reboot checks are still required.
 - Android device distribution is blocked until the protected signing key and publisher fingerprint are configured.
 - iPhone distribution is blocked until Apple distribution signing and provisioning are configured. The iOS Simulator app is not installable on an iPhone.
 - Docker contains the Centipede web app, not Kingdom. Running it requires Docker and does not provide the USB desktop experience.
