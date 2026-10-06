@@ -75,7 +75,7 @@ describe('Centipede release target contract', () => {
     expect(result.updateAvailable).toBe(true);
     expect(result.isCoreUpdate).toBe(false);
     expect(result.metadata).toMatchObject({
-      latestArtifactVersion: '1.0.0+iso.2',
+      latestArtifactVersion: `1.0.0+iso.${config.targets.iso.revision}`,
       requiredKingdomProtocol: 'v1.0+',
       architecture: 'x86_64',
       sha256: sha,
@@ -107,11 +107,12 @@ describe('Centipede release target contract', () => {
   it('never treats a lower core version or older target revision as an available update', () => {
     const coreDowngrade = manifestFor('iso', { coreVersion: '0.9.9' });
     const sameRevision = manifestFor('iso');
-    const olderRevision = manifestFor('iso', { targetInfo: { revision: 1 } });
+    const olderRevision = manifestFor('iso', { targetInfo: { revision: Math.max(1, config.targets.iso.revision - 1) } });
 
     expect(TargetUpdateChecker.checkTargetUpdateAvailable('iso', '1.0.0+iso.1', coreDowngrade).updateAvailable).toBe(false);
-    expect(TargetUpdateChecker.checkTargetUpdateAvailable('iso', '1.0.0+iso.2', sameRevision).updateAvailable).toBe(false);
-    expect(TargetUpdateChecker.checkTargetUpdateAvailable('iso', '1.0.0+iso.2', olderRevision).updateAvailable).toBe(false);
+    const currentIdentity = `1.0.0+iso.${config.targets.iso.revision}`;
+    expect(TargetUpdateChecker.checkTargetUpdateAvailable('iso', currentIdentity, sameRevision).updateAvailable).toBe(false);
+    expect(TargetUpdateChecker.checkTargetUpdateAvailable('iso', currentIdentity, olderRevision).updateAvailable).toBe(false);
     expect(TargetUpdateChecker.checkTargetUpdateAvailable('iso', '2.0.0+iso.1', sameRevision).updateAvailable).toBe(false);
   });
 
