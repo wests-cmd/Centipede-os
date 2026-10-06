@@ -6,9 +6,9 @@ Centipede OS is a free desktop operating system with a custom Centipede-branded 
 
 **New to this?** Download the ISO, write it to an empty USB drive, and start the other computer from that USB. The live session does not install Centipede or replace Windows.
 
-<p><a href="https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.0/centipede-os-1.0.0-x86_64.iso"><strong>⬇️ Download Centipede OS v1.0.0 for USB</strong></a></p>
+<p><a href="https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.3/centipede-os-1.0.1-live-usb-x86_64.iso"><strong>⬇️ Try the Centipede OS 1.0.1 preview for USB</strong></a></p>
 
-Need a different format or want to see every available file? Visit the [Centipede OS v1.0.0 downloads page](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0).
+This is a **preview release**. For the current stable download, use [Centipede OS v1.0.0](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0). To see every preview file, including the VM and Docker image, visit the [Centipede OS v1.0.1-rc.3 downloads page](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.1-rc.3).
 
 **Before you start:** The USB needs at least 8 GB free. Writing the image erases the USB. Files saved during a live session may be lost when you shut down. Keep the PC’s internal drive connected and do not choose an install or erase option.
 
@@ -33,17 +33,17 @@ Use an empty USB drive with at least 8 GB free (16 GB is a comfortable choice). 
 
 If the PC does not show a boot menu, restart and try the other common key or look up “boot menu” plus the PC maker and model. Do not change Secure Boot or firmware settings as a first troubleshooting step.
 
-> **What you download:** v1.0.0 is the current published stable image. A custom Centipede boot menu, startup splash, login screen, desktop background, and installer look are being prepared for the v1.0.1 update; that update is not published yet.
+> **What you download:** v1.0.1-rc.3 is a custom Centipede-branded live preview. The default live option was tested in virtual machines, but the installer has not passed installation to a separate test disk, reboot, and source-media safety checks. Choose **Try Centipede / Live** only. Do not start the disk installer or use it on a real disk. The current stable release remains v1.0.0.
 
-> **Disk installer status:** The published v1.0.0 image is a live system and cannot install Centipede to an internal disk. A disk-installer candidate is being reviewed in [PR #119](https://github.com/wests-cmd/Centipede-os/pull/119), but installation to a separate test disk and reboot have not yet been verified. Do not use candidate images to install or erase a disk. This README will link a new release only after those checks pass.
+> **Disk installer status:** The preview contains a guided installer, but it is not certified for disk installation yet. Installation to a separate test disk, reboot, and proof that the boot USB cannot be selected as the target are still required. Do not use it to install or erase a disk.
 
-### Preview of the upcoming desktop
+### Centipede OS 1.0.1 preview desktop
 
-![Centipede desktop preview. This refreshed design is not in the v1.0.0 download.](docs/images/centipede-desktop-preview.png)
+![Centipede OS 1.0.1 preview desktop, captured during the full-use browser check.](docs/images/centipede-desktop-preview.png)
 
 ## What is included
 
-The project contains a browser-based desktop application, a Centipede live image, a Docker image, and Android/iOS app projects. The live desktop runs Centipede in Chromium. The desktop design separates common apps from Centipede tools. The upcoming branded image includes Chromium, LibreOffice Writer/Calc, Thunderbird, and VLC; these changes need a new tagged release before they become the public stable USB download.
+The project contains a browser-based desktop application, a Centipede live image, a Docker image, and Android/iOS app projects. The live desktop runs Centipede in Chromium. The desktop design separates common apps from Centipede tools. The preview image includes Chromium, LibreOffice Writer/Calc, Thunderbird, and VLC. These assets are published as a prerelease preview and have not replaced the v1.0.0 stable download.
 
 The interface is a client for Kingdom, a separately operated service. Centipede does not include Kingdom or gain control of the host PC. Some panels are prototypes or use local example data. The browser companion can enroll a phone against the running Centipede service: open Centipede on the host computer at `http://localhost:3000`, create a one-time code, then open the printed phone address on the same network and enter the code there. The API requires a loopback socket peer and a localhost request host for code creation and device administration; browser origin and Fetch Metadata checks further reject cross-origin requests. Request headers alone cannot grant local authority. Pairing uses plain HTTP, so keep it on a private, trusted network and never expose the port to the internet. Pairing records last only for the current server session. Docker or reverse-proxy setups are not certified for host device administration when their API sees a bridge/proxy peer instead of loopback. This is device enrollment only; the native Android/iOS apps and mobile task/approval workflows are not ready. The live image has limited hardware firmware and may not support every Wi-Fi or graphics device.
 
@@ -58,9 +58,9 @@ The live-image build keeps normal graphics enabled and provides a separate **Cen
 The operating system uses Centipede OS identity across the boot menu, startup splash, login screen, desktop, and installer. Required notices for included upstream components remain available in the system's legal documentation. See [branding details](docs/BRANDING.md) and the [boot and recovery checklist](docs/BOOT_RECOVERY_CHECKLIST.md) for what's included, what's unverified, and what blocks a production claim.
 ## Current release and target status
 
-- The current public release is [Centipede OS v1.0.0](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0).
-- ISO, USB, QEMU VM, desktop bundle, and Docker assets are published for v1.0.0.
-- v1.0.0 is live-only. The guided disk installer is a v1.0.1 candidate and is not a published download; the separate-target install and reboot checks are still required.
+- The current stable release is [Centipede OS v1.0.0](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0).
+- The custom-branded [v1.0.1-rc.3 preview](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.1-rc.3) publishes a web bundle, hybrid live ISO, byte-identical Live USB image, QEMU optical-media image, and smoke-tested Docker image. See its release manifest and SHA-256 file for exact artifact identities and checksums.
+- Both the stable image and preview should be treated as live-only. The preview's guided installer has not passed separate-target installation, reboot, and source-media safety checks; do not use it on a real disk.
 - Android device distribution is blocked until the protected signing key and publisher fingerprint are configured.
 - iPhone distribution is blocked until Apple distribution signing and provisioning are configured. The iOS Simulator app is not installable on an iPhone.
 - Docker contains the Centipede web app, not Kingdom. Running it requires Docker and does not provide the USB desktop experience.

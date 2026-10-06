@@ -18,4 +18,4 @@ node scripts/render-brand-assets.mjs
 
 The live-image build fails if required artwork or Centipede identity configuration is missing. The boot-menu hook also fails if a generated visible boot label still identifies the base distribution. Linux components and package metadata retain machine-readable compatibility fields and required upstream legal notices; those fields are not product branding.
 
-The branding update is part of the v1.0.1 candidate. It is not the current public download until the image is rebuilt, the boot matrix passes, and the disk-installer release gate is satisfied.
+The branded image is published as the [`v1.0.1-rc.3 preview`](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.1-rc.3). The BIOS and signed-UEFI normal/Safe Graphics boot matrix passed in CI. It remains a live preview; the disk installer release gate is still blocked on a separate-target installation, reboot, and source-media safety validation. The stable download remains v1.0.0.

@@ -2,6 +2,14 @@
 
 > Current release gates are maintained in [SHIP_REALITY_MATRIX.md](SHIP_REALITY_MATRIX.md); the full supplied checklist and its implementation status are tracked in [MASTER_RELEASE_EXECUTION_CHECKLIST.md](MASTER_RELEASE_EXECUTION_CHECKLIST.md) and [MASTER_RELEASE_EXECUTION_STATUS.md](MASTER_RELEASE_EXECUTION_STATUS.md). Historical readiness documents may contain outdated completion claims and do not override those records or current code.
 
+## Current release update — 2026-10-06
+
+The current stable release is still [`v1.0.0`](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0). A custom-branded [`v1.0.1-rc.3 preview`](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.1-rc.3) is now published. Its release run built the web bundle, Docker image, hybrid ISO/Live USB image, and QEMU optical-media image; release manifest and SHA-256 checksums are attached. CI booted the exact ISO to the desktop in standard BIOS, Safe Graphics BIOS, signed UEFI, and signed UEFI Safe Graphics modes. Docker smoke checks passed.
+
+The preview is for **live use only**. The guided installer has not passed installation to a separate disposable disk, reboot, and source-media safety verification. Android signed APK and iOS device IPA were not published because signing credentials are not configured. The release manifest marks those targets `BLOCKED`. No stable v1.0.1 release is authorized by this evidence.
+
+The target descriptions in the historical sections below record earlier audits and CI runs; for current downloadable artifacts and gate status, use this update and the linked live [ship reality matrix](SHIP_REALITY_MATRIX.md).
+
 **Core version:** `package.json` (`1.0.0`)
 **Public stable release:** [`v1.0.0`](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0)
 **Desktop refresh merge:** `f17a9365f223572dc0ea411dfbfdf214eee3ed5a`
