@@ -6,9 +6,9 @@ Centipede OS is a free desktop operating system with a custom Centipede-branded 
 
 **New to this?** Download the ISO, write it to an empty USB drive, and start the other computer from that USB. The live session does not install Centipede or replace Windows.
 
-<p><a href="https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.3/centipede-os-1.0.1-live-usb-x86_64.iso"><strong>⬇️ Try the Centipede OS 1.0.1 preview for USB</strong></a></p>
+<p><a href="https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.4/centipede-os-1.0.1-live-usb-x86_64.iso"><strong>⬇️ Try the Centipede OS 1.0.1 preview for USB</strong></a></p>
 
-This is a **preview release**. For the current stable download, use [Centipede OS v1.0.0](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0). To see every preview file, including the VM and Docker image, visit the [Centipede OS v1.0.1-rc.3 downloads page](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.1-rc.3).
+This is a **preview release**. For the current stable download, use [Centipede OS v1.0.0](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0). To see every preview file, including the VM and Docker image, visit the [Centipede OS v1.0.1-rc.4 downloads page](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.1-rc.4).
 
 **Before you start:** The USB needs at least 8 GB free. Writing the image erases the USB. Files saved during a live session may be lost when you shut down. Keep the PC’s internal drive connected and do not choose an install or erase option.
 
@@ -33,13 +33,13 @@ Use an empty USB drive with at least 8 GB free (16 GB is a comfortable choice). 
 
 If the PC does not show a boot menu, restart and try the other common key or look up “boot menu” plus the PC maker and model. Do not change Secure Boot or firmware settings as a first troubleshooting step.
 
-> **What you download:** v1.0.1-rc.3 is a custom Centipede-branded live preview. The default live option was tested in virtual machines, but the installer has not passed installation to a separate test disk, reboot, and source-media safety checks. Choose **Try Centipede / Live** only. Do not start the disk installer or use it on a real disk. The current stable release remains v1.0.0.
+> **What you download:** v1.0.1-rc.4 is a custom Centipede-branded live preview. The default live option was tested in virtual machines, but the installer has not passed installation to a separate test disk, reboot, and source-media safety checks. Choose **Try Centipede / Live** only. Do not start the disk installer or use it on a real disk. The current stable release remains v1.0.0.
 
 > **Disk installer status:** The preview contains a guided installer, but it is not certified for disk installation yet. Installation to a separate test disk, reboot, and proof that the boot USB cannot be selected as the target are still required. Do not use it to install or erase a disk.
 
 ### Centipede OS 1.0.1 preview desktop
 
-![Centipede OS 1.0.1 preview desktop, captured during the full-use browser check.](docs/images/centipede-desktop-preview.png)
+![Centipede OS 1.0.1 preview desktop with the restored classic background.](docs/images/centipede-desktop-preview.png)
 
 ## What is included
 
@@ -59,7 +59,7 @@ The operating system uses Centipede OS identity across the boot menu, startup sp
 ## Current release and target status
 
 - The current stable release is [Centipede OS v1.0.0](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0).
-- The custom-branded [v1.0.1-rc.3 preview](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.1-rc.3) publishes a web bundle, hybrid live ISO, byte-identical Live USB image, QEMU optical-media image, and smoke-tested Docker image. See its release manifest and SHA-256 file for exact artifact identities and checksums.
+- The custom-branded [v1.0.1-rc.4 preview](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.1-rc.4) publishes a web bundle, hybrid live ISO, byte-identical Live USB image, QEMU optical-media image, and smoke-tested Docker image. See its release manifest and SHA-256 file for exact artifact identities and checksums.
 - Both the stable image and preview should be treated as live-only. The preview's guided installer has not passed separate-target installation, reboot, and source-media safety checks; do not use it on a real disk.
 - Android device distribution is blocked until the protected signing key and publisher fingerprint are configured.
 - iPhone distribution is blocked until Apple distribution signing and provisioning are configured. The iOS Simulator app is not installable on an iPhone.

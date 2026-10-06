@@ -1,11 +1,11 @@
 # Centipede OS visual identity
 
-The operating system's visible identity is Centipede OS across the boot menus, startup splash, login screen, desktop, and guided installer. The live environment uses a static artwork-based splash so animation or accelerated graphics are not required to show the brand.
+The operating system's visible identity is Centipede OS across the boot menus, startup splash, login screen, desktop, and guided installer. The desktop uses a calm, dark classic background, with Centipede identity carried by the boot menu, splash, login, panel, and applications. The live environment uses a static artwork-based splash so animation or accelerated graphics are not required to show the brand.
 
 | Surface | Source | Installed use |
 |---|---|---|
 | Mark | `packaging/live-build/config/includes.chroot/usr/share/backgrounds/centipede/centipede-mark.svg` | Installer and application icon |
-| Desktop | `centipede-workspace.svg` | Default XFCE wallpaper and login background |
+| Desktop | `centipede-workspace.svg` | Quiet, dark default XFCE wallpaper; product identity remains in the login, panel, and applications |
 | Boot menu | `centipede-menu.svg` | GRUB and legacy BIOS menu background |
 | Startup | `centipede-boot.svg` and `usr/share/plymouth/themes/centipede/` | Plymouth splash |
 | Installer | `etc/calamares/branding/centipede/branding.desc` | Centipede product name and logo |

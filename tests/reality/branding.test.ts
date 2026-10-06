@@ -11,4 +11,12 @@ describe('Centipede product branding', () => {
     expect(launcher).toContain('On Centipede OS, open the Applications menu');
     expect(launcher).not.toMatch(/\bDebian\b/i);
   });
+
+  it('starts with the calm classic home screen and keeps illustrated scenes optional', () => {
+    const app = readFileSync(join(root, 'src/App.tsx'), 'utf8');
+    const launcher = readFileSync(join(root, 'src/components/AppLauncher.tsx'), 'utf8');
+    expect(app).toContain("'classic'");
+    expect(launcher).toContain('Your desktop, ready.');
+    expect(launcher).toContain("homeVisual !== 'classic'");
+  });
 });
