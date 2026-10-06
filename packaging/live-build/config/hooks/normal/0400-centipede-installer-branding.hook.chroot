@@ -32,6 +32,11 @@ assert partition.get('initialSwapChoice') == 'none'
 assert welcome['requirements']['requiredStorage'] >= 32
 assert '@CENTIPEDE_VERSION@' not in (root / 'branding/centipede/branding.desc').read_text()
 assert branding['strings']['productName'] == 'Centipede OS'
+release_identity = Path('/etc/os-release').read_text()
+assert 'NAME="Centipede OS"' in release_identity
+assert 'PRETTY_NAME="Centipede OS ' in release_identity
+assert 'Centipede OS' in Path('/etc/issue').read_text()
+assert 'Centipede OS' in Path('/etc/issue.net').read_text()
 assert (root / 'branding/centipede/centipede-logo.png').is_file()
 assert (root / 'branding/centipede/centipede-logo.png').stat().st_size > 10_000
 for path in [

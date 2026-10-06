@@ -21,6 +21,7 @@ SUPPORT_URL="https://github.com/wests-cmd/Centipede-os/issues"
 BUG_REPORT_URL="https://github.com/wests-cmd/Centipede-os/issues"
 EOF
 printf '%s\n' 'Centipede OS \n \l' > /etc/issue
+printf 'Centipede OS %s\n' "$VERSION" > /etc/issue.net
 printf '%s\n' 'centipede' > /etc/hostname
 
 mkdir -p /etc/default/grub.d

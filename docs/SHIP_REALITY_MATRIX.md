@@ -20,7 +20,7 @@
 
 ## v1.0.1 branded disk-installer candidate
 
-The current branch adds Calamares to the Debian live image as a guided disk installer. Its configuration requires an explicit target choice, starts without a partition operation preselected, displays a final install confirmation, requires 32 GiB of storage and 2 GiB of RAM, and attempts to make the live boot disk read-only before Calamares enumerates install targets. If source-media identification or write protection fails, the installer exits without opening Calamares.
+The current branch adds Calamares to the Centipede live image as a guided disk installer. Its configuration requires an explicit target choice, starts without a partition operation preselected, displays a final install confirmation, requires 32 GiB of storage and 2 GiB of RAM, and attempts to make the live boot disk read-only before Calamares enumerates install targets. If source-media identification or write protection fails, the installer exits without opening Calamares.
 
 The candidate now has a custom Centipede identity across its boot artwork, startup splash, login screen, desktop background, and installer. The build validates those identity files rather than silently accepting a missing logo or splash. This is not yet a public release. The installer image must pass a virtual-machine install onto a separate disposable target disk, reboot into the installed Centipede system, verify that the live boot disk was never writable/selected, and pass the existing BIOS/UEFI boot matrix before `v1.0.1` can be published as stable. The current workflow still proves image build and live boot only; no installation result has been recorded yet. Do not use the candidate image to erase or install onto a real drive.
 

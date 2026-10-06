@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { TargetUpdateChecker } from '../../src/platform/targetUpdateChecker';
 import { expectedArtifactSha256 } from '../../src/platform/releaseIntegrity';
+import { releaseIdentityFromRef } from '../../src/platform/releaseTag';
 
 const root = process.cwd();
 const config = JSON.parse(readFileSync(join(root, 'release/targets.json'), 'utf8'));
@@ -36,6 +37,14 @@ function manifestFor(target: string, overrides: Record<string, unknown> = {}) {
 }
 
 describe('Centipede release target contract', () => {
+  it('accepts only the matching stable tag or a numbered RC for the core version', () => {
+    expect(releaseIdentityFromRef('', packageJson.version)).toEqual({ releaseTag: `v${packageJson.version}`, channel: 'candidate' });
+    expect(releaseIdentityFromRef(`refs/tags/v${packageJson.version}`, packageJson.version)).toEqual({ releaseTag: `v${packageJson.version}`, channel: 'stable' });
+    expect(releaseIdentityFromRef(`refs/tags/v${packageJson.version}-rc.2`, packageJson.version)).toEqual({ releaseTag: `v${packageJson.version}-rc.2`, channel: 'candidate' });
+    expect(() => releaseIdentityFromRef(`refs/tags/v${packageJson.version}-rc.nope`, packageJson.version)).toThrow();
+    expect(() => releaseIdentityFromRef('refs/tags/v9.9.9-rc.1', packageJson.version)).toThrow();
+  });
+
   it('uses package.json as the only core version source', () => {
     expect(packageJson.version).toMatch(/^\d+\.\d+\.\d+$/);
     expect(config.version).toBeUndefined();

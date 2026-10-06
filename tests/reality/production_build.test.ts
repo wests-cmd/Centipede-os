@@ -26,8 +26,9 @@ describe('Desktop release artifact integrity', () => {
     expect(builder).not.toContain('release-manifest.json');
     expect(aggregate).toContain('SHA256SUMS');
     expect(aggregate).toContain('release-manifest.json');
-    expect(aggregate).toContain("ref.startsWith('refs/tags/')");
+    expect(aggregate).toContain('releaseIdentityFromRef');
     expect(aggregate).toContain('release: releaseTag');
+    expect(readFileSync(join(root, 'scripts/build-release.ts'), 'utf8')).toContain('releaseIdentityFromRef');
     const bytes = readFileSync(desktopPath);
     expect(createHash('sha256').update(bytes).digest('hex')).toMatch(/^[0-9a-f]{64}$/);
   });

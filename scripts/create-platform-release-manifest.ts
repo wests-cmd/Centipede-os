@@ -7,15 +7,14 @@ import releaseConfig from '../release/targets.json';
 import { CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL, KINGDOM_PROTOCOL_MAJOR } from '../src/version';
 import { KINGDOM_CONTRACT_SPEC } from '../src/api/contractSpec';
 import { expectedArtifactSha256 } from '../src/platform/releaseIntegrity';
+import { releaseIdentityFromRef } from '../src/platform/releaseTag';
 
 const root = process.cwd();
 const releaseDir = join(root, 'release');
 const downloaded = join(releaseDir, 'platforms');
 const version = packageJson.version;
-const stableTag = `v${version}`;
 const ref = process.env.GITHUB_REF ?? '';
-const releaseTag = ref.startsWith('refs/tags/') ? ref.slice('refs/tags/'.length) : stableTag;
-const channel = ref === `refs/tags/${stableTag}` ? 'stable' : 'candidate';
+const { releaseTag, channel } = releaseIdentityFromRef(ref, version);
 if (channel === 'stable' && releaseConfig.publicationGate.stable !== 'VERIFIED') {
   throw new Error(`Stable release is blocked: ${releaseConfig.publicationGate.reason}`);
 }
