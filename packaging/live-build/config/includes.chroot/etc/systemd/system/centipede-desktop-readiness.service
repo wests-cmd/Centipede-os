@@ -6,7 +6,7 @@ Wants=centipede-web.service
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/python3 /usr/local/libexec/centipede-desktop-readiness.py
-TimeoutStartSec=130
+TimeoutStartSec=240
 
 [Install]
 WantedBy=multi-user.target

@@ -212,7 +212,7 @@ jobs:
       - name: Install live-image build and validation tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y ca-certificates curl debootstrap debian-archive-keyring qemu-utils qemu-system-x86 ovmf file unzip
+          sudo apt-get install -y ca-certificates curl debootstrap debian-archive-keyring qemu-utils qemu-system-x86 ovmf file unzip xvfb
           curl --fail --silent --show-error --location https://deb.debian.org/debian/pool/main/l/live-build/live-build_20230502_all.deb --output "$RUNNER_TEMP/live-build_20230502_all.deb"
           sudo apt-get install -y "$RUNNER_TEMP/live-build_20230502_all.deb"
       - uses: oven-sh/setup-bun@v2
@@ -246,7 +246,7 @@ jobs:
           QEMU_STATUS=0
           QEMU_MONITOR=/tmp/centipede-qemu-monitor.sock
           rm -f "$QEMU_MONITOR" /tmp/centipede-vm-screen.ppm /tmp/centipede-vm-serial.log
-          timeout 300s qemu-system-x86_64 -machine pc,accel=tcg -cpu max -smp 2 -m 4096 -cdrom "release/iso/$ISO" -boot order=d -nic none -display none -serial stdio -monitor "unix:$QEMU_MONITOR,server,nowait" -no-reboot > /tmp/centipede-vm-serial.log 2>&1 &
+          xvfb-run -a timeout 420s qemu-system-x86_64 -machine pc,accel=tcg -cpu max -smp 2 -m 4096 -cdrom "release/iso/$ISO" -boot order=d -nic none -display gtk,gl=off -serial stdio -monitor "unix:$QEMU_MONITOR,server,nowait" -no-reboot > /tmp/centipede-vm-serial.log 2>&1 &
           QEMU_PID=$!
           for attempt in $(seq 1 30); do
             [ -S "$QEMU_MONITOR" ] && break
@@ -268,7 +268,15 @@ jobs:
               except TimeoutError: pass
           command("screendump /tmp/centipede-vm-menu.ppm")
           command("sendkey ret")
-          time.sleep(180)
+          deadline = time.monotonic() + 300
+          while time.monotonic() < deadline:
+              try:
+                  with open("/tmp/centipede-vm-serial.log", encoding="utf-8", errors="replace") as serial:
+                      if "CENTIPEDE_DESKTOP_READY" in serial.read():
+                          break
+              except OSError:
+                  pass
+              time.sleep(1)
           command("screendump /tmp/centipede-vm-screen.ppm")
           command("quit")
           sock.close()
