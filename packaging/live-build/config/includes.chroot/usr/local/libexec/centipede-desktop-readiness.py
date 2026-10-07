@@ -4,6 +4,7 @@ import pwd
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
 from pathlib import Path
@@ -41,12 +42,49 @@ def desktop_browser_running(uid):
 def daily_apps_installed():
     return all(shutil.which(app) for app in ("libreoffice", "thunderbird", "vlc"))
 
+def application_rendered():
+    """Use a separate browser profile to verify the client JavaScript rendered."""
+    profile = tempfile.mkdtemp(prefix="centipede-readiness-")
+    shutil.chown(profile, user="centipede")
+    try:
+        result = subprocess.run(
+            [
+                "runuser", "-u", "centipede", "--", "chromium",
+                "--headless", "--no-first-run", "--disable-gpu",
+                "--disable-dev-shm-usage", f"--user-data-dir={profile}",
+                "--virtual-time-budget=15000", "--dump-dom",
+                "http://127.0.0.1:3000/",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        rendered = result.returncode == 0 and "Welcome to Centipede" in result.stdout
+        if rendered:
+            print("CENTIPEDE_RENDER_CHECK: React desktop content rendered in Chromium", flush=True)
+        else:
+            diagnostic = (result.stderr or result.stdout).replace("\n", " ")[-600:]
+            print(
+                f"CENTIPEDE_RENDER_CHECK_FAILED: exit={result.returncode} "
+                f"welcome_text={'present' if 'Welcome to Centipede' in result.stdout else 'missing'} "
+                f"detail={diagnostic}",
+                file=sys.stderr,
+                flush=True,
+            )
+        return rendered
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    finally:
+        shutil.rmtree(profile, ignore_errors=True)
+
 uid = pwd.getpwnam("centipede").pw_uid
 deadline = time.monotonic() + 120
 last_app_ready = False
 last_browser_ready = False
 last_lightdm_ready = False
 last_apps_ready = False
+last_render_ready = False
 browser_started_at = None
 while time.monotonic() < deadline:
     try:
@@ -65,7 +103,11 @@ while time.monotonic() < deadline:
     ).returncode == 0
     browser_settled = browser_started_at is not None and time.monotonic() - browser_started_at >= 10
     if last_app_ready and browser_settled and last_lightdm_ready and last_apps_ready:
-        message = "CENTIPEDE_DESKTOP_READY: LightDM, Chromium, local web app, and everyday apps are ready"
+        last_render_ready = application_rendered()
+        if not last_render_ready:
+            break
+    if last_app_ready and browser_settled and last_lightdm_ready and last_apps_ready and last_render_ready:
+        message = "CENTIPEDE_DESKTOP_READY: LightDM, rendered Centipede app, Chromium, and everyday apps are ready"
         command_line = open("/proc/cmdline", encoding="ascii").read().split()
         graphics_marker = (
             "CENTIPEDE_SAFE_GRAPHICS_ENABLED: nomodeset is active"
@@ -80,7 +122,8 @@ while time.monotonic() < deadline:
     time.sleep(2)
 message = (
     "CENTIPEDE_DESKTOP_NOT_READY: "
-    f"lightdm={last_lightdm_ready} web={last_app_ready} chromium={last_browser_ready} apps={last_apps_ready}"
+    f"lightdm={last_lightdm_ready} web={last_app_ready} chromium={last_browser_ready} "
+    f"rendered={last_render_ready} apps={last_apps_ready}"
 )
 print(message, file=sys.stderr, flush=True)
 try:
@@ -106,3 +149,4 @@ diagnostic = (
 )
 report_serial(diagnostic)
 sys.exit(1)
+
