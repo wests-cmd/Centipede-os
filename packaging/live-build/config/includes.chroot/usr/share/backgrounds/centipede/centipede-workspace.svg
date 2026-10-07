@@ -1,26 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <image href="centipede-earth.png" width="1920" height="1080" preserveAspectRatio="xMidYMid slice"/>
   <defs>
-    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0b1220"/>
-      <stop offset=".58" stop-color="#080e1a"/>
-      <stop offset="1" stop-color="#0a111e"/>
-    </linearGradient>
-    <radialGradient id="cool-glow" cx=".94" cy=".12" r=".76">
-      <stop offset="0" stop-color="#126477" stop-opacity=".2"/>
-      <stop offset="1" stop-color="#126477" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="soft-glow" cx=".12" cy=".94" r=".7">
-      <stop offset="0" stop-color="#293958" stop-opacity=".14"/>
-      <stop offset="1" stop-color="#293958" stop-opacity="0"/>
-    </radialGradient>
-    <pattern id="grain-grid" width="64" height="64" patternUnits="userSpaceOnUse">
-      <path d="M64 0H0V64" fill="none" stroke="#b5cfdf" stroke-opacity=".018" stroke-width="1"/>
-    </pattern>
+    <linearGradient id="wordmark" x1="0" x2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#ffd3a1"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="160%"><feGaussianBlur stdDeviation="5"/></filter>
   </defs>
-  <rect width="1920" height="1080" fill="url(#base)"/>
-  <rect width="1920" height="1080" fill="url(#cool-glow)"/>
-  <rect width="1920" height="1080" fill="url(#soft-glow)"/>
-  <rect width="1920" height="1080" fill="url(#grain-grid)"/>
-  <path d="M0 866C342 806 540 910 847 874s552-143 1073-96" fill="none" stroke="#74d9db" stroke-opacity=".025" stroke-width="1"/>
-  <path d="M0 886C344 827 547 928 850 892s556-143 1070-96" fill="none" stroke="#74d9db" stroke-opacity=".018" stroke-width="1"/>
+  <g opacity=".72">
+    <image href="centipede-mark.svg" x="86" y="850" width="64" height="64"/>
+    <text x="166" y="890" fill="#020713" font-family="Inter, 'Segoe UI', sans-serif" font-size="28" font-weight="700" letter-spacing="3" filter="url(#shadow)">CENTIPEDE OS</text>
+    <text x="166" y="890" fill="url(#wordmark)" font-family="Inter, 'Segoe UI', sans-serif" font-size="28" font-weight="700" letter-spacing="3">CENTIPEDE OS</text>
+  </g>
 </svg>

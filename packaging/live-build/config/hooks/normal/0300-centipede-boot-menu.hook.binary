@@ -12,6 +12,15 @@ done
 [ -s "$MENU_ART" ] || { echo 'Centipede boot-menu artwork is missing.' >&2; exit 1; }
 cp "$MENU_ART" "$GRUB_DIR/centipede-menu.png"
 cp "$MENU_ART" "$ISOLINUX_DIR/centipede-menu.png"
+# Debian's packaged Syslinux theme is included after isolinux.cfg and replaces
+# the configured menu background with its own splash containing Debian text.
+# Replace that late override as well so the first visible boot screen is ours.
+for splash in splash.png splash800x600.png; do
+  [ ! -f "$ISOLINUX_DIR/$splash" ] || cp "$MENU_ART" "$ISOLINUX_DIR/$splash"
+done
+if [ -f "$ISOLINUX_DIR/stdmenu.cfg" ]; then
+  sed -i 's/^[[:space:]]*menu background splash\.png[[:space:]]*$/menu background centipede-menu.png/I' "$ISOLINUX_DIR/stdmenu.cfg"
+fi
 
 if ! grep -Rqs "fail-safe mode" "$GRUB_DIR" "$ISOLINUX_DIR"; then
   echo "Live-build produced no failsafe menu entries." >&2
@@ -96,6 +105,10 @@ grep -Rqs 'Safe Graphics' "$GRUB_DIR" || { echo 'Safe Graphics entry missing fro
 grep -Rqs 'Safe Graphics' "$ISOLINUX_DIR" || { echo 'Safe Graphics entry missing from BIOS menu.' >&2; exit 1; }
 grep -Fq 'background_image $prefix/centipede-menu.png' "$GRUB_CONFIG" || { echo 'Centipede GRUB background was not installed.' >&2; exit 1; }
 grep -Rqs 'MENU BACKGROUND centipede-menu.png' "$ISOLINUX_DIR" || { echo 'Centipede BIOS background was not installed.' >&2; exit 1; }
+if [ -f "$ISOLINUX_DIR/stdmenu.cfg" ] && grep -Eqi '^[[:space:]]*menu background splash\.png' "$ISOLINUX_DIR/stdmenu.cfg"; then
+  echo 'The Debian Syslinux splash still overrides the Centipede boot artwork.' >&2
+  exit 1
+fi
 if grep -REi '^[[:space:]]*(menuentry|menu[[:space:]]+label).*Debian' "$GRUB_DIR" "$ISOLINUX_DIR"; then
   echo 'A boot-menu label still exposes Debian branding.' >&2
   exit 1

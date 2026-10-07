@@ -1,26 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <image href="../../../backgrounds/centipede/centipede-earth.png" width="1280" height="720" preserveAspectRatio="xMidYMid slice"/>
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#08111e"/>
-      <stop offset=".62" stop-color="#101c2b"/>
-      <stop offset="1" stop-color="#102f3a"/>
-    </linearGradient>
-    <radialGradient id="halo" cx=".5" cy=".41" r=".5">
-      <stop offset="0" stop-color="#25d4c2" stop-opacity=".2"/>
-      <stop offset="1" stop-color="#25d4c2" stop-opacity="0"/>
-    </radialGradient>
-    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
-      <path d="M48 0H0V48" fill="none" stroke="#d8f2f4" stroke-opacity=".035"/>
-    </pattern>
+    <linearGradient id="veil" x1="0" x2="1"><stop stop-color="#020610" stop-opacity=".76"/><stop offset="1" stop-color="#020610" stop-opacity="0"/></linearGradient>
   </defs>
-  <rect width="1280" height="720" fill="url(#bg)"/>
-  <rect width="1280" height="720" fill="url(#halo)"/>
-  <rect width="1280" height="720" fill="url(#grid)"/>
-  <g transform="translate(539 141) scale(.395)"><image href="../../../backgrounds/centipede/centipede-mark.svg" width="512" height="512"/></g>
-  <text x="640" y="421" fill="#eff9fb" font-family="Inter, 'Segoe UI', sans-serif" font-size="32" font-weight="650" text-anchor="middle" letter-spacing="8">CENTIPEDE OS</text>
-  <rect x="604" y="451" width="72" height="3" rx="2" fill="#37d9c2"/>
-  <text x="640" y="492" fill="#a9c3cf" font-family="Inter, 'Segoe UI', sans-serif" font-size="16" text-anchor="middle" letter-spacing="1.5">STARTING YOUR WORKSPACE</text>
-  <g fill="#4bdcc6">
-    <circle cx="616" cy="558" r="3" opacity=".42"/><circle cx="640" cy="558" r="3" opacity=".7"/><circle cx="664" cy="558" r="3" opacity="1"/>
-  </g>
+  <rect width="680" height="720" fill="url(#veil)"/>
+  <image href="../../../backgrounds/centipede/centipede-mark.svg" x="58" y="259" width="92" height="92"/>
+  <text x="174" y="313" fill="#f8fbff" font-family="Inter, 'Segoe UI', sans-serif" font-size="30" font-weight="700" letter-spacing="3">CENTIPEDE OS</text>
+  <text x="176" y="342" fill="#ffad66" font-family="Inter, 'Segoe UI', sans-serif" font-size="12" font-weight="600" letter-spacing="2">STARTING YOUR WORKSPACE</text>
+  <g fill="#ffad66"><circle cx="176" cy="386" r="3" opacity=".42"/><circle cx="196" cy="386" r="3" opacity=".7"/><circle cx="216" cy="386" r="3"/></g>
 </svg>

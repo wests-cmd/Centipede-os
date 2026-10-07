@@ -27,6 +27,7 @@ describe('Centipede product branding', () => {
     expect(lightdm).toContain('autologin-user=centipede');
     expect(readiness).toContain('After=centipede-web.service');
     expect(readiness).toContain('WantedBy=multi-user.target');
+    expect(readiness).toContain('ExecStart=/usr/bin/python3 /usr/local/libexec/centipede-desktop-readiness.py');
     expect(readiness).not.toContain('After=graphical.target');
     const readinessProbe = readFileSync(join(root, 'packaging/live-build/config/includes.chroot/usr/local/libexec/centipede-desktop-readiness.py'), 'utf8');
     expect(readinessProbe).toContain('def report_serial(message):');
@@ -37,11 +38,11 @@ describe('Centipede product branding', () => {
     expect(bootMenu).toContain('distro gfxboot splash');
   });
 
-  it('sets the live account identity and starts the desktop from the user profile', () => {
+  it('sets the live account identity and starts the desktop with system-wide autostart', () => {
     const liveConfig = readFileSync(join(root, 'packaging/live-build/config/includes.chroot/etc/live/config.conf.d/centipede.conf'), 'utf8');
-    const userAutostart = readFileSync(join(root, 'packaging/live-build/config/includes.chroot/etc/skel/.config/autostart/centipede-desktop.desktop'), 'utf8');
+    const globalAutostart = readFileSync(join(root, 'packaging/live-build/config/includes.chroot/etc/xdg/autostart/centipede-desktop.desktop'), 'utf8');
     expect(liveConfig).toContain('LIVE_USER_FULLNAME="Centipede OS"');
     expect(liveConfig).toContain('LIVE_USERNAME="centipede"');
-    expect(userAutostart).toContain('Exec=/usr/local/bin/centipede-desktop');
+    expect(globalAutostart).toContain('Exec=/usr/local/bin/centipede-desktop');
   });
 });

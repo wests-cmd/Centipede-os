@@ -54,6 +54,7 @@ describe('Centipede OS visual identity', () => {
       'includes.chroot/usr/share/backgrounds/centipede/centipede-mark.svg',
       'includes.chroot/usr/share/backgrounds/centipede/centipede-workspace.svg',
       'includes.chroot/usr/share/backgrounds/centipede/centipede-workspace.png',
+      'includes.chroot/usr/share/backgrounds/centipede/centipede-earth.png',
       'includes.chroot/usr/share/backgrounds/centipede/centipede-menu.svg',
       'includes.chroot/usr/share/backgrounds/centipede/centipede-menu.png',
       'includes.chroot/usr/share/plymouth/themes/centipede/centipede.plymouth',
@@ -73,6 +74,9 @@ describe('Centipede OS visual identity', () => {
     const bootMenu = read(`${config}/hooks/normal/0300-centipede-boot-menu.hook.binary`);
     const installerBrand = read(`${config}/includes.chroot/etc/calamares/branding/centipede/branding.desc`);
     const packageList = read(`${config}/package-lists/centipede.list.chroot`);
+    const wallpaper = read(`${config}/includes.chroot/usr/share/backgrounds/centipede/centipede-workspace.svg`);
+    const menuArtwork = read(`${config}/includes.chroot/usr/share/backgrounds/centipede/centipede-menu.svg`);
+    const bootSplash = read(`${config}/includes.chroot/usr/share/plymouth/themes/centipede/centipede-boot.svg`);
 
     expect(desktop).toContain('/usr/share/backgrounds/centipede/centipede-workspace.png');
     expect(greeter).toContain('background=/usr/share/backgrounds/centipede/centipede-workspace.png');
@@ -83,6 +87,11 @@ describe('Centipede OS visual identity', () => {
     expect(bootMenu).toContain('background_image $prefix/centipede-menu.png');
     expect(bootMenu).toContain('MENU BACKGROUND centipede-menu.png');
     expect(bootMenu).toContain('"Start Centipede OS"');
+    expect(wallpaper).toContain('centipede-earth.png');
+    expect(menuArtwork).toContain('centipede-earth.png');
+    expect(bootSplash).toContain('centipede-earth.png');
+    expect(bootMenu).toContain('splash800x600.png');
+    expect(bootMenu).toContain('stdmenu.cfg');
     expect(installerBrand).toContain('productName: Centipede OS');
     expect(packageList).toContain('plymouth-themes');
   });

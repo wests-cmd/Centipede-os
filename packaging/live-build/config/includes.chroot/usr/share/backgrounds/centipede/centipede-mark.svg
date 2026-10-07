@@ -1,22 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Centipede segmented loop mark">
   <defs>
     <linearGradient id="body" x1=".08" y1=".88" x2=".9" y2=".12">
-      <stop offset="0" stop-color="#438bff"/>
-      <stop offset=".52" stop-color="#21dbc6"/>
-      <stop offset="1" stop-color="#a6f4d1"/>
+      <stop offset="0" stop-color="#173c70"/>
+      <stop offset=".52" stop-color="#3981c6"/>
+      <stop offset="1" stop-color="#b9dcf2"/>
     </linearGradient>
     <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
       <feGaussianBlur stdDeviation="9" result="blur"/>
       <feComposite in="SourceGraphic" in2="blur" operator="over"/>
     </filter>
   </defs>
-  <path d="M344 83a179 179 0 1 0 90 188" fill="none" stroke="#23cdbd" stroke-opacity=".16" stroke-width="58" stroke-linecap="round"/>
+  <path d="M344 83a179 179 0 1 0 90 188" fill="none" stroke="#ff8c3a" stroke-opacity=".2" stroke-width="58" stroke-linecap="round"/>
   <path d="M344 83a179 179 0 1 0 90 188" fill="none" stroke="url(#body)" stroke-width="38" stroke-linecap="round" stroke-dasharray="21 13"/>
-  <g fill="#b8f6e5" opacity=".82">
+  <g fill="#ffb36e" opacity=".92">
     <circle cx="172" cy="121" r="6"/><circle cx="115" cy="186" r="6"/><circle cx="91" cy="274" r="6"/>
     <circle cx="121" cy="364" r="6"/><circle cx="191" cy="423" r="6"/><circle cx="282" cy="438" r="6"/>
   </g>
-  <circle cx="434" cy="271" r="28" fill="#ff9a75" filter="url(#glow)"/>
+  <circle cx="434" cy="271" r="28" fill="#ff8130" filter="url(#glow)"/>
   <circle cx="434" cy="271" r="13" fill="#fff1dc"/>
   <path d="M210 220c18-25 56-38 89-25 28 11 42 38 34 64-8 25-36 42-68 41-29-1-48 14-49 34-1 16 12 28 29 28 13 0 23-7 30-18" fill="none" stroke="#f4fbff" stroke-opacity=".82" stroke-width="13" stroke-linecap="round"/>
   <circle cx="278" cy="264" r="7" fill="#f4fbff"/>

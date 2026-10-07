@@ -41,19 +41,24 @@ assert (root / 'branding/centipede/centipede-logo.png').is_file()
 assert (root / 'branding/centipede/centipede-logo.png').stat().st_size > 10_000
 for path in [
     Path('/usr/share/backgrounds/centipede/centipede-workspace.png'),
+    Path('/usr/share/backgrounds/centipede/centipede-earth.png'),
     Path('/usr/share/backgrounds/centipede/centipede-menu.png'),
     Path('/usr/share/plymouth/themes/centipede/centipede-boot.png'),
     Path('/usr/share/icons/hicolor/scalable/apps/centipede.svg'),
     Path('/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml'),
     Path('/etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml'),
     Path('/etc/live/config.conf.d/centipede.conf'),
-    Path('/etc/skel/.config/autostart/centipede-desktop.desktop'),
+    Path('/etc/xdg/autostart/centipede-desktop.desktop'),
     Path('/etc/skel/.config/gtk-3.0/settings.ini'),
     Path('/etc/lightdm/lightdm-gtk-greeter.conf.d/50-centipede.conf'),
     Path('/etc/lightdm/lightdm.conf.d/99-centipede.conf'),
     Path('/etc/default/grub.d/50-centipede.cfg'),
 ]:
     assert path.is_file() and path.stat().st_size > 0, f'Missing Centipede branding: {path}'
+desktop_autostart = Path('/etc/xdg/autostart/centipede-desktop.desktop').read_text()
+assert 'Exec=/usr/local/bin/centipede-desktop' in desktop_autostart
+readiness_unit = Path('/etc/systemd/system/centipede-desktop-readiness.service').read_text()
+assert 'ExecStart=/usr/bin/python3 /usr/local/libexec/centipede-desktop-readiness.py' in readiness_unit
 assert 'centipede-workspace.png' in Path('/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml').read_text()
 live_config = Path('/etc/live/config.conf.d/centipede.conf').read_text()
 assert 'LIVE_USERNAME="centipede"' in live_config
