@@ -44,6 +44,16 @@ describe('guided disk installer release configuration', () => {
     expect(guide).toMatch(/Automatic recovery from an interrupted installation is not yet available/);
     expect(guide).toMatch(/update rollback are not included yet/);
   });
+
+  it('requires a rendered Centipede page and rejects blank white boot captures', () => {
+    const readiness = read('packaging/live-build/config/includes.chroot/usr/local/libexec/centipede-desktop-readiness.py');
+    const screenshotCheck = read('scripts/validate-qemu-desktop-screenshot.py');
+    expect(readiness).toContain('"--headless"');
+    expect(readiness).toContain('"--dump-dom"');
+    expect(readiness).toContain('"Welcome to Centipede" in result.stdout');
+    expect(readiness).toContain('CENTIPEDE_RENDER_CHECK_FAILED');
+    expect(screenshotCheck).toContain('near_white_ratio > 0.70');
+  });
 });
 
 describe('Centipede OS visual identity', () => {
@@ -96,3 +106,4 @@ describe('Centipede OS visual identity', () => {
     expect(packageList).toContain('plymouth-themes');
   });
 });
+
