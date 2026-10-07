@@ -70,7 +70,7 @@ describe('Centipede release target contract', () => {
       if (target.status !== 'BUILDABLE') expect(target.reason).toBeTruthy();
     }
     for (const target of ['desktop', 'iso', 'live-usb', 'vm', 'docker']) expect(config.targets[target].status).toBe('BUILDABLE');
-    expect(config.targets.android.status).toBe('BLOCKED');
+    expect(config.targets.android.status).toBe('BUILDABLE');
     expect(config.targets.ios.status).toBe('BLOCKED');
   });
 
