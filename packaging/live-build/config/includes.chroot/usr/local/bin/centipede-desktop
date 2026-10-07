@@ -4,14 +4,29 @@ mkdir -p "$HOME/.cache"
 exec >>"$HOME/.cache/centipede-desktop.log" 2>&1
 echo "Waiting for local Centipede web service"
 
-# Apply the branded defaults to the live account too. live-config creates its
-# session account during boot, so relying only on /etc/skel is not sufficient.
-xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/image-path \
-  --create -t string -s /usr/share/backgrounds/centipede/centipede-workspace.png || true
-xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image \
-  --create -t string -s /usr/share/backgrounds/centipede/centipede-workspace.png || true
-xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/image-style \
-  --create -t int -s 5 || true
+# live-config creates its session account during boot, so apply the wallpaper
+# at login. XFCE names backdrop properties after the detected output (for
+# example, monitorVirtual-1), which is different from the static monitor0 key
+# used by generic configs.
+wallpaper=/usr/share/backgrounds/centipede/centipede-workspace.png
+monitors=$(xfconf-query -c xfce4-desktop -lv 2>/dev/null \
+  | sed -n 's#^/backdrop/screen0/monitor\([^/]*\)/workspace[^/]*/image-path .*#\1#p' \
+  | sort -u || true)
+if command -v xrandr >/dev/null 2>&1; then
+  detected_monitors=$(xrandr --listmonitors 2>/dev/null \
+    | awk 'NR > 1 { name=$2; sub(/^[+*]*/, "", name); print name }' || true)
+  monitors="$monitors $detected_monitors"
+fi
+monitors=$(printf '%s\n' $monitors | sed '/^$/d' | sort -u)
+[ -n "$monitors" ] || monitors=0
+for monitor in $monitors; do
+  xfconf-query -c xfce4-desktop -p "/backdrop/screen0/monitor${monitor}/workspace0/image-path" \
+    --create -t string -s "$wallpaper" || true
+  xfconf-query -c xfce4-desktop -p "/backdrop/screen0/monitor${monitor}/workspace0/last-image" \
+    --create -t string -s "$wallpaper" || true
+  xfconf-query -c xfce4-desktop -p "/backdrop/screen0/monitor${monitor}/workspace0/image-style" \
+    --create -t int -s 5 || true
+done
 xfdesktop --reload || true
 
 # Rename the default panel launcher at runtime without depending on its plugin

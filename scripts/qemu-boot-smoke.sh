@@ -66,11 +66,14 @@ PY
 fi
 for _ in $(seq 1 300); do
   if grep -Fq 'CENTIPEDE_DESKTOP_READY' "$SERIAL" 2>/dev/null; then
+    # Let the compositor and browser finish their first paint before capturing.
+    sleep 8
     python3 - "$MONITOR" "$SCREEN" <<'PY'
 import socket, sys, time
 s=socket.socket(socket.AF_UNIX, socket.SOCK_STREAM); s.settimeout(5); s.connect(sys.argv[1]); time.sleep(.3); s.recv(4096); s.sendall(("screendump " + sys.argv[2] + "\r\n").encode()); time.sleep(1); s.close()
 PY
     [[ -s "$SCREEN" ]] || { echo 'QEMU did not capture its booted desktop.' >&2; exit 1; }
+    python3 scripts/validate-qemu-desktop-screenshot.py "$SCREEN"
     if [[ "$PROFILE" == safe ]]; then
       grep -Fq 'CENTIPEDE_SAFE_GRAPHICS_ENABLED: nomodeset is active' "$SERIAL" || { echo 'Safe Graphics boot did not activate nomodeset.' >&2; exit 1; }
     else

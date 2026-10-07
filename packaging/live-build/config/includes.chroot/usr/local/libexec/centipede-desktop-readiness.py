@@ -47,6 +47,7 @@ last_app_ready = False
 last_browser_ready = False
 last_lightdm_ready = False
 last_apps_ready = False
+browser_started_at = None
 while time.monotonic() < deadline:
     try:
         with urllib.request.urlopen("http://127.0.0.1:3000/", timeout=2) as response:
@@ -54,11 +55,16 @@ while time.monotonic() < deadline:
     except Exception:
         last_app_ready = False
     last_browser_ready = desktop_browser_running(uid)
+    if last_browser_ready and browser_started_at is None:
+        browser_started_at = time.monotonic()
+    elif not last_browser_ready:
+        browser_started_at = None
     last_apps_ready = daily_apps_installed()
     last_lightdm_ready = subprocess.run(
         ["systemctl", "is-active", "--quiet", "lightdm"], check=False
     ).returncode == 0
-    if last_app_ready and last_browser_ready and last_lightdm_ready and last_apps_ready:
+    browser_settled = browser_started_at is not None and time.monotonic() - browser_started_at >= 10
+    if last_app_ready and browser_settled and last_lightdm_ready and last_apps_ready:
         message = "CENTIPEDE_DESKTOP_READY: LightDM, Chromium, local web app, and everyday apps are ready"
         command_line = open("/proc/cmdline", encoding="ascii").read().split()
         graphics_marker = (

@@ -1,4 +1,5 @@
 chromium
+x11-xserver-utils
 calamares
 calamares-settings-debian
 efibootmgr

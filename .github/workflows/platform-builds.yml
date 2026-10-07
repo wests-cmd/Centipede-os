@@ -277,6 +277,7 @@ jobs:
               except OSError:
                   pass
               time.sleep(1)
+          time.sleep(8)
           command("screendump /tmp/centipede-vm-screen.ppm")
           command("quit")
           sock.close()
@@ -286,6 +287,7 @@ jobs:
           test "$QEMU_STATUS" -eq 0 -o "$QEMU_STATUS" -eq 124
           test -s /tmp/centipede-vm-screen.ppm
           grep -Fq 'CENTIPEDE_DESKTOP_READY' /tmp/centipede-vm-serial.log
+          python3 scripts/validate-qemu-desktop-screenshot.py /tmp/centipede-vm-screen.ppm
       - name: Boot-test Safe Graphics and signed UEFI using the release ISO
         run: |
           ISO="release/iso/centipede-os-$(node -p "require('./package.json').version")-x86_64.iso"
