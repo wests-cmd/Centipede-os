@@ -1,3 +1,5 @@
+import { Capacitor } from '@capacitor/core';
+import { validateMobileEndpoint } from '../platform/mobileEndpoint';
 import {
   ApprovalRequest,
   AuditLogEntry,
@@ -44,6 +46,14 @@ export class KingdomApiError extends Error {
 }
 
 export function getDefaultKingdomApiUrl(): string {
+  const native = Capacitor.isNativePlatform();
+  if (typeof window !== 'undefined') {
+    try {
+      const saved = window.localStorage?.getItem('centipede_kingdom_url');
+      if (saved) return native ? validateMobileEndpoint(saved) : saved;
+    } catch { /* Ignore unavailable storage or an invalid old mobile endpoint. */ }
+  }
+  if (native) return '';
   if (typeof window !== 'undefined' && window.location?.origin) {
     return `${window.location.origin}/api/v1/kingdom`;
   }
@@ -95,6 +105,7 @@ export class KingdomAdapter {
   }
 
   public setBaseUrl(url: string): void {
+    if (Capacitor.isNativePlatform()) url = validateMobileEndpoint(url);
     this.disconnect();
     this.baseUrl = url.replace(/\/$/, '');
     this.wsUrl = this.baseUrl.replace(/^http/, 'ws') + '/ws';
