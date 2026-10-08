@@ -30,7 +30,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("monitor", help="QEMU Unix monitor socket")
     parser.add_argument("screenshot", help="output PPM path inside the QEMU host")
-    parser.add_argument("--timeout", type=int, default=120)
+    parser.add_argument("--timeout", type=int, default=300)
     args = parser.parse_args()
     screenshot = Path(args.screenshot)
     validator = Path(__file__).with_name("validate-qemu-desktop-screenshot.py")

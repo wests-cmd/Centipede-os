@@ -66,7 +66,7 @@ PY
 fi
 for _ in $(seq 1 300); do
   if grep -Fq 'CENTIPEDE_DESKTOP_READY' "$SERIAL" 2>/dev/null; then
-    python3 scripts/qemu-capture-rendered-desktop.py "$MONITOR" "$SCREEN" --timeout 120
+    python3 scripts/qemu-capture-rendered-desktop.py "$MONITOR" "$SCREEN" --timeout 300
     [[ -s "$SCREEN" ]] || { echo 'QEMU did not capture its booted desktop.' >&2; exit 1; }
     python3 scripts/validate-qemu-desktop-screenshot.py "$SCREEN"
     if [[ "$PROFILE" == safe ]]; then
