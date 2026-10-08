@@ -8,7 +8,7 @@ Centipede OS is a free desktop operating system with a custom Centipede-branded 
 
 <p><a href="https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.0/centipede-os-1.0.0-live-usb-x86_64.iso"><strong>⬇️ Download Centipede OS v1.0.0 for USB</strong></a></p>
 
-This is the current public release. The next branded update is being rebuilt after a boot-screen review found upstream artwork still visible; it will appear here after the full image checks pass.
+This is the current public release. A newer image is still being checked and will appear here after the desktop boot and installer safety checks pass.
 
 **Before you start:** The USB needs at least 8 GB free. Writing the image erases the USB. Files saved during a live session may be lost when you shut down. Keep the PC’s internal drive connected and do not choose an install or erase option.
 
@@ -34,6 +34,10 @@ Use an empty USB drive with at least 8 GB free (16 GB is a comfortable choice). 
 If the PC does not show a boot menu, restart and try the other common key or look up “boot menu” plus the PC maker and model. Do not change Secure Boot or firmware settings as a first troubleshooting step.
 
 > **Current release:** v1.0.0 starts a temporary live session. It does not install Centipede to the computer or save files after shutdown. A disk installer update is not available yet.
+
+### Start Centipede over Ethernet
+
+If the other PC supports network boot, you can start the live image over a direct Ethernet cable. Follow the [Ethernet network boot guide](docs/NETWORK_BOOT_GUIDE.md). Network boot starts a live session; it does not install Centipede to the computer. The current public v1.0.0 image has no disk installer.
 
 ### Centipede desktop preview
 

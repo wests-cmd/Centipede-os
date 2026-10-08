@@ -52,6 +52,8 @@ describe('guided disk installer release configuration', () => {
     expect(readiness).toContain('"--dump-dom"');
     expect(readiness).toContain('"Welcome to Centipede" in result.stdout');
     expect(readiness).toContain('CENTIPEDE_RENDER_CHECK_FAILED');
+    expect(readiness).toContain('CENTIPEDE_ASSET_CHECK_FAILED');
+    expect(readiness).toContain('render_check={last_render_detail}');
     expect(screenshotCheck).toContain('near_white_ratio > 0.70');
   });
 });
