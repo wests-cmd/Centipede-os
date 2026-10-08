@@ -40,7 +40,12 @@ def desktop_browser_running(uid):
                 continue
             with open(f"/proc/{entry.name}/cmdline", "rb") as cmd_file:
                 command = cmd_file.read().replace(b"\0", b" ").decode("utf-8", "replace")
-            if "chromium" in command and "--start-maximized" in command and "127.0.0.1:3000" in command:
+            if (
+                "chromium" in command
+                and "--type=" not in command
+                and "--start-maximized" in command
+                and "127.0.0.1:3000" in command
+            ):
                 return True
         except (FileNotFoundError, PermissionError, StopIteration, ValueError):
             continue
@@ -60,7 +65,12 @@ def desktop_browser_window_visible(uid):
                 continue
             with open(f"/proc/{entry.name}/cmdline", "rb") as cmd_file:
                 command = cmd_file.read().replace(b"\0", b" ").decode("utf-8", "replace")
-            if "chromium" not in command or "127.0.0.1:3000" not in command:
+            if (
+                "chromium" not in command
+                or "--type=" in command
+                or "--start-maximized" not in command
+                or "127.0.0.1:3000" not in command
+            ):
                 continue
             with open(f"/proc/{entry.name}/environ", "rb") as env_file:
                 environment = env_file.read().decode("utf-8", "replace").split("\0")
@@ -70,18 +80,19 @@ def desktop_browser_window_visible(uid):
             result = subprocess.run(
                 ["runuser", "--user", "centipede", "--", "env", f"DISPLAY={display}",
                  f"XAUTHORITY={xauthority}", "xwininfo", "-root", "-tree"],
-                check=False, capture_output=True, text=True, timeout=5,
+                check=False, capture_output=True, text=True, timeout=2,
             )
             if result.returncode != 0:
-                continue
+                return False
             for line in result.stdout.splitlines():
                 if '"Centipede OS"' not in line and '"Centipede OS - ' not in line:
                     continue
                 geometry = re.search(r"(\d+)x(\d+)[+-]\d+[+-]\d+", line)
                 if geometry and int(geometry.group(1)) >= 640 and int(geometry.group(2)) >= 480:
                     return True
+            return False
         except (FileNotFoundError, PermissionError, StopIteration, ValueError, subprocess.TimeoutExpired):
-            continue
+            return False
     return False
 
 
