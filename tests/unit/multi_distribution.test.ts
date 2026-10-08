@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { TargetUpdateChecker } from '../../src/platform/targetUpdateChecker';
 import { expectedArtifactSha256 } from '../../src/platform/releaseIntegrity';
-import { releaseIdentityFromRef } from '../../src/platform/releaseTag';
+import { releaseIdentityFromRef, releaseRefFromEnvironment } from '../../src/platform/releaseTag';
 
 const root = process.cwd();
 const config = JSON.parse(readFileSync(join(root, 'release/targets.json'), 'utf8'));
@@ -45,6 +45,13 @@ describe('Centipede release target contract', () => {
     expect(() => releaseIdentityFromRef('refs/tags/v9.9.9-rc.1', packageJson.version)).toThrow();
   });
 
+  it('uses a validated tag identity for automated main-branch releases', () => {
+    expect(releaseRefFromEnvironment('refs/heads/main', packageJson.version, `refs/tags/v${packageJson.version}`))
+      .toBe(`refs/tags/v${packageJson.version}`);
+    expect(() => releaseRefFromEnvironment('refs/heads/main', packageJson.version, 'refs/tags/v9.9.9')).toThrow();
+    expect(() => releaseRefFromEnvironment('refs/heads/main', packageJson.version, 'refs/heads/main')).toThrow();
+  });
+
   it('uses package.json as the only core version source', () => {
     expect(packageJson.version).toMatch(/^\d+\.\d+\.\d+$/);
     expect(config.version).toBeUndefined();
@@ -59,6 +66,16 @@ describe('Centipede release target contract', () => {
     const publisher = readFileSync(join(root, 'scripts/create-platform-release-manifest.ts'), 'utf8');
     expect(publisher).toContain("releaseConfig.publicationGate.stable !== 'VERIFIED'");
     expect(publisher).toContain('Stable release is blocked');
+  });
+
+  it('runs stable releases from a main-branch version bump without a manual dispatch', () => {
+    const workflow = readFileSync(join(root, '.github/workflows/release.yml'), 'utf8');
+    expect(workflow).toContain('branches:');
+    expect(workflow).toContain('- main');
+    expect(workflow).toContain('package.json');
+    expect(workflow).toContain('Publish the release and create its version tag');
+    expect(workflow).not.toContain('workflow_dispatch');
+    expect(workflow).toContain("publicationGate.stable !== 'VERIFIED'");
   });
 
   it('classifies every target with an artifact name and positive independent revision', () => {
@@ -165,3 +182,4 @@ describe('Centipede release target contract', () => {
     expect(expectedArtifactSha256(`not-a-hash image.iso`, 'image.iso')).toBeNull();
   });
 });
+
