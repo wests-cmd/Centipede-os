@@ -64,7 +64,8 @@ describe('guided disk installer release configuration', () => {
     expect(read('.github/workflows/platform-builds.yml')).toContain('import socket, subprocess, sys, time');
     const installerBranding = read('packaging/live-build/config/hooks/normal/0400-centipede-installer-branding.hook.chroot');
     expect(installerBranding).toContain('Name=Install Centipede OS');
-    expect(installerBranding).toContain('install-debian.desktop').toContain('centipede-installer.desktop');
+    expect(installerBranding).toContain('install-debian.desktop');
+    expect(installerBranding).toContain('centipede-installer.desktop');
   });
 });
 
