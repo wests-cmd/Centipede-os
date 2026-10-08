@@ -120,5 +120,14 @@ message = "CENTIPEDE_DESKTOP_NOT_READY: " + " ".join(
     f"{key}={str(value).lower()}" for key, value in last.items()
 )
 print(message, file=sys.stderr, flush=True)
-report_serial(message)
+account = pwd.getpwnam("centipede")
+identity = f"uid={account.pw_uid} name={account.pw_name}"
+launcher_log = Path("/home/centipede/.cache/centipede-desktop.log")
+launcher_detail = (
+    launcher_log.read_text(encoding="utf-8", errors="replace")[-800:]
+    if launcher_log.is_file()
+    else "launcher log missing"
+)
+diagnostic = f"{message}; account={identity}; launcher={launcher_detail.replace(chr(10), ' ')[:800]}"
+report_serial(diagnostic)
 sys.exit(1)
