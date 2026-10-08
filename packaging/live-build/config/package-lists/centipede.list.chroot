@@ -25,3 +25,4 @@ xfce4-terminal
 x11-xserver-utils
 xserver-xorg
 xserver-xorg-video-fbdev
+xserver-xorg-video-vesa

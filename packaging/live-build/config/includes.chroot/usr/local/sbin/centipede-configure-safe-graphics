@@ -1,0 +1,30 @@
+#!/bin/sh
+set -eu
+
+# Don't let an installed framebuffer driver change the normal graphics path.
+if ! grep -qw nomodeset /proc/cmdline; then
+  rm -f /etc/X11/xorg.conf.d/90-centipede-safe-graphics.conf
+  exit 0
+fi
+
+mkdir -p /etc/X11/xorg.conf.d
+if [ -d /sys/firmware/efi ] && [ -c /dev/fb0 ]; then
+  cat > /etc/X11/xorg.conf.d/90-centipede-safe-graphics.conf <<'EOF'
+Section "Device"
+  Identifier "Centipede EFI framebuffer"
+  Driver "fbdev"
+  Option "fbdev" "/dev/fb0"
+EndSection
+EOF
+  echo 'CENTIPEDE_SAFE_GRAPHICS_DRIVER: fbdev EFI framebuffer' > /dev/ttyS0 2>/dev/null || true
+else
+  cat > /etc/X11/xorg.conf.d/90-centipede-safe-graphics.conf <<'EOF'
+Section "Device"
+  Identifier "Centipede legacy BIOS fallback"
+  Driver "vesa"
+EndSection
+EOF
+  echo 'CENTIPEDE_SAFE_GRAPHICS_DRIVER: VESA legacy fallback' > /dev/ttyS0 2>/dev/null || true
+fi
+
+chmod 0644 /etc/X11/xorg.conf.d/90-centipede-safe-graphics.conf

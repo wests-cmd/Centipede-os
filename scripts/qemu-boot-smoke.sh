@@ -80,6 +80,25 @@ for _ in $(seq 1 300); do
   kill -0 "$PID" 2>/dev/null || break
   sleep 1
 done
+if kill -0 "$PID" 2>/dev/null; then
+  python3 - "$MONITOR" "$SCREEN" <<'PY' || true
+import socket, sys, time
+s=socket.socket(socket.AF_UNIX, socket.SOCK_STREAM); s.settimeout(3)
+try:
+    s.connect(sys.argv[1]); time.sleep(.2)
+    try: s.recv(4096)
+    except OSError: pass
+    s.sendall(("screendump " + sys.argv[2] + "\r\n").encode())
+    time.sleep(.5)
+    try: s.recv(4096)
+    except OSError: pass
+finally:
+    s.close()
+PY
+fi
 cat "$SERIAL" 2>/dev/null || true
+if [[ -s "$SCREEN" ]]; then
+  echo "Saved last boot screen to $SCREEN for diagnosis." >&2
+fi
 echo "FAIL: $NAME did not reach CENTIPEDE_DESKTOP_READY within 300 seconds." >&2
 exit 1
