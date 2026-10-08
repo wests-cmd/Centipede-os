@@ -121,6 +121,25 @@ def application_assets_available():
         return False, f"asset check failed: {type(error).__name__}: {error}"
 
 
+def report_xorg_graphics_driver():
+    """Include framebuffer driver/depth evidence in boot serial diagnostics."""
+    if "nomodeset" not in Path("/proc/cmdline").read_text(encoding="ascii").split():
+        return
+    candidates = (Path("/var/log/Xorg.0.log"), Path("/home/centipede/.local/share/xorg/Xorg.0.log"))
+    for log in candidates:
+        if not log.is_file():
+            continue
+        relevant = [
+            line.strip()[:240]
+            for line in log.read_text(encoding="utf-8", errors="replace").splitlines()
+            if any(token in line.lower() for token in ("fbdev", "vesa", "modeset", "depth", "(ee)"))
+        ][-8:]
+        for line in relevant:
+            report_serial("CENTIPEDE_XORG_SAFE_GRAPHICS: " + line)
+        return
+    report_serial("CENTIPEDE_XORG_SAFE_GRAPHICS: Xorg log was not found")
+
+
 uid = pwd.getpwnam("centipede").pw_uid
 deadline = time.monotonic() + 180
 last_status_at = 0
@@ -145,6 +164,7 @@ while time.monotonic() < deadline:
         assets_ready, detail = application_assets_available()
         if assets_ready:
             command_line = Path("/proc/cmdline").read_text(encoding="ascii").split()
+            report_xorg_graphics_driver()
             graphics_marker = (
                 "CENTIPEDE_SAFE_GRAPHICS_ENABLED: nomodeset is active"
                 if "nomodeset" in command_line

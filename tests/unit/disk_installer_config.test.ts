@@ -53,6 +53,7 @@ describe('guided disk installer release configuration', () => {
     expect(readiness).toContain('CENTIPEDE_DESKTOP_CHECK_STARTED');
     expect(readiness).toContain('CENTIPEDE_DESKTOP_CHECK_WAITING');
     expect(readiness).toContain('CENTIPEDE_DESKTOP_READY');
+    expect(readiness).toContain('CENTIPEDE_XORG_SAFE_GRAPHICS');
     expect(readiness).toContain('CENTIPEDE_ASSET_CHECK_FAILED');
     expect(readiness).toContain('def desktop_browser_window_visible(uid):');
     expect(readiness).toContain('"xwininfo", "-root", "-tree"');
@@ -65,6 +66,7 @@ describe('guided disk installer release configuration', () => {
     expect(safeGraphics).toContain('grep -qw nomodeset /proc/cmdline');
     expect(safeGraphics).toContain('rm -f /etc/X11/xorg.conf.d/90-centipede-safe-graphics.conf');
     expect(safeGraphics).toContain('Driver "fbdev"');
+    expect(safeGraphics).toContain('DefaultDepth 24');
     expect(safeGraphics).toContain('Driver "vesa"');
     expect(safeGraphicsService).toContain('Before=display-manager.service');
     expect(read('packaging/live-build/config/hooks/normal/0100-centipede-systemd.hook.chroot')).toContain('systemctl enable centipede-safe-graphics.service');
