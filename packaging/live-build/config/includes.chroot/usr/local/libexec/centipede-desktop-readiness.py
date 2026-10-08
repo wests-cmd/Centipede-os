@@ -55,8 +55,12 @@ def application_assets_available():
         for asset in assets:
             try:
                 with urllib.request.urlopen(urljoin("http://127.0.0.1:3000/", asset), timeout=5) as response:
-                    if response.status != 200 or not response.read(1):
+                    content = response.read()
+                    declared_length = response.headers.get("Content-Length")
+                    if response.status != 200 or not content:
                         return False, f"asset returned an empty response: {asset}"
+                    if declared_length and len(content) != int(declared_length):
+                        return False, f"asset transfer was incomplete: {asset} ({len(content)}/{declared_length} bytes)"
             except Exception as error:
                 return False, f"asset request failed for {asset}: {type(error).__name__}: {error}"
         return True, f"served {len(assets)} built assets"
@@ -79,7 +83,7 @@ def application_rendered():
                 "runuser", "-u", "centipede", "--", "chromium",
                 "--headless", "--no-first-run", "--disable-gpu",
                 "--disable-dev-shm-usage", f"--user-data-dir={profile}",
-                "--virtual-time-budget=15000", "--dump-dom",
+                "--timeout=15000", "--dump-dom",
                 "http://127.0.0.1:3000/",
             ],
             check=False,
@@ -103,7 +107,18 @@ def application_rendered():
                 flush=True,
             )
         return rendered
-    except (OSError, subprocess.TimeoutExpired) as error:
+    except subprocess.TimeoutExpired as error:
+        def partial_output(value):
+            if isinstance(value, bytes):
+                value = value.decode("utf-8", "replace")
+            return (value or "").replace("\n", " ")[-1000:]
+        last_render_detail = (
+            f"{type(error).__name__}: {error}; "
+            f"partial_stdout={partial_output(error.stdout)}; "
+            f"partial_stderr={partial_output(error.stderr)}"
+        )
+        return False
+    except OSError as error:
         last_render_detail = f"{type(error).__name__}: {error}"
         return False
     finally:

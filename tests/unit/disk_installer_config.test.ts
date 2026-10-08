@@ -49,6 +49,7 @@ describe('guided disk installer release configuration', () => {
     const readiness = read('packaging/live-build/config/includes.chroot/usr/local/libexec/centipede-desktop-readiness.py');
     const screenshotCheck = read('scripts/validate-qemu-desktop-screenshot.py');
     expect(readiness).toContain('"--headless"');
+    expect(readiness).toContain('"--timeout=15000"');
     expect(readiness).toContain('"--dump-dom"');
     expect(readiness).toContain('"Welcome to Centipede" in result.stdout');
     expect(readiness).toContain('CENTIPEDE_RENDER_CHECK_FAILED');
