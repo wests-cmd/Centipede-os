@@ -54,10 +54,17 @@ describe('guided disk installer release configuration', () => {
     expect(readiness).toContain('CENTIPEDE_DESKTOP_CHECK_WAITING');
     expect(readiness).toContain('CENTIPEDE_DESKTOP_READY');
     expect(readiness).toContain('CENTIPEDE_ASSET_CHECK_FAILED');
+    expect(readiness).toContain('def desktop_browser_window_visible(uid):');
+    expect(readiness).toContain('"xwininfo", "-root", "-tree"');
+    expect(read('packaging/live-build/config/package-lists/centipede.list.chroot')).toContain('x11-utils');
     expect(screenshotCheck).toContain('near_white_ratio > 0.70');
+    expect(screenshotCheck).toContain('pathological pixel alternation');
     expect(screenshotCapture).toContain('QEMU desktop did not paint');
     expect(read('scripts/qemu-boot-smoke.sh')).toContain('qemu-capture-rendered-desktop.py');
     expect(read('.github/workflows/platform-builds.yml')).toContain('import socket, subprocess, sys, time');
+    const installerBranding = read('packaging/live-build/config/hooks/normal/0400-centipede-installer-branding.hook.chroot');
+    expect(installerBranding).toContain('Name=Install Centipede OS');
+    expect(installerBranding).toContain('install-debian.desktop').toContain('centipede-installer.desktop');
   });
 });
 

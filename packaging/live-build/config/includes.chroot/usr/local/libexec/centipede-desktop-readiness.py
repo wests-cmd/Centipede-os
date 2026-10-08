@@ -47,6 +47,44 @@ def desktop_browser_running(uid):
     return False
 
 
+def desktop_browser_window_visible(uid):
+    """Require the live user's Centipede Chromium window to be mapped on screen."""
+    for entry in os.scandir("/proc"):
+        if not entry.name.isdigit():
+            continue
+        try:
+            with open(f"/proc/{entry.name}/status", encoding="ascii") as status_file:
+                status = status_file.read()
+            process_uid = int(next(line.split()[1] for line in status.splitlines() if line.startswith("Uid:")))
+            if process_uid != uid:
+                continue
+            with open(f"/proc/{entry.name}/cmdline", "rb") as cmd_file:
+                command = cmd_file.read().replace(b"\0", b" ").decode("utf-8", "replace")
+            if "chromium" not in command or "127.0.0.1:3000" not in command:
+                continue
+            with open(f"/proc/{entry.name}/environ", "rb") as env_file:
+                environment = env_file.read().decode("utf-8", "replace").split("\0")
+            variables = dict(value.split("=", 1) for value in environment if "=" in value)
+            display = variables.get("DISPLAY", ":0")
+            xauthority = variables.get("XAUTHORITY", "/home/centipede/.Xauthority")
+            result = subprocess.run(
+                ["runuser", "--user", "centipede", "--", "env", f"DISPLAY={display}",
+                 f"XAUTHORITY={xauthority}", "xwininfo", "-root", "-tree"],
+                check=False, capture_output=True, text=True, timeout=5,
+            )
+            if result.returncode != 0:
+                continue
+            for line in result.stdout.splitlines():
+                if '"Centipede OS"' not in line and '"Centipede OS - ' not in line:
+                    continue
+                geometry = re.search(r"(\d+)x(\d+)[+-]\d+[+-]\d+", line)
+                if geometry and int(geometry.group(1)) >= 640 and int(geometry.group(2)) >= 480:
+                    return True
+        except (FileNotFoundError, PermissionError, StopIteration, ValueError, subprocess.TimeoutExpired):
+            continue
+    return False
+
+
 def daily_apps_installed():
     return all(shutil.which(app) for app in ("libreoffice", "thunderbird", "vlc"))
 
@@ -75,7 +113,7 @@ def application_assets_available():
 uid = pwd.getpwnam("centipede").pw_uid
 deadline = time.monotonic() + 180
 last_status_at = 0
-last = {"lightdm": False, "web": False, "chromium": False, "apps": False}
+last = {"lightdm": False, "web": False, "chromium": False, "window": False, "apps": False}
 report_serial("CENTIPEDE_DESKTOP_CHECK_STARTED: checking live desktop services")
 
 while time.monotonic() < deadline:
@@ -85,6 +123,7 @@ while time.monotonic() < deadline:
     except Exception:
         last["web"] = False
     last["chromium"] = desktop_browser_running(uid)
+    last["window"] = desktop_browser_window_visible(uid)
     last["apps"] = daily_apps_installed()
     last["lightdm"] = (
         shutil.which("systemctl") is not None

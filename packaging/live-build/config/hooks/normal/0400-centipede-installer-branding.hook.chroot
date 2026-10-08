@@ -5,6 +5,19 @@ set -eu
 # and Debian live-media integration. Replace only its Debian-labelled menu
 # launcher; the installer itself remains Calamares.
 rm -f /usr/share/applications/install-debian.desktop
+mkdir -p /usr/share/applications /etc/skel/Desktop
+cat > /usr/share/applications/centipede-installer.desktop <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Install Centipede OS
+Comment=Install Centipede OS to a disk
+Exec=centipede-installer
+Icon=centipede
+Terminal=false
+Categories=System;
+EOF
+install -m 0755 /usr/share/applications/centipede-installer.desktop /etc/skel/Desktop/centipede-installer.desktop
+chmod 0755 /usr/share/applications/centipede-installer.desktop
 if command -v update-desktop-database >/dev/null 2>&1; then
   update-desktop-database /usr/share/applications || true
 fi
@@ -77,6 +90,9 @@ assert 'GRUB_DISTRIBUTOR="Centipede OS"' in grub_branding
 assert 'GRUB_BACKGROUND="/usr/share/backgrounds/centipede/centipede-menu.png"' in grub_branding
 assert subprocess.check_output(['plymouth-set-default-theme'], text=True).strip() == 'centipede'
 assert Path('/usr/bin/calamares').is_file()
+assert not Path('/usr/share/applications/install-debian.desktop').exists()
+assert 'Name=Install Centipede OS' in Path('/usr/share/applications/centipede-installer.desktop').read_text()
+assert 'Exec=centipede-installer' in Path('/etc/skel/Desktop/centipede-installer.desktop').read_text()
 assert Path('/usr/bin/pkexec').is_file()
 assert Path('/usr/bin/xhost').is_file()
 assert Path('/usr/bin/zenity').is_file()
