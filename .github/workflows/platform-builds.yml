@@ -257,7 +257,7 @@ jobs:
           QEMU_STATUS=0
           QEMU_MONITOR=/tmp/centipede-qemu-monitor.sock
           rm -f "$QEMU_MONITOR" /tmp/centipede-vm-screen.ppm /tmp/centipede-vm-serial.log
-          timeout 300s qemu-system-x86_64 -machine pc,accel=tcg -cpu max -smp 2 -m 4096 -cdrom "release/iso/$ISO" -boot order=d -nic none -display none -serial stdio -monitor "unix:$QEMU_MONITOR,server,nowait" -no-reboot > /tmp/centipede-vm-serial.log 2>&1 &
+          timeout 420s qemu-system-x86_64 -machine pc,accel=tcg -cpu max -smp 2 -m 4096 -cdrom "release/iso/$ISO" -boot order=d -nic none -display none -serial stdio -monitor "unix:$QEMU_MONITOR,server,nowait" -no-reboot > /tmp/centipede-vm-serial.log 2>&1 &
           QEMU_PID=$!
           for attempt in $(seq 1 30); do
             [ -S "$QEMU_MONITOR" ] && break
@@ -279,7 +279,16 @@ jobs:
               except TimeoutError: pass
           command("screendump /tmp/centipede-vm-menu.ppm")
           command("sendkey ret")
-          time.sleep(180)
+          deadline = time.monotonic() + 360
+          while time.monotonic() < deadline:
+              try:
+                  with open("/tmp/centipede-vm-serial.log", encoding="utf-8", errors="replace") as serial:
+                      output = serial.read()
+                      if "CENTIPEDE_DESKTOP_READY" in output or "CENTIPEDE_DESKTOP_NOT_READY" in output:
+                          break
+              except OSError:
+                  pass
+              time.sleep(2)
           command("screendump /tmp/centipede-vm-screen.ppm")
           command("quit")
           sock.close()
@@ -288,7 +297,7 @@ jobs:
           cat /tmp/centipede-vm-serial.log
           test "$QEMU_STATUS" -eq 0 -o "$QEMU_STATUS" -eq 124
           test -s /tmp/centipede-vm-screen.ppm
-          grep -Fq 'CENTIPEDE_DESKTOP_READY' /tmp/centipede-vm-serial.log
+          grep -Fq 'CENTIPEDE_DESKTOP_READY' /tmp/centipede-vm-serial.log || { echo 'QEMU never reported a rendered desktop; see serial output and screenshots.' >&2; exit 1; }
       - name: Boot-test Safe Graphics and signed UEFI using the release ISO
         run: |
           ISO="release/iso/centipede-os-$(node -p "require('./package.json').version")-x86_64.iso"

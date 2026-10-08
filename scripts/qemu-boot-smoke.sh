@@ -86,5 +86,5 @@ PY
   sleep 1
 done
 cat "$SERIAL" 2>/dev/null || true
-echo "FAIL: $NAME did not reach CENTIPEDE_DESKTOP_READY within 180 seconds." >&2
+echo "FAIL: $NAME did not reach CENTIPEDE_DESKTOP_READY within 300 seconds." >&2
 exit 1
