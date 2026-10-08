@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { basename, join, resolve, sep } from 'node:path';
 import packageJson from '../package.json';
 import releaseConfig from '../release/targets.json';
-import { releaseIdentityFromRef } from '../src/platform/releaseTag';
+import { releaseIdentityFromRef, releaseRefFromEnvironment } from '../src/platform/releaseTag';
 
 const root = process.cwd();
 const releaseDir = join(root, 'release');
@@ -17,7 +17,7 @@ if (target.status !== 'BUILDABLE') throw new Error(`Release target ${targetArg} 
 if (targetArg !== 'desktop') throw new Error('This builder only produces the desktop web bundle; platform-builds.yml owns ISO, USB, VM, mobile, and Docker builds.');
 if (!target.artifact) throw new Error(`No artifact name is configured for ${targetArg}.`);
 
-const ref = process.env.GITHUB_REF ?? '';
+const ref = releaseRefFromEnvironment(process.env.GITHUB_REF ?? '', version);
 const releaseIdentity = releaseIdentityFromRef(ref, version);
 if (releaseIdentity.channel === 'stable' && execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }).trim()) {
   throw new Error('Stable release builds require a clean committed source tree.');
@@ -36,3 +36,4 @@ execFileSync('tar', ['-czf', artifactPath, '-C', root, 'dist'], { cwd: root, std
 if (!existsSync(artifactPath) || statSync(artifactPath).size === 0) throw new Error(`Desktop artifact is missing or empty: ${artifactPath}`);
 const digest = createHash('sha256').update(readFileSync(artifactPath)).digest('hex');
 console.log(`Built desktop artifact ${artifactName} (sha256 ${digest}). Checksums and manifests are emitted only by create-platform-release-manifest.ts.`);
+
