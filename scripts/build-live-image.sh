@@ -44,7 +44,7 @@ lb config \
   --iso-preparer "Centipede OS release build" \
   --iso-publisher "Centipede OS contributors" \
   --iso-volume "CENTIPEDE_OS_${VERSION}" \
-  --bootappend-live-failsafe "boot=live components username=centipede hostname=centipede nomodeset vga=normal console=ttyS0,115200n8" \
+  --bootappend-live-failsafe "boot=live components username=centipede hostname=centipede nomodeset vga=normal video=efifb:1024x768-32 console=ttyS0,115200n8" \
   --security true \
   --bootappend-live "boot=live components username=centipede hostname=centipede splash console=ttyS0,115200n8 ignore_loglevel"
 lb build

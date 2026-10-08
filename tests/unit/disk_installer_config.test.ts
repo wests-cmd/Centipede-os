@@ -70,6 +70,7 @@ describe('guided disk installer release configuration', () => {
     expect(safeGraphics).toContain('Driver "vesa"');
     expect(safeGraphicsService).toContain('Before=display-manager.service');
     expect(read('packaging/live-build/config/hooks/normal/0100-centipede-systemd.hook.chroot')).toContain('systemctl enable centipede-safe-graphics.service');
+    expect(read('scripts/build-live-image.sh')).toContain('video=efifb:1024x768-32');
     expect(screenshotCheck).toContain('near_white_ratio > 0.70');
     expect(screenshotCheck).toContain('content_visible_ratio < 0.0075');
     expect(screenshotCheck).toContain('pathological pixel alternation');
