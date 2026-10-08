@@ -57,6 +57,7 @@ describe('guided disk installer release configuration', () => {
     expect(screenshotCheck).toContain('near_white_ratio > 0.70');
     expect(screenshotCapture).toContain('QEMU desktop did not paint');
     expect(read('scripts/qemu-boot-smoke.sh')).toContain('qemu-capture-rendered-desktop.py');
+    expect(read('.github/workflows/platform-builds.yml')).toContain('import socket, subprocess, sys, time');
   });
 });
 
