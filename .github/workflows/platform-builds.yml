@@ -2,6 +2,15 @@ name: Centipede platform builds
 
 on:
   workflow_call:
+    inputs:
+      release_ref:
+        description: Fully resolved tag ref for automated release builds.
+        required: false
+        type: string
+      release_tag:
+        description: Fully resolved release tag for artifact tagging.
+        required: false
+        type: string
   workflow_dispatch:
 
 permissions:
@@ -10,7 +19,7 @@ permissions:
 jobs:
   android-debug:
     name: Android debug APK (branch validation)
-    if: github.ref_type != 'tag'
+    if: inputs.release_ref == ''
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -49,7 +58,7 @@ jobs:
 
   android-release:
     name: Signed Android release APK
-    if: github.ref_type == 'tag' && vars.CENTIPEDE_ENABLE_SIGNED_ANDROID_RELEASE == 'true'
+    if: inputs.release_ref != '' && startsWith(inputs.release_ref, 'refs/tags/v') && vars.CENTIPEDE_ENABLE_SIGNED_ANDROID_RELEASE == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -107,7 +116,7 @@ jobs:
   ios-simulator:
     name: iOS Simulator app (not for iPhone distribution)
     runs-on: macos-15
-    if: github.ref_type != 'tag'
+    if: inputs.release_ref == ''
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -142,7 +151,7 @@ jobs:
 
   ios-device:
     name: Signed iOS device IPA
-    if: github.ref_type == 'tag' && vars.CENTIPEDE_ENABLE_SIGNED_IOS_RELEASE == 'true'
+    if: inputs.release_ref != '' && startsWith(inputs.release_ref, 'refs/tags/v') && vars.CENTIPEDE_ENABLE_SIGNED_IOS_RELEASE == 'true'
     runs-on: macos-15
     timeout-minutes: 60
     steps:
@@ -322,11 +331,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build image
         env:
-          IMAGE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
+          IMAGE_TAG: ${{ inputs.release_tag != '' && inputs.release_tag || github.sha }}
         run: docker build --pull -t centipede-web:${IMAGE_TAG} .
       - name: Smoke-test container
         env:
-          IMAGE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
+          IMAGE_TAG: ${{ inputs.release_tag != '' && inputs.release_tag || github.sha }}
         run: |
           docker run -d --name centipede-smoke -p 127.0.0.1:3000:3000 centipede-web:${IMAGE_TAG}
           for attempt in $(seq 1 30); do
@@ -356,4 +365,5 @@ jobs:
             centipede-docker-image-*.tar
             SHA256SUMS
           if-no-files-found: error
+
 
