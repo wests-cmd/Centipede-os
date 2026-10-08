@@ -7,13 +7,13 @@ import releaseConfig from '../release/targets.json';
 import { CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL, KINGDOM_PROTOCOL_MAJOR } from '../src/version';
 import { KINGDOM_CONTRACT_SPEC } from '../src/api/contractSpec';
 import { expectedArtifactSha256 } from '../src/platform/releaseIntegrity';
-import { releaseIdentityFromRef } from '../src/platform/releaseTag';
+import { releaseIdentityFromRef, releaseRefFromEnvironment } from '../src/platform/releaseTag';
 
 const root = process.cwd();
 const releaseDir = join(root, 'release');
 const downloaded = join(releaseDir, 'platforms');
 const version = packageJson.version;
-const ref = process.env.GITHUB_REF ?? '';
+const ref = releaseRefFromEnvironment(process.env.GITHUB_REF ?? '', version);
 const { releaseTag, channel } = releaseIdentityFromRef(ref, version);
 if (channel === 'stable' && releaseConfig.publicationGate.stable !== 'VERIFIED') {
   throw new Error(`Stable release is blocked: ${releaseConfig.publicationGate.reason}`);
@@ -90,3 +90,4 @@ for (const artifact of artifacts) {
   }
 }
 console.log(`Created verified ${channel} manifest for ${artifacts.length} target artifacts.`);
+
