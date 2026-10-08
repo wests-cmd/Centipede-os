@@ -1,7 +1,9 @@
-name: Centipede verified multi-platform release
+name: Centipede verified release
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
 
@@ -9,15 +11,84 @@ permissions:
   contents: read
 
 jobs:
+  detect:
+    name: Detect an intentional version release
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.identity.outputs.should_release }}
+      release_tag: ${{ steps.identity.outputs.release_tag }}
+      release_ref: ${{ steps.identity.outputs.release_ref }}
+      channel: ${{ steps.identity.outputs.channel }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: identity
+        name: Resolve the release identity from package.json
+        shell: bash
+        run: |
+          node <<'NODE' >> "$GITHUB_OUTPUT"
+          const cp = require('node:child_process');
+          const version = require('./package.json').version;
+          if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error(`Invalid stable package version: ${version}`);
+          const ref = process.env.GITHUB_REF;
+          const tag = `v${version}`;
+          if (ref.startsWith('refs/tags/')) {
+            const name = ref.slice('refs/tags/'.length);
+            const candidatePattern = new RegExp(`^v${version.replaceAll('.', '\\.')}\\-rc\\.\\d+$`);
+            if (name !== tag && !candidatePattern.test(name)) {
+              throw new Error(`Tag ${name} does not match package version ${version}.`);
+            }
+            console.log(`should_release=true\nrelease_tag=${name}\nrelease_ref=${ref}\nchannel=${name === tag ? 'stable' : 'candidate'}`);
+            process.exit(0);
+          }
+          let previous;
+          try { previous = JSON.parse(cp.execFileSync('git', ['show', 'HEAD^:package.json'], { encoding: 'utf8' })).version; }
+          catch { console.log('should_release=false\nrelease_tag=\nrelease_ref=\nchannel='); process.exit(0); }
+          if (!/^\d+\.\d+\.\d+$/.test(previous)) throw new Error(`Invalid previous stable package version: ${previous}`);
+          if (version === previous) {
+            console.log('should_release=false\nrelease_tag=\nrelease_ref=\nchannel=');
+            process.exit(0);
+          }
+          const currentParts = version.split('.').map(Number);
+          const previousParts = previous.split('.').map(Number);
+          const increased = currentParts.some((part, index) => part > previousParts[index] && currentParts.slice(0, index).every((value, prefix) => value === previousParts[prefix]));
+          if (!increased) throw new Error(`Version must increase monotonically (${previous} -> ${version}).`);
+          try { cp.execFileSync('git', ['rev-parse', '--verify', `refs/tags/${tag}`], { stdio: 'ignore' }); throw new Error(`Release tag ${tag} already exists.`); }
+          catch (error) { if (error.message.includes('already exists')) throw error; }
+          console.log(`should_release=true\nrelease_tag=${tag}\nrelease_ref=refs/tags/${tag}\nchannel=stable`);
+          NODE
+
+  preflight:
+    name: Enforce release blockers before building
+    needs: detect
+    if: needs.detect.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Keep stable publication fail-closed
+        if: needs.detect.outputs.channel == 'stable'
+        run: |
+          node -e "const c=require('./release/targets.json'); if(c.publicationGate.stable !== 'VERIFIED') { console.error('Stable release blocked: '+c.publicationGate.reason); process.exit(1); }"
+
   platforms:
     name: Build verified platform targets
+    needs: [detect, preflight]
+    if: needs.detect.outputs.should_release == 'true'
     uses: ./.github/workflows/platform-builds.yml
+    with:
+      release_ref: ${{ needs.detect.outputs.release_ref }}
+      release_tag: ${{ needs.detect.outputs.release_tag }}
     secrets: inherit
 
   desktop:
     name: Test and build desktop bundle
+    needs: [detect, preflight]
+    if: needs.detect.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      CENTIPEDE_RELEASE_REF: ${{ needs.detect.outputs.release_ref }}
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -27,7 +98,7 @@ jobs:
       - run: bun x tsc --noEmit
       - run: bun run lint:reality
       - run: bun test
-      - name: Build desktop web bundle
+      - name: Build desktop release bundle with the resolved identity
         run: bun scripts/build-release.ts --target=desktop
       - uses: actions/upload-artifact@v4
         with:
@@ -37,12 +108,17 @@ jobs:
 
   publish:
     name: Validate and publish verified artifacts
-    needs: [platforms, desktop]
+    needs: [detect, platforms, desktop]
+    if: needs.detect.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      CENTIPEDE_RELEASE_REF: ${{ needs.detect.outputs.release_ref }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
@@ -56,9 +132,11 @@ jobs:
           cp release/platforms/centipede-desktop-release-bundle/* release/desktop/
       - name: Validate artifacts and generate the authoritative manifest and checksums
         run: bun scripts/create-platform-release-manifest.ts
-      - name: Publish verified assets
+      - name: Publish the release and create its version tag
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ needs.detect.outputs.release_tag }}
+          target_commitish: ${{ github.sha }}
           files: |
             release/desktop/*
             release/iso/*
@@ -70,8 +148,9 @@ jobs:
             release/release-manifest.json
             release/SHA256SUMS
           draft: false
-          name: Centipede OS ${{ github.ref_name }}
-          prerelease: ${{ contains(github.ref_name, '-rc.') }}
+          name: Centipede OS ${{ needs.detect.outputs.release_tag }}
+          prerelease: ${{ needs.detect.outputs.channel == 'candidate' }}
           body: >-
-            ${{ contains(github.ref_name, '-rc.') && 'PRE-RELEASE CANDIDATE: the Centipede-branded live system is available to try. The guided disk installer has not passed a separate-target install/reboot and source-media safety test. Use live mode only; do not install to a real disk.' || 'Verified stable Centipede OS release. See the release notes and target manifests for platform-specific capabilities.' }}
+            ${{ needs.detect.outputs.channel == 'candidate' && 'PRE-RELEASE CANDIDATE: the Centipede-branded live system is available to try. The guided disk installer has not passed a separate-target install/reboot and source-media safety test. Use live mode only; do not install to a real disk.' || 'Verified stable Centipede OS release. See the release notes and target manifests for platform-specific capabilities.' }}
           generate_release_notes: true
+
