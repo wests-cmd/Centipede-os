@@ -1,55 +1,9 @@
-# Prepare mobile release signing
+# Centipede mobile signing
 
-Mobile signing material belongs to the project owner. Do not commit a keystore, certificate, provisioning profile, password, or private API key to this repository.
+Android uses encrypted repository secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`, plus the public certificate variable `ANDROID_EXPECTED_CERT_SHA256`. After provisioning the publisher identity, enable `CENTIPEDE_ENABLE_SIGNED_ANDROID_RELEASE=true`. The platform workflow’s manual `signed_android` input permits signed validation without publishing or changing tags.
 
-## Android APK
+Keep `release/targets.json` Android status BLOCKED until that signed validation succeeds. Then mark the target BUILDABLE for a new release source commit and tag. The publication workflow includes Android and iOS output directories, and the manifest generator requires the build-job checksum for each enabled artifact. Do not attach untracked or unsigned mobile artifacts or move an existing release tag.
 
-Create one long-lived release key on a trusted machine. Keep the keystore and its passwords backed up securely; future APK updates must use the same signing key.
+iPhone distribution requires Apple-issued certificate/private-key P12 and a provisioning profile matching `com.westscmd.centipedeos`, with the corresponding team and profile name. Required secrets: `IOS_CERTIFICATE_BASE64`, `IOS_CERTIFICATE_PASSWORD`, `IOS_PROVISIONING_PROFILE_BASE64`, `IOS_TEAM_ID`, `IOS_PROFILE_NAME`. Enable `CENTIPEDE_ENABLE_SIGNED_IOS_RELEASE=true` only after valid signing is configured; iOS remains BLOCKED until signed device distribution is verified. An App Store Connect IPA is for TestFlight/App Store distribution through Apple, not unrestricted installation from GitHub. There is currently no Apple developer account supplied for these apps.
 
-```sh
-keytool -genkeypair -v \
-  -keystore centipede-release.jks \
-  -keyalg RSA -keysize 2048 -validity 10000 \
-  -alias centipede-release
-```
-
-In GitHub repository **Settings â†’ Secrets and variables â†’ Actions**, add these secrets:
-
-- `ANDROID_KEYSTORE_BASE64`: base64 encoding of `centipede-release.jks`.
-- `ANDROID_KEY_ALIAS`: `centipede-release` (or the alias you created).
-- `ANDROID_KEYSTORE_PASSWORD`: the keystore password.
-- `ANDROID_KEY_PASSWORD`: the alias password.
-
-Then add repository variable `ANDROID_EXPECTED_CERT_SHA256` with the certificate fingerprint reported by:
-
-```sh
-apksigner verify --print-certs app-release.apk
-```
-
-Set repository variable `CENTIPEDE_ENABLE_SIGNED_ANDROID_RELEASE` to `true` only after the protected secrets and pinned fingerprint are in place. CI verifies the APK signature and pinned certificate before publishing. A mismatch stops the entire release; never change the pinned value just to make a build pass.
-
-PowerShell can encode the keystore for the Actions secret without putting it in the repository:
-
-```powershell
-[Convert]::ToBase64String([IO.File]::ReadAllBytes('.\centipede-release.jks')) | Set-Clipboard
-```
-
-Paste that value directly into the GitHub secret field. Avoid saving the base64 output to a tracked file.
-
-## iPhone IPA
-
-An installable iPhone IPA needs an Apple Developer account, an Apple Distribution certificate exported as a password-protected `.p12`, and a provisioning profile matching bundle ID `com.westscmd.centipedeos`. The simulator app built in branch CI is not installable on a physical iPhone.
-
-After creating the certificate and profile in the owner's Apple Developer account, add these GitHub Actions secrets:
-
-- `IOS_CERTIFICATE_BASE64`
-- `IOS_CERTIFICATE_PASSWORD`
-- `IOS_PROVISIONING_PROFILE_BASE64`
-- `IOS_TEAM_ID`
-- `IOS_PROFILE_NAME`
-
-Set repository variable `CENTIPEDE_ENABLE_SIGNED_IOS_RELEASE` to `true` only when those credentials are configured and the profile is valid. Apple credentials and App Store Connect/TestFlight publishing are not supplied by this repository. Never generate pretend credentials or commit certificate/private-key files.
-
-## Release behavior
-
-Signed Android and iOS device outputs are included only after their protected-signing workflows pass. Missing or invalid credentials fail closed. Simulator builds are test artifacts and must not be described as phone-installable releases.
+For an independently operated Kingdom host, append native companion origins `https://localhost` (Android) and `capacitor://localhost` (iOS) to its existing `ALLOWED_ORIGINS` configuration, preserving existing permitted clients. Do not use a wildcard origin. Pairing/session authorization remains required; CORS does not grant tool permissions. A phone must use a reachable HTTPS server URL (not the phone’s localhost), and private Tailscale addresses require the same tailnet. Native startup checks do not certify a live paired-server session.

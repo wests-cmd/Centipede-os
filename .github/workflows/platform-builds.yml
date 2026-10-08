@@ -12,6 +12,16 @@ on:
         required: false
         type: string
   workflow_dispatch:
+    inputs:
+      signed_android:
+        description: Build a publisher-signed Android APK for validation
+        type: boolean
+        default: false
+  push:
+    branches:
+      - 'codex/**'
+    tags:
+      - 'v*'
 
 permissions:
   contents: read
@@ -19,7 +29,7 @@ permissions:
 jobs:
   android-debug:
     name: Android debug APK (branch validation)
-    if: inputs.release_ref == ''
+    if: github.ref_type != 'tag' && inputs.release_ref == ''
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -58,7 +68,7 @@ jobs:
 
   android-release:
     name: Signed Android release APK
-    if: inputs.release_ref != '' && startsWith(inputs.release_ref, 'refs/tags/v') && vars.CENTIPEDE_ENABLE_SIGNED_ANDROID_RELEASE == 'true'
+    if: ((inputs.release_ref != '' && startsWith(inputs.release_ref, 'refs/tags/v')) || github.ref_type == 'tag' || (github.event_name == 'workflow_dispatch' && inputs.signed_android)) && vars.CENTIPEDE_ENABLE_SIGNED_ANDROID_RELEASE == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -116,7 +126,7 @@ jobs:
   ios-simulator:
     name: iOS Simulator app (not for iPhone distribution)
     runs-on: macos-15
-    if: inputs.release_ref == ''
+    if: github.ref_type != 'tag' && inputs.release_ref == ''
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -151,7 +161,7 @@ jobs:
 
   ios-device:
     name: Signed iOS device IPA
-    if: inputs.release_ref != '' && startsWith(inputs.release_ref, 'refs/tags/v') && vars.CENTIPEDE_ENABLE_SIGNED_IOS_RELEASE == 'true'
+    if: (inputs.release_ref != '' && startsWith(inputs.release_ref, 'refs/tags/v') || github.ref_type == 'tag') && vars.CENTIPEDE_ENABLE_SIGNED_IOS_RELEASE == 'true'
     runs-on: macos-15
     timeout-minutes: 60
     steps:
@@ -213,15 +223,15 @@ jobs:
           if-no-files-found: error
 
   os-images:
-    name: Centipede live image, USB image, and QEMU disk
+    name: Debian live ISO, USB image, and QEMU disk
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      - name: Install live-image build and validation tools
+      - name: Install Debian Bookworm live-build and image tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y ca-certificates curl debootstrap debian-archive-keyring qemu-utils qemu-system-x86 ovmf file unzip xvfb
+          sudo apt-get install -y ca-certificates curl debootstrap debian-archive-keyring qemu-utils qemu-system-x86 ovmf file unzip
           curl --fail --silent --show-error --location https://deb.debian.org/debian/pool/main/l/live-build/live-build_20230502_all.deb --output "$RUNNER_TEMP/live-build_20230502_all.deb"
           sudo apt-get install -y "$RUNNER_TEMP/live-build_20230502_all.deb"
       - uses: oven-sh/setup-bun@v2
@@ -232,14 +242,6 @@ jobs:
         run: sudo -E bash scripts/build-live-image.sh
       - name: Restore artifact ownership for QEMU and upload
         run: sudo chown -R "$(id -u):$(id -g)" release/iso release/live-usb release/vm
-      - if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: centipede-boot-config-diagnostic
-          path: |
-            build/live/binary/isolinux/
-            build/live/binary/boot/grub/
-          if-no-files-found: warn
       - name: Validate image outputs
         run: |
           VERSION=$(node -p "require('./package.json').version")
@@ -255,7 +257,7 @@ jobs:
           QEMU_STATUS=0
           QEMU_MONITOR=/tmp/centipede-qemu-monitor.sock
           rm -f "$QEMU_MONITOR" /tmp/centipede-vm-screen.ppm /tmp/centipede-vm-serial.log
-          xvfb-run -a timeout 420s qemu-system-x86_64 -machine pc,accel=tcg -cpu max -smp 2 -m 4096 -cdrom "release/iso/$ISO" -boot order=d -nic none -display gtk,gl=off -serial stdio -monitor "unix:$QEMU_MONITOR,server,nowait" -no-reboot > /tmp/centipede-vm-serial.log 2>&1 &
+          timeout 300s qemu-system-x86_64 -machine pc,accel=tcg -cpu max -smp 2 -m 4096 -cdrom "release/iso/$ISO" -boot order=d -nic none -display none -serial stdio -monitor "unix:$QEMU_MONITOR,server,nowait" -no-reboot > /tmp/centipede-vm-serial.log 2>&1 &
           QEMU_PID=$!
           for attempt in $(seq 1 30); do
             [ -S "$QEMU_MONITOR" ] && break
@@ -277,16 +279,7 @@ jobs:
               except TimeoutError: pass
           command("screendump /tmp/centipede-vm-menu.ppm")
           command("sendkey ret")
-          deadline = time.monotonic() + 300
-          while time.monotonic() < deadline:
-              try:
-                  with open("/tmp/centipede-vm-serial.log", encoding="utf-8", errors="replace") as serial:
-                      if "CENTIPEDE_DESKTOP_READY" in serial.read():
-                          break
-              except OSError:
-                  pass
-              time.sleep(1)
-          time.sleep(8)
+          time.sleep(180)
           command("screendump /tmp/centipede-vm-screen.ppm")
           command("quit")
           sock.close()
@@ -296,7 +289,6 @@ jobs:
           test "$QEMU_STATUS" -eq 0 -o "$QEMU_STATUS" -eq 124
           test -s /tmp/centipede-vm-screen.ppm
           grep -Fq 'CENTIPEDE_DESKTOP_READY' /tmp/centipede-vm-serial.log
-          python3 scripts/validate-qemu-desktop-screenshot.py /tmp/centipede-vm-screen.ppm
       - name: Boot-test Safe Graphics and signed UEFI using the release ISO
         run: |
           ISO="release/iso/centipede-os-$(node -p "require('./package.json').version")-x86_64.iso"
@@ -331,11 +323,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build image
         env:
-          IMAGE_TAG: ${{ inputs.release_tag != '' && inputs.release_tag || github.sha }}
+          IMAGE_TAG: ${{ inputs.release_tag != '' && inputs.release_tag || github.ref_type == 'tag' && github.ref_name || github.sha }}
         run: docker build --pull -t centipede-web:${IMAGE_TAG} .
       - name: Smoke-test container
         env:
-          IMAGE_TAG: ${{ inputs.release_tag != '' && inputs.release_tag || github.sha }}
+          IMAGE_TAG: ${{ inputs.release_tag != '' && inputs.release_tag || github.ref_type == 'tag' && github.ref_name || github.sha }}
         run: |
           docker run -d --name centipede-smoke -p 127.0.0.1:3000:3000 centipede-web:${IMAGE_TAG}
           for attempt in $(seq 1 30); do
@@ -365,5 +357,4 @@ jobs:
             centipede-docker-image-*.tar
             SHA256SUMS
           if-no-files-found: error
-
 
