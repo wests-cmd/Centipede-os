@@ -24,3 +24,4 @@ xfce4
 xfce4-terminal
 x11-xserver-utils
 xserver-xorg
+xserver-xorg-video-fbdev

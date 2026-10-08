@@ -56,7 +56,9 @@ describe('guided disk installer release configuration', () => {
     expect(readiness).toContain('CENTIPEDE_ASSET_CHECK_FAILED');
     expect(readiness).toContain('def desktop_browser_window_visible(uid):');
     expect(readiness).toContain('"xwininfo", "-root", "-tree"');
-    expect(read('packaging/live-build/config/package-lists/centipede.list.chroot')).toContain('x11-utils');
+    const desktopPackages = read('packaging/live-build/config/package-lists/centipede.list.chroot');
+    expect(desktopPackages).toContain('x11-utils');
+    expect(desktopPackages).toContain('xserver-xorg-video-fbdev');
     expect(screenshotCheck).toContain('near_white_ratio > 0.70');
     expect(screenshotCheck).toContain('content_visible_ratio < 0.0075');
     expect(screenshotCheck).toContain('pathological pixel alternation');
