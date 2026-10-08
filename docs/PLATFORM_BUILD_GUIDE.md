@@ -1,6 +1,6 @@
 # Platform build and signing guide
 
-The `Centipede platform builds` workflow builds the OS image formats and container on GitHub-hosted Linux. It builds a debug Android APK and iOS Simulator app for branch validation. A version tag runs signed mobile jobs only when the corresponding `CENTIPEDE_ENABLE_SIGNED_ANDROID_RELEASE` or `CENTIPEDE_ENABLE_SIGNED_IOS_RELEASE` repository variable is set to `true`. A release waits for every BUILDABLE target and publishes nothing if a required build or integrity check fails. See [MOBILE_SIGNING.md](MOBILE_SIGNING.md) for owner-controlled credential setup; the Android fingerprint parser fix needs a fresh tagged verification, and iPhone device signing remains blocked until Apple credentials exist.
+The `Centipede platform builds` workflow builds the OS image formats and container on GitHub-hosted Linux. It builds a debug Android APK and iOS Simulator app for branch validation. A release runs automatically when a higher `package.json` version reaches `main`, or when a matching numbered RC/version tag is pushed. No manual release dispatch is required. Stable publication first checks `release/targets.json`; if its stable gate is still blocked, the workflow stops before expensive platform builds. A successful run creates the version tag and GitHub Release only after every BUILDABLE target artifact and its integrity checks pass. Signed mobile jobs require the corresponding `CENTIPEDE_ENABLE_SIGNED_ANDROID_RELEASE` or `CENTIPEDE_ENABLE_SIGNED_IOS_RELEASE` repository variable and signing credentials. See [MOBILE_SIGNING.md](MOBILE_SIGNING.md) for credential setup; iPhone device signing remains blocked until Apple credentials exist.
 
 ## Stable Android APK
 
@@ -37,3 +37,4 @@ The Docker job builds and runs the image, checks the web page, bundled CSS, and 
 ## Run and retrieve branch builds
 
 Platform outputs attached to a branch workflow run are temporary validation artifacts, not published stable downloads. Android is debug-signed and iOS is for Simulator only. A stable GitHub Release requires a new version tag, all BUILDABLE-target jobs passing, and artifact checksums/manifests matching. Blocked mobile targets are omitted; they require the signing secrets and enablement described above before inclusion. The current stable release remains v1.0.0 until a follow-on tag passes and its assets are published.
+
