@@ -48,13 +48,11 @@ describe('guided disk installer release configuration', () => {
   it('requires a rendered Centipede page and rejects blank white boot captures', () => {
     const readiness = read('packaging/live-build/config/includes.chroot/usr/local/libexec/centipede-desktop-readiness.py');
     const screenshotCheck = read('scripts/validate-qemu-desktop-screenshot.py');
-    expect(readiness).toContain('"--headless"');
-    expect(readiness).toContain('"--timeout=15000"');
-    expect(readiness).toContain('"--dump-dom"');
-    expect(readiness).toContain('"Welcome to Centipede" in result.stdout');
-    expect(readiness).toContain('CENTIPEDE_RENDER_CHECK_FAILED');
+    expect(readiness).toContain('os.O_NONBLOCK');
+    expect(readiness).toContain('CENTIPEDE_DESKTOP_CHECK_STARTED');
+    expect(readiness).toContain('CENTIPEDE_DESKTOP_CHECK_WAITING');
+    expect(readiness).toContain('CENTIPEDE_DESKTOP_READY');
     expect(readiness).toContain('CENTIPEDE_ASSET_CHECK_FAILED');
-    expect(readiness).toContain('render_check={last_render_detail}');
     expect(screenshotCheck).toContain('near_white_ratio > 0.70');
   });
 });

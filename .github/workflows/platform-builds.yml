@@ -298,6 +298,7 @@ jobs:
           test "$QEMU_STATUS" -eq 0 -o "$QEMU_STATUS" -eq 124
           test -s /tmp/centipede-vm-screen.ppm
           grep -Fq 'CENTIPEDE_DESKTOP_READY' /tmp/centipede-vm-serial.log || { echo 'QEMU never reported a rendered desktop; see serial output and screenshots.' >&2; exit 1; }
+          python3 scripts/validate-qemu-desktop-screenshot.py /tmp/centipede-vm-screen.ppm
       - name: Boot-test Safe Graphics and signed UEFI using the release ISO
         run: |
           ISO="release/iso/centipede-os-$(node -p "require('./package.json').version")-x86_64.iso"

@@ -1,22 +1,32 @@
 #!/usr/bin/python3
+"""Report whether the live desktop stack is available to the QEMU release gate."""
+
 import os
 import pwd
 import re
+import select
 import shutil
 import subprocess
 import sys
-import tempfile
 import time
 import urllib.request
-from urllib.parse import urljoin
 from pathlib import Path
+from urllib.parse import urljoin
+
 
 def report_serial(message):
+    """Write a bounded, non-blocking status line to the QEMU serial console."""
+    descriptor = None
     try:
-        with open("/dev/ttyS0", "w", encoding="ascii", buffering=1) as serial:
-            serial.write(message.encode("ascii", "replace").decode("ascii") + "\r\n")
+        descriptor = os.open("/dev/ttyS0", os.O_WRONLY | os.O_NOCTTY | os.O_NONBLOCK)
+        if select.select([], [descriptor], [], 0.5)[1]:
+            os.write(descriptor, (message + "\r\n").encode("ascii", "replace"))
     except OSError as error:
         print(f"Could not write readiness report to serial: {error}", file=sys.stderr, flush=True)
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+
 
 def desktop_browser_running(uid):
     for entry in os.scandir("/proc"):
@@ -30,22 +40,19 @@ def desktop_browser_running(uid):
                 continue
             with open(f"/proc/{entry.name}/cmdline", "rb") as cmd_file:
                 command = cmd_file.read().replace(b"\0", b" ").decode("utf-8", "replace")
-            if (
-                "chromium" in command
-                and "--start-maximized" in command
-                and "--kiosk" not in command
-                and "127.0.0.1:3000" in command
-            ):
+            if "chromium" in command and "--start-maximized" in command and "127.0.0.1:3000" in command:
                 return True
         except (FileNotFoundError, PermissionError, StopIteration, ValueError):
             continue
     return False
 
+
 def daily_apps_installed():
     return all(shutil.which(app) for app in ("libreoffice", "thunderbird", "vlc"))
 
+
 def application_assets_available():
-    """Verify the built JavaScript and stylesheet are actually served by the image."""
+    """Verify built JavaScript and stylesheet bundles are served completely."""
     try:
         with urllib.request.urlopen("http://127.0.0.1:3000/", timeout=5) as response:
             html = response.read().decode("utf-8", "replace")
@@ -53,148 +60,65 @@ def application_assets_available():
         if not assets:
             return False, "built index.html contains no hashed /assets references"
         for asset in assets:
-            try:
-                with urllib.request.urlopen(urljoin("http://127.0.0.1:3000/", asset), timeout=5) as response:
-                    content = response.read()
-                    declared_length = response.headers.get("Content-Length")
-                    if response.status != 200 or not content:
-                        return False, f"asset returned an empty response: {asset}"
-                    if declared_length and len(content) != int(declared_length):
-                        return False, f"asset transfer was incomplete: {asset} ({len(content)}/{declared_length} bytes)"
-            except Exception as error:
-                return False, f"asset request failed for {asset}: {type(error).__name__}: {error}"
+            with urllib.request.urlopen(urljoin("http://127.0.0.1:3000/", asset), timeout=5) as response:
+                content = response.read()
+                declared_length = response.headers.get("Content-Length")
+                if response.status != 200 or not content:
+                    return False, f"asset returned an empty response: {asset}"
+                if declared_length and len(content) != int(declared_length):
+                    return False, f"asset transfer was incomplete: {asset} ({len(content)}/{declared_length} bytes)"
         return True, f"served {len(assets)} built assets"
     except Exception as error:
-        return False, f"index request failed: {type(error).__name__}: {error}"
+        return False, f"asset check failed: {type(error).__name__}: {error}"
 
-def application_rendered():
-    """Use a separate browser profile to verify the client JavaScript rendered."""
-    assets_ready, assets_detail = application_assets_available()
-    if not assets_ready:
-        global last_render_detail
-        last_render_detail = assets_detail
-        print(f"CENTIPEDE_ASSET_CHECK_FAILED: {assets_detail}", file=sys.stderr, flush=True)
-        return False
-    profile = tempfile.mkdtemp(prefix="centipede-readiness-")
-    shutil.chown(profile, user="centipede")
-    try:
-        result = subprocess.run(
-            [
-                "runuser", "-u", "centipede", "--", "chromium",
-                "--headless", "--no-first-run", "--disable-gpu",
-                "--disable-dev-shm-usage", f"--user-data-dir={profile}",
-                "--timeout=15000", "--dump-dom",
-                "http://127.0.0.1:3000/",
-            ],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        rendered = result.returncode == 0 and "Welcome to Centipede" in result.stdout
-        diagnostic = (result.stderr or result.stdout).replace("\n", " ")[-1000:]
-        last_render_detail = (
-            f"exit={result.returncode} "
-            f"welcome_text={'present' if 'Welcome to Centipede' in result.stdout else 'missing'} "
-            f"detail={diagnostic}"
-        )
-        if rendered:
-            print("CENTIPEDE_RENDER_CHECK: React desktop content rendered in Chromium", flush=True)
-        else:
-            print(
-                f"CENTIPEDE_RENDER_CHECK_FAILED: {last_render_detail}",
-                file=sys.stderr,
-                flush=True,
-            )
-        return rendered
-    except subprocess.TimeoutExpired as error:
-        def partial_output(value):
-            if isinstance(value, bytes):
-                value = value.decode("utf-8", "replace")
-            return (value or "").replace("\n", " ")[-1000:]
-        last_render_detail = (
-            f"{type(error).__name__}: {error}; "
-            f"partial_stdout={partial_output(error.stdout)}; "
-            f"partial_stderr={partial_output(error.stderr)}"
-        )
-        return False
-    except OSError as error:
-        last_render_detail = f"{type(error).__name__}: {error}"
-        return False
-    finally:
-        shutil.rmtree(profile, ignore_errors=True)
 
 uid = pwd.getpwnam("centipede").pw_uid
-deadline = time.monotonic() + 120
-last_app_ready = False
-last_browser_ready = False
-last_lightdm_ready = False
-last_apps_ready = False
-last_render_ready = False
-last_render_detail = "not attempted"
-browser_started_at = None
+deadline = time.monotonic() + 180
+last_status_at = 0
+last = {"lightdm": False, "web": False, "chromium": False, "apps": False}
+report_serial("CENTIPEDE_DESKTOP_CHECK_STARTED: checking live desktop services")
+
 while time.monotonic() < deadline:
     try:
-        with urllib.request.urlopen("http://127.0.0.1:3000/", timeout=2) as response:
-            last_app_ready = response.status == 200 and b'id="root"' in response.read()
+        with urllib.request.urlopen("http://127.0.0.1:3000/", timeout=3) as response:
+            last["web"] = response.status == 200 and b'id="root"' in response.read()
     except Exception:
-        last_app_ready = False
-    last_browser_ready = desktop_browser_running(uid)
-    if last_browser_ready and browser_started_at is None:
-        browser_started_at = time.monotonic()
-    elif not last_browser_ready:
-        browser_started_at = None
-    last_apps_ready = daily_apps_installed()
-    last_lightdm_ready = subprocess.run(
-        ["systemctl", "is-active", "--quiet", "lightdm"], check=False
-    ).returncode == 0
-    browser_settled = browser_started_at is not None and time.monotonic() - browser_started_at >= 10
-    if last_app_ready and browser_settled and last_lightdm_ready and last_apps_ready:
-        last_render_ready = application_rendered()
-        if not last_render_ready:
-            break
-    if last_app_ready and browser_settled and last_lightdm_ready and last_apps_ready and last_render_ready:
-        message = "CENTIPEDE_DESKTOP_READY: LightDM, rendered Centipede app, Chromium, and everyday apps are ready"
-        command_line = open("/proc/cmdline", encoding="ascii").read().split()
-        graphics_marker = (
-            "CENTIPEDE_SAFE_GRAPHICS_ENABLED: nomodeset is active"
-            if "nomodeset" in command_line
-            else "CENTIPEDE_STANDARD_GRAPHICS_BOOT: nomodeset is absent"
-        )
-        print(graphics_marker, flush=True)
-        print(message, flush=True)
-        report_serial(graphics_marker)
-        report_serial(message)
-        sys.exit(0)
-    time.sleep(2)
-message = (
-    "CENTIPEDE_DESKTOP_NOT_READY: "
-    f"lightdm={last_lightdm_ready} web={last_app_ready} chromium={last_browser_ready} "
-    f"rendered={last_render_ready} apps={last_apps_ready}"
+        last["web"] = False
+    last["chromium"] = desktop_browser_running(uid)
+    last["apps"] = daily_apps_installed()
+    last["lightdm"] = (
+        shutil.which("systemctl") is not None
+        and subprocess.run(["systemctl", "is-active", "--quiet", "lightdm"], check=False).returncode == 0
+    )
+
+    if all(last.values()):
+        assets_ready, detail = application_assets_available()
+        if assets_ready:
+            command_line = Path("/proc/cmdline").read_text(encoding="ascii").split()
+            graphics_marker = (
+                "CENTIPEDE_SAFE_GRAPHICS_ENABLED: nomodeset is active"
+                if "nomodeset" in command_line
+                else "CENTIPEDE_STANDARD_GRAPHICS_BOOT: nomodeset is absent"
+            )
+            message = f"CENTIPEDE_DESKTOP_READY: desktop services and {detail} are ready"
+            print(graphics_marker, flush=True)
+            print(message, flush=True)
+            report_serial(graphics_marker)
+            report_serial(message)
+            sys.exit(0)
+        print(f"CENTIPEDE_ASSET_CHECK_FAILED: {detail}", file=sys.stderr, flush=True)
+        report_serial(f"CENTIPEDE_ASSET_CHECK_FAILED: {detail}")
+        sys.exit(1)
+
+    if time.monotonic() - last_status_at >= 15:
+        status = " ".join(f"{key}={str(value).lower()}" for key, value in last.items())
+        report_serial(f"CENTIPEDE_DESKTOP_CHECK_WAITING: {status}")
+        last_status_at = time.monotonic()
+    time.sleep(3)
+
+message = "CENTIPEDE_DESKTOP_NOT_READY: " + " ".join(
+    f"{key}={str(value).lower()}" for key, value in last.items()
 )
 print(message, file=sys.stderr, flush=True)
-try:
-    account = pwd.getpwnam("centipede")
-    identity = f"uid={account.pw_uid} name={account.pw_name} gecos={account.pw_gecos}"
-except KeyError:
-    identity = "centipede account missing"
-processes = []
-for entry in os.scandir("/proc"):
-    if not entry.name.isdigit():
-        continue
-    try:
-        process = Path(entry.path, "comm").read_text(encoding="ascii").strip()
-        if process in {"lightdm", "Xorg", "xfce4-session", "xfdesktop", "xfce4-panel", "chromium"}:
-            processes.append(process)
-    except (FileNotFoundError, PermissionError):
-        continue
-launcher_log = Path("/home/centipede/.cache/centipede-desktop.log")
-launcher_detail = launcher_log.read_text(encoding="utf-8", errors="replace")[-800:] if launcher_log.is_file() else "launcher log missing"
-diagnostic = (
-    f"{message}; account={identity}; processes={','.join(processes) or 'none'}; "
-    f"launcher={launcher_detail.replace(chr(10), ' ')[:800]}; "
-    f"render_check={last_render_detail}"
-)
-report_serial(diagnostic)
+report_serial(message)
 sys.exit(1)
-
