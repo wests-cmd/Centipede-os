@@ -45,7 +45,7 @@ describe('guided disk installer release configuration', () => {
     expect(guide).toMatch(/update rollback are not included yet/);
   });
 
-  it('requires a rendered Centipede page and rejects blank white boot captures', () => {
+  it('requires visible Centipede page content and rejects blank or corrupted boot captures', () => {
     const readiness = read('packaging/live-build/config/includes.chroot/usr/local/libexec/centipede-desktop-readiness.py');
     const screenshotCheck = read('scripts/validate-qemu-desktop-screenshot.py');
     const screenshotCapture = read('scripts/qemu-capture-rendered-desktop.py');
@@ -58,7 +58,7 @@ describe('guided disk installer release configuration', () => {
     expect(readiness).toContain('"xwininfo", "-root", "-tree"');
     expect(read('packaging/live-build/config/package-lists/centipede.list.chroot')).toContain('x11-utils');
     expect(screenshotCheck).toContain('near_white_ratio > 0.70');
-    expect(screenshotCheck).toContain('visible_ratio < 0.10');
+    expect(screenshotCheck).toContain('content_visible_ratio < 0.0075');
     expect(screenshotCheck).toContain('pathological pixel alternation');
     expect(screenshotCapture).toContain('QEMU desktop did not paint');
     expect(read('scripts/qemu-boot-smoke.sh')).toContain('qemu-capture-rendered-desktop.py');

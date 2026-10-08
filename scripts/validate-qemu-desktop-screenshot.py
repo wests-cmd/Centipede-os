@@ -41,19 +41,29 @@ def validate(path: Path) -> tuple[int, int, float]:
     pixels = data[offset:]
     if len(pixels) != width * height * 3:
         raise ValueError("PPM pixel data is truncated or malformed")
-    pixel_count = width * height
-    visible = 0
+    page_visible = 0
     near_white = 0
     high_frequency_horizontal = 0
     high_frequency_vertical = 0
     for index in range(0, len(pixels), 3):
         red, green, blue = pixels[index : index + 3]
-        if max(red, green, blue) >= 72:
-            visible += 1
         if min(red, green, blue) > 230:
             near_white += 1
-    visible_ratio = visible / pixel_count
+    pixel_count = width * height
     near_white_ratio = near_white / pixel_count
+    # Exclude the XFCE panel and Chromium window chrome. Those surfaces were
+    # enough to make an empty, dark browser page pass the old whole-screen
+    # threshold even though Centipede itself had not rendered.
+    content_top = int(height * 0.14)
+    content_bottom = int(height * 0.98)
+    content_height = max(0, content_bottom - content_top)
+    for y in range(content_top, content_bottom):
+        row_start = y * width * 3
+        for x in range(width):
+            index = row_start + x * 3
+            if max(pixels[index], pixels[index + 1], pixels[index + 2]) >= 72:
+                page_visible += 1
+    content_visible_ratio = page_visible / max(1, width * content_height)
     # Broken firmware/framebuffer captures often become fine red/blue/white
     # checkerboards. Measure a sparse grid so normal detailed artwork remains
     # acceptable while pathological pixel-to-pixel corruption fails closed.
@@ -75,12 +85,13 @@ def validate(path: Path) -> tuple[int, int, float]:
     horizontal_ratio = high_frequency_horizontal / max(1, horizontal_pairs)
     vertical_ratio = high_frequency_vertical / max(1, vertical_pairs)
     # A mapped browser window is independently required by the live readiness
-    # probe. Keep this pixel floor low enough for the dark Centipede UI at large
-    # UEFI resolutions, while still rejecting the known panel-only blank frame.
-    if visible_ratio < 0.10:
+    # probe. Measure the page area separately so panel/window chrome cannot
+    # make a blank dark page pass. The floor accepts the dark setup wizard but
+    # rejects a page showing only its background and pointer.
+    if content_visible_ratio < 0.0075:
         raise ValueError(
-            f"only {visible_ratio:.1%} of pixels have visible desktop content; "
-            "the desktop may not have painted"
+            f"only {content_visible_ratio:.2%} of browser-page pixels have visible content; "
+            "the Centipede page may not have rendered"
         )
     if near_white_ratio > 0.70:
         raise ValueError(
@@ -92,7 +103,7 @@ def validate(path: Path) -> tuple[int, int, float]:
             f"frame has pathological pixel alternation ({horizontal_ratio:.1%} horizontal, "
             f"{vertical_ratio:.1%} vertical); display output may be corrupted"
         )
-    return width, height, visible_ratio
+    return width, height, content_visible_ratio
 
 
 if __name__ == "__main__":
@@ -101,5 +112,5 @@ if __name__ == "__main__":
     except (IndexError, OSError, ValueError) as error:
         print(f"QEMU desktop screenshot validation failed: {error}", file=sys.stderr)
         raise SystemExit(1)
-    print(f"PASS: {width}x{height} screenshot has {ratio:.1%} visible desktop pixels")
+    print(f"PASS: {width}x{height} screenshot has {ratio:.2%} visible browser-page pixels")
 
