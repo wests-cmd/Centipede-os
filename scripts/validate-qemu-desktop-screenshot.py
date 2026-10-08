@@ -74,7 +74,10 @@ def validate(path: Path) -> tuple[int, int, float]:
             vertical_pairs += 1
     horizontal_ratio = high_frequency_horizontal / max(1, horizontal_pairs)
     vertical_ratio = high_frequency_vertical / max(1, vertical_pairs)
-    if visible_ratio < 0.15:
+    # A mapped browser window is independently required by the live readiness
+    # probe. Keep this pixel floor low enough for the dark Centipede UI at large
+    # UEFI resolutions, while still rejecting the known panel-only blank frame.
+    if visible_ratio < 0.10:
         raise ValueError(
             f"only {visible_ratio:.1%} of pixels have visible desktop content; "
             "the desktop may not have painted"

@@ -58,6 +58,7 @@ describe('guided disk installer release configuration', () => {
     expect(readiness).toContain('"xwininfo", "-root", "-tree"');
     expect(read('packaging/live-build/config/package-lists/centipede.list.chroot')).toContain('x11-utils');
     expect(screenshotCheck).toContain('near_white_ratio > 0.70');
+    expect(screenshotCheck).toContain('visible_ratio < 0.10');
     expect(screenshotCheck).toContain('pathological pixel alternation');
     expect(screenshotCapture).toContain('QEMU desktop did not paint');
     expect(read('scripts/qemu-boot-smoke.sh')).toContain('qemu-capture-rendered-desktop.py');
