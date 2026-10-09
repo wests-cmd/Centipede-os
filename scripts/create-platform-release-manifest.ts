@@ -7,14 +7,17 @@ import releaseConfig from '../release/targets.json';
 import { CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL, KINGDOM_PROTOCOL_MAJOR } from '../src/version';
 import { KINGDOM_CONTRACT_SPEC } from '../src/api/contractSpec';
 import { expectedArtifactSha256 } from '../src/platform/releaseIntegrity';
+import { releaseIdentityFromRef, releaseRefFromEnvironment } from '../src/platform/releaseTag';
 
 const root = process.cwd();
 const releaseDir = join(root, 'release');
 const downloaded = join(releaseDir, 'platforms');
 const version = packageJson.version;
-const stableTag = `v${version}`;
-const ref = process.env.GITHUB_REF ?? '';
-const channel = ref === `refs/tags/${stableTag}` ? 'stable' : 'candidate';
+const ref = releaseRefFromEnvironment(process.env.GITHUB_REF ?? '', version);
+const { releaseTag, channel } = releaseIdentityFromRef(ref, version);
+if (channel === 'stable' && releaseConfig.publicationGate.stable !== 'VERIFIED') {
+  throw new Error(`Stable release is blocked: ${releaseConfig.publicationGate.reason}`);
+}
 const sourceDirty = execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }).trim().length > 0;
 if (channel === 'stable' && sourceDirty) throw new Error('Stable release packaging requires a clean committed tree.');
 
@@ -72,7 +75,7 @@ for (const [target, targetConfig] of Object.entries(releaseConfig.targets)) {
 }
 
 const combined = {
-  product: 'Centipede OS', coreVersion: version, centipedeVersion: version, release: stableTag,
+  product: 'Centipede OS', coreVersion: version, centipedeVersion: version, release: releaseTag,
   releaseChannel: channel, gitCommit, sourceDirty,
   kingdom: { protocol: CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL, protocolMajor: KINGDOM_PROTOCOL_MAJOR, contractVersion: KINGDOM_CONTRACT_SPEC.contractVersion },
   targets: releaseConfig.targets, artifacts,
@@ -87,3 +90,4 @@ for (const artifact of artifacts) {
   }
 }
 console.log(`Created verified ${channel} manifest for ${artifacts.length} target artifacts.`);
+

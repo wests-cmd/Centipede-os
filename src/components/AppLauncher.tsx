@@ -84,15 +84,18 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-8 px-3 py-4 sm:px-6 sm:py-7">
-      <section aria-labelledby="desktop-heading" className="relative isolate h-[19rem] overflow-hidden rounded-2xl border border-cyan-950/70 bg-slate-950 shadow-2xl shadow-cyan-950/20 sm:h-[23rem]">
-        <CentipedeWorldVisual visual={homeVisual} quality="BALANCED" className="absolute inset-0" />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-slate-950/5" />
-        <div className="relative z-10 flex h-full max-w-xl flex-col items-start justify-center px-6 py-8 sm:px-10">
-          <p className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200">
-            <span className="h-px w-7 bg-cyan-300/80" /> A more capable everyday desktop
+      <section aria-labelledby="desktop-heading" className={`relative isolate min-h-[17rem] overflow-hidden rounded-2xl border shadow-2xl sm:min-h-[19rem] ${homeVisual === 'classic' ? 'border-slate-800 bg-[#080e1b] shadow-black/20' : 'border-cyan-950/70 bg-slate-950 shadow-cyan-950/20'}`}>
+        {homeVisual !== 'classic' && <>
+          <CentipedeWorldVisual visual={homeVisual} quality="BALANCED" className="absolute inset-0" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-slate-950/5" />
+        </>}
+        {homeVisual === 'classic' && <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 hidden w-1/3 bg-[radial-gradient(ellipse_at_100%_50%,rgba(31,115,133,0.14),transparent_68%)] sm:block" />}
+        <div className="relative z-10 flex min-h-[17rem] max-w-2xl flex-col items-start justify-center px-6 py-8 sm:min-h-[19rem] sm:px-10">
+          <p className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-200">
+            <span className="h-px w-7 bg-cyan-300/80" /> Centipede OS <span className="text-slate-500">/</span> Your workspace
           </p>
           <h1 id="desktop-heading" className="max-w-lg text-3xl font-semibold leading-tight tracking-tight text-white sm:text-5xl">
-            Your day, with a little more orbit.
+            Your desktop, ready.
           </h1>
           <p className="mt-4 max-w-md text-sm leading-6 text-slate-300 sm:text-base">
             Everyday apps are close at hand. Centipede tools are here when you need a helping hand.
@@ -105,18 +108,16 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
             Open Centipede assistant
           </button>
         </div>
-        <div className="absolute bottom-4 right-4 z-10 hidden rounded-full border border-white/10 bg-slate-950/55 px-3 py-1.5 text-[11px] text-slate-300 backdrop-blur sm:block">
-          {homeVisual === 'centipede-world' ? 'Centipede + World' : homeVisual.replace('-', ' ')}
-        </div>
+        {homeVisual !== 'classic' && <div className="absolute bottom-4 right-4 z-10 hidden rounded-full border border-white/10 bg-slate-950/55 px-3 py-1.5 text-[11px] text-slate-300 backdrop-blur sm:block">{homeVisual === 'centipede-world' ? 'Centipede + World' : homeVisual.replace('-', ' ')}</div>}
       </section>
 
       <section aria-labelledby="everyday-apps-heading">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
           <div>
             <h2 id="everyday-apps-heading" className="text-lg font-semibold text-white">Everyday apps</h2>
-            <p className="mt-1 text-sm text-slate-400">Included in the Debian desktop; no subscriptions required.</p>
+            <p className="mt-1 text-sm text-slate-400">Included with Centipede OS; no subscriptions required.</p>
           </div>
-          <p className="text-xs text-slate-500">On Debian, open the Applications menu in the top panel.</p>
+          <p className="text-xs text-slate-500">On Centipede OS, open the Applications menu in the top panel.</p>
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">

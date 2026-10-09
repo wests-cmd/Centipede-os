@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { TargetUpdateChecker } from '../../src/platform/targetUpdateChecker';
 import { expectedArtifactSha256 } from '../../src/platform/releaseIntegrity';
+import { releaseIdentityFromRef, releaseRefFromEnvironment } from '../../src/platform/releaseTag';
 
 const root = process.cwd();
 const config = JSON.parse(readFileSync(join(root, 'release/targets.json'), 'utf8'));
@@ -36,11 +37,45 @@ function manifestFor(target: string, overrides: Record<string, unknown> = {}) {
 }
 
 describe('Centipede release target contract', () => {
+  it('accepts only the matching stable tag or a numbered RC for the core version', () => {
+    expect(releaseIdentityFromRef('', packageJson.version)).toEqual({ releaseTag: `v${packageJson.version}`, channel: 'candidate' });
+    expect(releaseIdentityFromRef(`refs/tags/v${packageJson.version}`, packageJson.version)).toEqual({ releaseTag: `v${packageJson.version}`, channel: 'stable' });
+    expect(releaseIdentityFromRef(`refs/tags/v${packageJson.version}-rc.2`, packageJson.version)).toEqual({ releaseTag: `v${packageJson.version}-rc.2`, channel: 'candidate' });
+    expect(() => releaseIdentityFromRef(`refs/tags/v${packageJson.version}-rc.nope`, packageJson.version)).toThrow();
+    expect(() => releaseIdentityFromRef('refs/tags/v9.9.9-rc.1', packageJson.version)).toThrow();
+  });
+
+  it('uses a validated tag identity for automated main-branch releases', () => {
+    expect(releaseRefFromEnvironment('refs/heads/main', packageJson.version, `refs/tags/v${packageJson.version}`))
+      .toBe(`refs/tags/v${packageJson.version}`);
+    expect(() => releaseRefFromEnvironment('refs/heads/main', packageJson.version, 'refs/tags/v9.9.9')).toThrow();
+    expect(() => releaseRefFromEnvironment('refs/heads/main', packageJson.version, 'refs/heads/main')).toThrow();
+  });
+
   it('uses package.json as the only core version source', () => {
     expect(packageJson.version).toMatch(/^\d+\.\d+\.\d+$/);
     expect(config.version).toBeUndefined();
     expect(config.coreVersion).toBeUndefined();
     expect(config.schemaVersion).toBe(1);
+  });
+
+  it('keeps stable publication blocked until disk installation evidence is verified', () => {
+    expect(config.publicationGate.stable).toBe('BLOCKED');
+    expect(config.publicationGate.reason).toContain('separate disposable QEMU disk');
+    expect(config.publicationGate.requiredEvidence).toHaveLength(4);
+    const publisher = readFileSync(join(root, 'scripts/create-platform-release-manifest.ts'), 'utf8');
+    expect(publisher).toContain("releaseConfig.publicationGate.stable !== 'VERIFIED'");
+    expect(publisher).toContain('Stable release is blocked');
+  });
+
+  it('runs stable releases from a main-branch version bump without a manual dispatch', () => {
+    const workflow = readFileSync(join(root, '.github/workflows/release.yml'), 'utf8');
+    expect(workflow).toContain('branches:');
+    expect(workflow).toContain('- main');
+    expect(workflow).toContain('package.json');
+    expect(workflow).toContain('Publish the release and create its version tag');
+    expect(workflow).not.toContain('workflow_dispatch');
+    expect(workflow).toContain("publicationGate.stable !== 'VERIFIED'");
   });
 
   it('classifies every target with an artifact name and positive independent revision', () => {
@@ -52,7 +87,7 @@ describe('Centipede release target contract', () => {
       if (target.status !== 'BUILDABLE') expect(target.reason).toBeTruthy();
     }
     for (const target of ['desktop', 'iso', 'live-usb', 'vm', 'docker']) expect(config.targets[target].status).toBe('BUILDABLE');
-    expect(config.targets.android.status).toBe('BLOCKED');
+    expect(config.targets.android.status).toBe('BUILDABLE');
     expect(config.targets.ios.status).toBe('BLOCKED');
   });
 
@@ -70,16 +105,16 @@ describe('Centipede release target contract', () => {
   });
 
   it('offers only a newer artifact whose version, path, checksum, size, target, and Kingdom protocol agree', () => {
-    const result = TargetUpdateChecker.checkTargetUpdateAvailable('iso', '1.0.0+iso.1', manifestFor('iso'));
+    const result = TargetUpdateChecker.checkTargetUpdateAvailable('iso', `${packageJson.version}+iso.1`, manifestFor('iso'));
 
     expect(result.updateAvailable).toBe(true);
     expect(result.isCoreUpdate).toBe(false);
     expect(result.metadata).toMatchObject({
-      latestArtifactVersion: `1.0.0+iso.${config.targets.iso.revision}`,
+      latestArtifactVersion: `${packageJson.version}+iso.${config.targets.iso.revision}`,
       requiredKingdomProtocol: 'v1.0+',
       architecture: 'x86_64',
       sha256: sha,
-      downloadLocation: 'https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.0/centipede-os-1.0.0-x86_64.iso',
+      downloadLocation: `https://github.com/wests-cmd/Centipede-os/releases/download/v${packageJson.version}/centipede-os-${packageJson.version}-x86_64.iso`,
     });
   });
 
@@ -109,8 +144,8 @@ describe('Centipede release target contract', () => {
     const sameRevision = manifestFor('iso');
     const olderRevision = manifestFor('iso', { targetInfo: { revision: Math.max(1, config.targets.iso.revision - 1) } });
 
-    expect(TargetUpdateChecker.checkTargetUpdateAvailable('iso', '1.0.0+iso.1', coreDowngrade).updateAvailable).toBe(false);
-    const currentIdentity = `1.0.0+iso.${config.targets.iso.revision}`;
+    expect(TargetUpdateChecker.checkTargetUpdateAvailable('iso', `${packageJson.version}+iso.1`, coreDowngrade).updateAvailable).toBe(false);
+    const currentIdentity = `${packageJson.version}+iso.${config.targets.iso.revision}`;
     expect(TargetUpdateChecker.checkTargetUpdateAvailable('iso', currentIdentity, sameRevision).updateAvailable).toBe(false);
     expect(TargetUpdateChecker.checkTargetUpdateAvailable('iso', currentIdentity, olderRevision).updateAvailable).toBe(false);
     expect(TargetUpdateChecker.checkTargetUpdateAvailable('iso', '2.0.0+iso.1', sameRevision).updateAvailable).toBe(false);
@@ -147,3 +182,4 @@ describe('Centipede release target contract', () => {
     expect(expectedArtifactSha256(`not-a-hash image.iso`, 'image.iso')).toBeNull();
   });
 });
+

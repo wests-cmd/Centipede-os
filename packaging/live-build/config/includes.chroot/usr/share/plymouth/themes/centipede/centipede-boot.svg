@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <image href="../../../backgrounds/centipede/centipede-earth.png" width="1280" height="720" preserveAspectRatio="xMidYMid slice"/>
+  <defs>
+    <linearGradient id="veil" x1="0" x2="1"><stop stop-color="#020610" stop-opacity=".76"/><stop offset="1" stop-color="#020610" stop-opacity="0"/></linearGradient>
+  </defs>
+  <rect width="680" height="720" fill="url(#veil)"/>
+  <image href="../../../backgrounds/centipede/centipede-mark.svg" x="58" y="259" width="92" height="92"/>
+  <text x="174" y="313" fill="#f8fbff" font-family="Inter, 'Segoe UI', sans-serif" font-size="30" font-weight="700" letter-spacing="3">CENTIPEDE OS</text>
+  <text x="176" y="342" fill="#ffad66" font-family="Inter, 'Segoe UI', sans-serif" font-size="12" font-weight="600" letter-spacing="2">STARTING YOUR WORKSPACE</text>
+  <g fill="#ffad66"><circle cx="176" cy="386" r="3" opacity=".42"/><circle cx="196" cy="386" r="3" opacity=".7"/><circle cx="216" cy="386" r="3"/></g>
+</svg>

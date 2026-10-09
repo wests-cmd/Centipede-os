@@ -1,5 +1,15 @@
 {
   "schemaVersion": 1,
+  "publicationGate": {
+    "stable": "BLOCKED",
+    "reason": "The disk installer has not yet been installed onto a separate disposable QEMU disk, rebooted, and verified not to expose the live boot media as a writable target.",
+    "requiredEvidence": [
+      "Install onto a separate disposable virtual target disk.",
+      "Reboot from the installed virtual disk and reach the Centipede desktop.",
+      "Verify the live source medium remained read-only and unavailable as an install target.",
+      "Pass the BIOS and UEFI live-image boot matrix."
+    ]
+  },
   "targets": {
     "desktop": {
       "status": "BUILDABLE",
@@ -10,32 +20,31 @@
     },
     "iso": {
       "status": "BUILDABLE",
-      "revision": 3,
+      "revision": 6,
       "artifact": "centipede-os-{version}-x86_64.iso",
       "architecture": "x86_64",
-      "description": "Debian live-build hybrid boot ISO with XFCE desktop, maximized Centipede browser window, and free everyday apps."
+      "description": "Centipede-branded hybrid live image with custom boot menus, startup splash, desktop, login, and installer identity; XFCE desktop, free everyday apps, and guided disk installer. Disk install safety remains under validation; always back up data before proceeding."
     },
     "live-usb": {
       "status": "BUILDABLE",
-      "revision": 3,
+      "revision": 6,
       "artifact": "centipede-os-{version}-live-usb-x86_64.iso",
       "architecture": "x86_64",
-      "description": "Same hybrid ISO bytes with a USB-specific filename, validated byte-identical and writable to USB media."
+      "description": "Same Centipede-branded hybrid live and guided installer image bytes with a USB-specific filename, validated byte-identical and writable to USB media. Writing it erases the selected USB."
     },
     "vm": {
       "status": "BUILDABLE",
-      "revision": 3,
+      "revision": 6,
       "artifact": "centipede-os-{version}-x86_64.qcow2",
       "architecture": "x86_64",
-      "description": "QEMU qcow2 disk image converted from the bootable live image and structurally checked."
+      "description": "QEMU qcow2 optical-media image converted from the Centipede-branded live and guided installer image; attach as virtual CD media, not as an installed system disk."
     },
     "android": {
-      "status": "BLOCKED",
-      "revision": 3,
+      "status": "BUILDABLE",
+      "revision": 4,
       "artifact": "centipede-android-{version}-release.apk",
       "architecture": "universal",
-      "description": "Capacitor Android application; stable release requires the project's Android signing secrets.",
-      "reason": "Stable APK publication is disabled until the project configures and protects its Android signing keystore, pins ANDROID_EXPECTED_CERT_SHA256, and enables CENTIPEDE_ENABLE_SIGNED_ANDROID_RELEASE."
+      "description": "Publisher-signed Capacitor Android APK, checked against a pinned certificate fingerprint and launched in an Android emulator."
     },
     "ios": {
       "status": "BLOCKED",

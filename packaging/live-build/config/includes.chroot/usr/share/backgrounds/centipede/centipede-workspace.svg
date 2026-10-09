@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <image href="centipede-earth.png" width="1920" height="1080" preserveAspectRatio="xMidYMid slice"/>
+  <defs>
+    <linearGradient id="wordmark" x1="0" x2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#ffd3a1"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="160%"><feGaussianBlur stdDeviation="5"/></filter>
+  </defs>
+  <g opacity=".72">
+    <image href="centipede-mark.svg" x="86" y="850" width="64" height="64"/>
+    <text x="166" y="890" fill="#020713" font-family="Inter, 'Segoe UI', sans-serif" font-size="28" font-weight="700" letter-spacing="3" filter="url(#shadow)">CENTIPEDE OS</text>
+    <text x="166" y="890" fill="url(#wordmark)" font-family="Inter, 'Segoe UI', sans-serif" font-size="28" font-weight="700" letter-spacing="3">CENTIPEDE OS</text>
+  </g>
+</svg>

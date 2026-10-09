@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=Centipede
+Name=Centipede OS
 Comment=Start the Centipede desktop
 Exec=/usr/local/bin/centipede-desktop
 Terminal=false

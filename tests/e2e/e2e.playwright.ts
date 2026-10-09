@@ -91,7 +91,7 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
     await page.screenshot({ path: 'test-results/02_status_panel.png' });
 
     await page.getByRole('button', { name: 'Activity & Tasks' }).click();
-    await page.getByPlaceholder('Enter prompt task for Kingdom processing...').fill('Contract verification task prompt');
+    await page.getByPlaceholder(/Describe the outcome you want/).fill('Contract verification task prompt');
     await page.getByRole('button', { name: 'Submit Task' }).click();
     await expect(page.locator('body')).toContainText('Contract verification task prompt');
     await page.screenshot({ path: 'test-results/03_task_pipeline.png' });

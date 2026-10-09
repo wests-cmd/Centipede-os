@@ -2,7 +2,8 @@ import { deviceTrustManager } from '../security/deviceTrust';
 import { platformDetector } from '../platform/detector';
 import { configManager } from '../config';
 import { CENTIPEDE_VERSION } from '../version';
-import { proxyKingdomRead } from './kingdomReadProxy';
+import { proxyKingdomRead, proxyKingdomTask } from './kingdomProxy';
+import { handleLocalModelRequest } from './localModelProxy';
 
 export interface ApiRequest {
   path: string;
@@ -43,6 +44,12 @@ export class ApiRouter {
       const runtimeInfo = await platformDetector.detectRuntimeInfo();
       return { status: 200, data: runtimeInfo };
     }
+
+    const localModel = await handleLocalModelRequest(req);
+    if (localModel) return localModel;
+
+    const kingdomTask = await proxyKingdomTask(req);
+    if (kingdomTask) return kingdomTask;
 
     const kingdomRead = await proxyKingdomRead(req);
     if (kingdomRead) return kingdomRead;

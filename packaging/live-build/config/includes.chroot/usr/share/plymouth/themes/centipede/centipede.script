@@ -1,0 +1,14 @@
+Window.SetBackgroundTopColor(0.035, 0.065, 0.11);
+Window.SetBackgroundBottomColor(0.055, 0.14, 0.18);
+
+brand.image = Image("centipede-boot.png");
+brand.sprite = Sprite(brand.image);
+
+fun place_brand ()
+{
+  brand.sprite.SetX(Window.GetX() + Window.GetWidth() / 2 - brand.image.GetWidth() / 2);
+  brand.sprite.SetY(Window.GetY() + Window.GetHeight() / 2 - brand.image.GetHeight() / 2);
+}
+
+Plymouth.SetRefreshFunction(place_brand);
+place_brand();

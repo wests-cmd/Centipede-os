@@ -5,6 +5,7 @@ import { deviceTrustManager } from '../../src/security/deviceTrust';
 import { apiRouter } from '../../src/server/routes';
 import { contentIngestionPipeline } from '../../src/ingest/pipeline';
 import { KingdomAdapter } from '../../src/api/kingdomAdapter';
+import packageJson from '../../package.json';
 
 describe('Step 7 — Platform Harness, Docker, API & Security Test Suite', () => {
   beforeEach(() => {
@@ -13,7 +14,7 @@ describe('Step 7 — Platform Harness, Docker, API & Security Test Suite', () =>
 
   it('Test A — Platform Capability Detection verifies environment without docker socket mounting', async () => {
     const runtime = await platformDetector.detectRuntimeInfo();
-    expect(runtime.centipedeVersion).toBe('1.0.0');
+    expect(runtime.centipedeVersion).toBe(packageJson.version);
     expect(runtime.capabilities.dockerSocketMounted).toBe(false); // Security Rule
     expect(runtime.platform.os).toBeDefined();
   });
@@ -85,7 +86,7 @@ describe('Step 7 — Platform Harness, Docker, API & Security Test Suite', () =>
     });
 
     expect(res.status).toBe(200);
-    expect(res.data.centipedeVersion).toBe('1.0.0');
+    expect(res.data.centipedeVersion).toBe(packageJson.version);
     expect(res.data.capabilities).toBeDefined();
   });
 

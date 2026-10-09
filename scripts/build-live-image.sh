@@ -20,7 +20,8 @@ find "$BUILD/config" -type f -name '*.py[co]' -delete
 cp -a "$ROOT/dist/." "$BUILD/config/includes.chroot/opt/centipede/web/"
 mkdir -p "$BUILD/config/includes.chroot/etc/centipede"
 printf '%s\n' "$VERSION" > "$BUILD/config/includes.chroot/etc/centipede/version"
-chmod +x "$BUILD/config/hooks/normal/0100-centipede-systemd.hook.chroot" "$BUILD/config/hooks/normal/0200-centipede-identity.hook.chroot" "$BUILD/config/hooks/normal/0300-centipede-boot-menu.hook.binary"
+sed -i "s/@CENTIPEDE_VERSION@/${VERSION}/g" "$BUILD/config/includes.chroot/etc/calamares/branding/centipede/branding.desc"
+chmod +x "$BUILD/config/hooks/normal/0100-centipede-systemd.hook.chroot" "$BUILD/config/hooks/normal/0200-centipede-identity.hook.chroot" "$BUILD/config/hooks/normal/0300-centipede-boot-menu.hook.binary" "$BUILD/config/hooks/normal/0400-centipede-installer-branding.hook.chroot" "$BUILD/config/includes.chroot/usr/local/bin/centipede-installer" "$BUILD/config/includes.chroot/usr/local/libexec/centipede-installer-root"
 
 cd "$BUILD"
 lb config \
@@ -43,9 +44,9 @@ lb config \
   --iso-preparer "Centipede OS release build" \
   --iso-publisher "Centipede OS contributors" \
   --iso-volume "CENTIPEDE_OS_${VERSION}" \
-  --bootappend-live-failsafe "boot=live components username=centipede hostname=centipede nomodeset vga=normal console=ttyS0,115200n8" \
+  --bootappend-live-failsafe "boot=live components username=centipede hostname=centipede nomodeset vga=normal video=efifb:1024x768-32 console=ttyS0,115200n8" \
   --security true \
-  --bootappend-live "boot=live components username=centipede hostname=centipede console=ttyS0,115200n8 ignore_loglevel"
+  --bootappend-live "boot=live components username=centipede hostname=centipede splash console=ttyS0,115200n8 ignore_loglevel"
 lb build
 
 ISO_SOURCE="${BUILD}/live-image-amd64.hybrid.iso"

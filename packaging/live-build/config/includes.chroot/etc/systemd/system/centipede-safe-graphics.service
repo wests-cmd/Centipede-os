@@ -1,0 +1,11 @@
+[Unit]
+Description=Select a safe Xorg driver for Centipede fallback graphics
+Before=display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/centipede-configure-safe-graphics
+RemainAfterExit=yes
+
+[Install]
+WantedBy=display-manager.service

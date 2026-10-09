@@ -1,12 +1,12 @@
 [Unit]
 Description=Verify Centipede desktop readiness
-After=graphical.target
-Wants=graphical.target
+After=centipede-web.service
+Wants=centipede-web.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/libexec/centipede-desktop-readiness.py
-TimeoutStartSec=130
+ExecStart=/usr/bin/python3 /usr/local/libexec/centipede-desktop-readiness.py
+TimeoutStartSec=240
 
 [Install]
-WantedBy=graphical.target
+WantedBy=multi-user.target

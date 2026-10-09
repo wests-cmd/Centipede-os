@@ -1,14 +1,14 @@
 # Centipede OS
 
-Centipede OS is a Debian live desktop with the Centipede web app. Kingdom is a separate service; it is not included in the download.
+Centipede OS is a free desktop operating system with a custom Centipede-branded live workspace and the Centipede web app. Kingdom is a separate service; it is not included in the download.
 
 ## Download and try Centipede
 
 **New to this?** Download the ISO, write it to an empty USB drive, and start the other computer from that USB. The live session does not install Centipede or replace Windows.
 
-<p><a href="https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.0/centipede-os-1.0.0-x86_64.iso"><strong>⬇️ Download Centipede OS v1.0.0 for USB</strong></a></p>
+<p><a href="https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.0/centipede-os-1.0.0-live-usb-x86_64.iso"><strong>⬇️ Download Centipede OS v1.0.0 for USB</strong></a></p>
 
-Need a different format or want to see every available file? Visit the [Centipede OS v1.0.0 downloads page](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0).
+This is the current public release. A newer image is still being checked and will appear here after the desktop boot and installer safety checks pass.
 
 **Before you start:** The USB needs at least 8 GB free. Writing the image erases the USB. Files saved during a live session may be lost when you shut down. Keep the PC’s internal drive connected and do not choose an install or erase option.
 
@@ -17,7 +17,7 @@ Need a different format or want to see every available file? Visit the [Centiped
 Use an empty USB drive with at least 8 GB free (16 GB is a comfortable choice). Copy anything you need from it first; writing the image erases the USB.
 
 1. Click **Download Centipede OS v1.0.0 for USB** above and save the `.iso` file.
-2. Download and open [balenaEtcher](https://etcher.balena.io/). It is a free USB writing app; Debian also recommends it for writing live images.
+2. Download and open [balenaEtcher](https://etcher.balena.io/). It is a free USB writing app for operating system images.
 3. In Etcher, click **Flash from file** and choose the Centipede `.iso` you downloaded.
 4. Click **Select target**. Choose your USB drive by its name and size. Check carefully that it is the USB drive, not another drive.
 5. Click **Flash!** and approve the erase warning. Wait for Etcher to say the flash is complete, then close it and safely eject the USB.
@@ -33,31 +33,42 @@ Use an empty USB drive with at least 8 GB free (16 GB is a comfortable choice). 
 
 If the PC does not show a boot menu, restart and try the other common key or look up “boot menu” plus the PC maker and model. Do not change Secure Boot or firmware settings as a first troubleshooting step.
 
-> **What you download:** v1.0.0 is the current published stable image. It contains the original XFCE/Chromium desktop. The refreshed desktop and everyday app set have not yet been published in a new release.
+> **Current release:** v1.0.0 starts a temporary live session. It does not install Centipede to the computer or save files after shutdown. A disk installer update is not available yet.
 
-### Preview of the upcoming desktop
+### Start Centipede over Ethernet
 
-![Centipede desktop preview. This refreshed design is not in the v1.0.0 download.](docs/images/centipede-desktop-preview.png)
+If the other PC supports network boot, you can start the live image over a direct Ethernet cable. Follow the [Ethernet network boot guide](docs/NETWORK_BOOT_GUIDE.md). Network boot starts a live session; it does not install Centipede to the computer. The current public v1.0.0 image has no disk installer.
+
+### Centipede desktop preview
+
+![Centipede desktop app with the restored classic dark background.](docs/images/centipede-desktop-preview.png)
+
+This is an app preview, not a screenshot of the current public live image.
 
 ## What is included
 
-The project contains a browser-based desktop application, a Debian live image, a Docker image, and Android/iOS app projects. The live desktop runs Centipede in Chromium. The new desktop design separates common apps from Centipede tools. Its Debian image build includes Chromium, LibreOffice Writer/Calc, Thunderbird, and VLC; these changes need a new tagged release before they become the public stable USB download.
+The public release includes the Centipede web app, a live USB image, and a Docker image. Kingdom remains a separate service. A new desktop image with free everyday apps is being validated and is not published yet. Android/iOS projects are prototypes; there is no signed phone release.
 
 The interface is a client for Kingdom, a separately operated service. Centipede does not include Kingdom or gain control of the host PC. Some panels are prototypes or use local example data. The browser companion can enroll a phone against the running Centipede service: open Centipede on the host computer at `http://localhost:3000`, create a one-time code, then open the printed phone address on the same network and enter the code there. The API requires a loopback socket peer and a localhost request host for code creation and device administration; browser origin and Fetch Metadata checks further reject cross-origin requests. Request headers alone cannot grant local authority. Pairing uses plain HTTP, so keep it on a private, trusted network and never expose the port to the internet. Pairing records last only for the current server session. Docker or reverse-proxy setups are not certified for host device administration when their API sees a bridge/proxy peer instead of loopback. This is device enrollment only; the native Android/iOS apps and mobile task/approval workflows are not ready. The live image has limited hardware firmware and may not support every Wi-Fi or graphics device.
+
+## Local models and richer tasks
+
+The Kingdom page includes a local Ollama model manager. From the Centipede host, you can pull an Ollama model or create a reusable custom model with a system prompt. This is model configuration, not weight fine-tuning. The task composer accepts longer instructions and can extract text from PDFs, ZIPs, Word, spreadsheet, presentation, code, text, and image files. Optional image descriptions, task plans, and context summaries use the configured local model; review the result before submitting it to Kingdom. Files are bounded and treated as untrusted reference data. See the [local AI and task workspace notes](docs/LOCAL_AI_TASK_WORKSPACE.md) for size limits and what remains unsupported.
 
 
 ## App updates
 
-When a newer browser app is served by the Centipede server, same-line patch updates refresh automatically. Minor or major version changes show a prompt first. The notice names the updated browser page, JavaScript, and styles; the browser controls the transfer and does not expose a reliable byte count. This refresh updates the browser app only. Updating an installed OS image, USB, Docker image, Kingdom service, or user files requires a separate release/install process.
+When a newer browser app is served by the Centipede server, same-line patch updates automatically reload the page; minor or major version changes ask first. The browser fetches the served app assets again, so this is not a binary delta update and the page briefly restarts. This refresh updates the browser app only. There is no installed-system updater, in-place ISO/Docker/Kingdom update, or system rollback yet; those require a separate signed release/install process.
 ## Boot troubleshooting
 
-The live-image build keeps normal graphics enabled and provides a separate **Centipede OS (Safe Graphics)** boot choice with `nomodeset` and conservative video settings. If normal startup shows a black screen or an unsupported display mode, reboot the USB, choose **Safe Graphics**, and report the result. The ISO build targets legacy BIOS and UEFI; its build now requires signed UEFI components for Secure Boot and fails if those packages are unavailable. This candidate still needs its tagged CI boot tests before it can replace the public download.
+The next image update is being checked in BIOS and UEFI virtual machines, including its Safe Graphics option. The current download remains the earlier v1.0.0 release. Physical graphics compatibility varies by computer.
 
-The image uses Centipede OS identity in `/etc/os-release` while retaining `ID_LIKE=debian` for compatibility and Debian attribution. See [boot and recovery checklist](docs/BOOT_RECOVERY_CHECKLIST.md) for what is implemented, what remains unverified, and what blocks a production claim.
+The branded update replaces upstream artwork on user-facing boot and desktop screens while retaining required license notices and compatibility metadata. See [branding details](docs/BRANDING.md) and the [boot and recovery checklist](docs/BOOT_RECOVERY_CHECKLIST.md).
 ## Current release and target status
 
-- The current public release is [Centipede OS v1.0.0](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0).
-- ISO, USB, QEMU VM, desktop bundle, and Docker assets are published for v1.0.0.
+- The current stable release is [Centipede OS v1.0.0](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0).
+- The next desktop/OS update is not published. The earlier build showed an upstream splash and generic live desktop, so it is being corrected before another preview is offered.
+- The public v1.0.0 image is a live-only session. No disk installer is currently certified.
 - Android device distribution is blocked until the protected signing key and publisher fingerprint are configured.
 - iPhone distribution is blocked until Apple distribution signing and provisioning are configured. The iOS Simulator app is not installable on an iPhone.
 - Docker contains the Centipede web app, not Kingdom. Running it requires Docker and does not provide the USB desktop experience.
@@ -88,9 +99,9 @@ bun install --frozen-lockfile
 bun start
 ```
 
-The app prints its local URL. It listens on the loopback address and the first private IPv4 interface it finds so a phone can reach it without opening every interface. The browser uses Centipede&apos;s same-origin, read-only Kingdom proxy so the Kingdom credential stays on the server.
+The app prints its local URL. It listens on the loopback address and the first private IPv4 interface it finds so a phone can reach it without opening every interface. The browser uses Centipede&apos;s same-origin Kingdom proxy so the Kingdom credential stays on the server. Read endpoints are allowlisted; task submission and cancellation are forwarded only from verified local-admin requests.
 
-To connect Kingdom, configure `KINGDOM_API_URL` and `KINGDOM_API_TOKEN` in the Centipede server environment. A host process can use `http://127.0.0.1:8000`; a Centipede container can use `http://host.docker.internal:8000` when Kingdom is published on the host at port 8000. Use a least-privilege credential where Kingdom supports it, keep it out of source control, and never paste it into the browser URL field. The proxy exposes read-only status/catalog data from localhost requests; it does not forward task submissions or privileged changes.
+To connect Kingdom, configure `KINGDOM_API_URL` and `KINGDOM_API_TOKEN` in the Centipede server environment. A host process can use `http://127.0.0.1:8000`; a Centipede container can use `http://host.docker.internal:8000` when Kingdom is published on the host at port 8000. Use a least-privilege credential where Kingdom supports it, keep it out of source control, and never paste it into the browser URL field. The proxy exposes allowlisted status/catalog reads and local-admin task submission/cancellation. It does not proxy runtime controls, model provider secrets, or arbitrary Kingdom writes.
 
 For phone pairing, keep the app running and open it on the host computer using `http://localhost:3000`. Create a pairing code there, then open the printed phone address on a phone connected to the same trusted network and enter the one-time six-digit code. If a firewall asks, allow Centipede only on your private network. Pairing uses plain HTTP. Docker users can set `CENTIPEDE_PUBLIC_URL` to the PC's LAN address (for example, `http://192.168.1.20:3000`) for the phone-facing address, but the current loopback-only admin gate means Docker bridge/reverse-proxy management may be unavailable; that setup is not certified yet.
 

@@ -1,6 +1,6 @@
 # CENTIPEDE OS — SHIP REALITY MATRIX
 
-**Public release:** Centipede `1.0.0` (`package.json`)
+**Public release:** Centipede `1.0.0`; unpublished `1.0.1` image candidate (`package.json`)
 **Desktop refresh merge:** `f17a9365f223572dc0ea411dfbfdf214eee3ed5a`
 **Kingdom compatibility:** protocol major `1`; contract version `1.4.0`
 **Authoritative target gates:** [`release/targets.json`](../release/targets.json)
@@ -10,17 +10,25 @@
 | Target | What actually exists | Gate | Publication status |
 |---|---|---|---|
 | Desktop web bundle | React/Vite app; tarball published in v1.0.0 | BUILDABLE | The updated desktop design is on `main`, but only the earlier bundle is published. |
-| Bootable ISO | Debian live-build hybrid amd64 ISO; QEMU reached the refreshed desktop readiness marker | BUILDABLE | v1.0.0 image is public. Updated image built in [platform run 36805229329](https://github.com/wests-cmd/Centipede-os/actions/runs/36805229329), not yet in a new release. |
+| Bootable ISO | Hybrid amd64 live system with a guarded Calamares installer in candidate source | BUILDABLE | v1.0.0 image is public. RC4–RC6 were withheld: RC6 still displayed Debian's BIOS splash and a black desktop. Branding and desktop-startup fixes are in progress; no new image is approved. |
 | Live USB | Same hybrid ISO bytes as the ISO asset | BUILDABLE | v1.0.0 image is public. Updated output is validated but unpublished. Flashing it erases the selected USB. |
 | VM image | QEMU qcow2 virtual optical-media image; structural and guest boot checks pass | BUILDABLE | v1.0.0 image is public. Updated output is validated but unpublished. Attach it as virtual CD media; it is not an installed hard disk. |
 | Docker image | Centipede web app container; HTTP/CSS/health check passed | BUILDABLE | v1.0.0 archive is public. The updated image is CI-only and is not pushed to a registry. It does not include Kingdom. |
-| Android | Capacitor project; debug APK built and verified in CI | BLOCKED for stable distribution | No signed release APK. Signing keystore, pinned certificate fingerprint, and explicit workflow enablement are needed. |
+| Android | Publisher-signed Capacitor APK; pinned certificate check and emulator smoke test are configured | BUILDABLE | RC6 built and platform-verified the APK but the legacy fingerprint parser rejected its current signer label. A strict parser is now tested locally; the next tagged run must pass before any APK is published. |
 | iOS | Capacitor project; iOS Simulator app launched in CI | BLOCKED for device distribution | Simulator build is not installable on iPhone. Apple distribution signing/provisioning and explicit enablement are needed. |
 | Kingdom service | Separate project and deployment | EXTERNAL | No live Kingdom deployment was connected for the platform build. |
 
+## v1.0.1 branded disk-installer candidate
+
+The current branch adds Calamares to the Centipede live image as a guided disk installer. Its configuration requires an explicit target choice, starts without a partition operation preselected, displays a final install confirmation, requires 32 GiB of storage and 2 GiB of RAM, and attempts to make the live boot disk read-only before Calamares enumerates install targets. If source-media identification or write protection fails, the installer exits without opening Calamares.
+
+The candidate is being updated with the requested Centipede-over-Earth artwork and consistent logo/title treatment. RC4–RC6 were withheld after exact-image review showed Debian boot art and a desktop that did not launch the Centipede app. Corrections need a fresh build plus BIOS/UEFI screenshots and a successful desktop readiness marker before another preview is published. Calamares is present, but the image must also pass installation onto a separate disposable VM disk, reboot, prove the live boot disk was never writable/selected, and pass the BIOS/UEFI matrix before `v1.0.1` can be stable. No installed-system result has been recorded. Do not use a candidate installer on a real drive.
+
+The live system and current installer do not implement automatic graphics fallback, low-memory mode, diagnostics export, interrupted-install recovery, installed-system updates, or update rollback. Review the [disk installation guide](INSTALLATION_GUIDE.md) and [installer limits](DISK_INSTALLATION_GUIDE.md); back up data before any install.
+
 The successful current-main candidate checks ran on PR source commit `1f99f79eddb3dd06bd86dbc55074b20993f87d0b`; that source was merged as `f17a9365f223572dc0ea411dfbfdf214eee3ed5a`. CodeQL and primary CI passed. A separate Copilot reviewer failed before analysis because its configured model was unsupported. That result is not a clean review; it reported no source finding.
 
-The current images are live boot media. They do not install to an internal drive and do not provide a disk installer or persistent user storage. The refreshed ISO/USB/VM build artifact is approximately 3.35 GB combined. See the [beginner USB guide](INSTALLATION_GUIDE.md) before writing the image to removable media.
+The currently published v1.0.0 images are live boot media. They do not install to an internal drive or provide persistent user storage. The refreshed ISO/USB/VM build artifact is approximately 3.35 GB combined. See the [beginner USB guide](INSTALLATION_GUIDE.md) before writing the image to removable media.
 
 ## Q-Man daily-driver completion checklist
 
