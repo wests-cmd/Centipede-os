@@ -10,7 +10,7 @@ services:
       - PORT=3000
       - KINGDOM_API_URL=${KINGDOM_API_URL:-http://host.docker.internal:8000}
       - KINGDOM_API_TOKEN=${KINGDOM_API_TOKEN:-}
-      - OLLAMA_API_URL=http://localhost:11434
+      - OLLAMA_API_URL=${OLLAMA_API_URL:-http://host.docker.internal:11434}
       - NODE_ENV=development
     ports:
       - "3000:3000"

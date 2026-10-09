@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { KingdomAdapter } from '../api/kingdomAdapter';
 import { ApprovalRequest, ConnectionState, KnightItem, ModelHealth, RuntimeStatus, VersionCompatibility } from '../types';
 import { KingdomUpdateCenter } from './KingdomUpdateCenter';
+import { LocalModelStudio } from './LocalModelStudio';
 import { AlertCircle, AlertTriangle, Cpu, Play, Power, RefreshCw, Server, ShieldAlert, Zap, Activity } from 'lucide-react';
 
 interface KingdomStatusPanelProps {
@@ -296,6 +297,8 @@ export const KingdomStatusPanel: React.FC<KingdomStatusPanelProps> = ({
           <p className="text-slate-400 text-sm italic">Model health status unavailable.</p>
         )}
       </div>
+
+      <LocalModelStudio />
     </div>
   );
 };
