@@ -56,6 +56,32 @@ describe('CSPRNG Token & Grant ID Security Invariants', () => {
     expect(pairing.pairingCode).toMatch(/^\d{6}$/);
   });
 
+  it('deviceTrustManager validateSessionToken rejects invalid tokens and unfulfilled trust states', () => {
+    // 1. Rejects undefined, empty string, or non-string inputs
+    expect(deviceTrustManager.validateSessionToken(undefined as any).valid).toBe(false);
+    expect(deviceTrustManager.validateSessionToken('').valid).toBe(false);
+    expect(deviceTrustManager.validateSessionToken('   ').valid).toBe(false);
+
+    // 2. Pending device pairing must not pass session token validation
+    const pendingPairing = deviceTrustManager.initiatePairing('Unconfirmed Device', 'MOBILE_APP');
+    expect(deviceTrustManager.validateSessionToken(pendingPairing.deviceId).valid).toBe(false);
+
+    // 3. Confirming pairing yields a valid session token for PAIRED_ACTIVE state
+    const confirmResult = deviceTrustManager.confirmPairing(pendingPairing.pairingCode);
+    expect(confirmResult.success).toBe(true);
+    expect(confirmResult.sessionToken).toBeDefined();
+
+    const validAuth = deviceTrustManager.validateSessionToken(confirmResult.sessionToken!);
+    expect(validAuth.valid).toBe(true);
+    expect(validAuth.device?.deviceId).toBe(pendingPairing.deviceId);
+
+    // 4. Revoked device session token validation fails
+    deviceTrustManager.revokeDevice(pendingPairing.deviceId);
+    const revokedAuth = deviceTrustManager.validateSessionToken(confirmResult.sessionToken!);
+    expect(revokedAuth.valid).toBe(false);
+    expect(revokedAuth.error).toBeDefined();
+  });
+
   it('fails closed if globalThis.crypto.getRandomValues is unavailable', () => {
     const originalCrypto = globalThis.crypto;
     try {
