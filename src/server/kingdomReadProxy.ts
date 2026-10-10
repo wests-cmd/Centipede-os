@@ -7,10 +7,11 @@ const STATIC_READS = new Set([
   '/security/status', '/security/policies', '/security/permissions',
   '/security/approvals', '/security/audit',
 ]);
+const DYNAMIC_READ_REGEX = /^\/(?:tasks|maps)\/[A-Za-z0-9_-]{1,128}$/;
 
 function isAllowedReadPath(path: string): boolean {
   if (STATIC_READS.has(path)) return true;
-  return /^\/(?:tasks|maps)\/[A-Za-z0-9_-]{1,128}$/.test(path);
+  return DYNAMIC_READ_REGEX.test(path);
 }
 
 /**

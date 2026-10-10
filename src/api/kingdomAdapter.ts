@@ -191,9 +191,9 @@ export class KingdomAdapter {
     }
     if (status?.capabilities) {
       const capsMap: Record<string, boolean> = {};
-      status.capabilities.forEach((cap) => {
-        capsMap[cap] = true;
-      });
+      for (let i = 0; i < status.capabilities.length; i++) {
+        capsMap[status.capabilities[i]] = true;
+      }
       this.discoveredCapabilities = capsMap;
     }
     this.statusListeners.forEach((l) => l(status));
