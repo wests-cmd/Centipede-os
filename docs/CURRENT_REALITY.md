@@ -2,19 +2,13 @@
 
 > Current release gates are maintained in [SHIP_REALITY_MATRIX.md](SHIP_REALITY_MATRIX.md); the full supplied checklist and its implementation status are tracked in [MASTER_RELEASE_EXECUTION_CHECKLIST.md](MASTER_RELEASE_EXECUTION_CHECKLIST.md) and [MASTER_RELEASE_EXECUTION_STATUS.md](MASTER_RELEASE_EXECUTION_STATUS.md). Historical readiness documents may contain outdated completion claims and do not override those records or current code.
 
-## Current release update — 2026-10-06
+## Current release update — 2026-10-12
 
-The current public stable release is [`v1.0.0`](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0). Release candidate [`v1.0.1-rc.3`](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.1-rc.3) is published but is not the recommended download. Candidates `v1.0.1-rc.4`, `rc.5`, and `rc.6` were stopped before publication. RC6's QEMU screenshot still showed Debian's raster boot splash and an XFCE panel over a black workspace; it did not reach the readiness marker. The signed Android build completed, but the release fingerprint parser did not recognize the current `apksigner` label, so the fail-closed publication gate correctly withheld all assets.
+The current core version is `1.0.1`; the public stable release remains [`v1.0.0`](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0). PR [#119](https://github.com/wests-cmd/Centipede-os/pull/119) contains the unpublished branded installer candidate and local-model/richer-task workspace. Its latest commit is `247aa713aec66e6c86b93ac56bb8cda9515`. Kingdom remains separate; compatibility is protocol major `1`, contract version `1.4.0`.
 
-The current unreleased branch replaces the late-loaded Debian Syslinux splash with Centipede artwork, uses the Earth-and-centipede wallpaper through boot, desktop, and installer surfaces, starts the browser from system-wide XFCE autostart, and invokes the desktop readiness checker explicitly through Python. It also adds a strict parser for supported `apksigner` signer labels. These changes still need a fresh exact-image build, visual BIOS/UEFI review, and tagged signing check. The installer remains preview-only until it has been installed onto a separate disposable VM disk, rebooted, and passed source-media protection checks. Android signing credentials are configured, but no verified APK has been published; a fresh tagged workflow must pass. iOS device signing remains blocked until Apple-issued credentials are configured.
+Platform build run [37889670497](https://github.com/wests-cmd/Centipede-os/actions/runs/37889670497) succeeded: it built ISO/USB/VM candidates, passed BIOS normal and safe graphics plus signed UEFI normal and safe graphics desktop boot checks, built and smoke-tested the Docker image, built Android debug and iOS Simulator apps, and uploaded artifacts. Main CI and CodeQL passed on the current PR head. The separate Copilot security-review job failed before analysis because its service returned HTTP 402 for exhausted monthly quota; this is not a completed review and did not report a source finding.
 
-The target descriptions in the historical sections below record earlier audits and CI runs; for current downloadable artifacts and gate status, use this update and the linked live [ship reality matrix](SHIP_REALITY_MATRIX.md).
-
-**Core version:** `package.json` (`1.0.0`)
-**Public stable release:** [`v1.0.0`](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0)
-**Desktop refresh merge:** `f17a9365f223572dc0ea411dfbfdf214eee3ed5a`
-**Kingdom compatibility:** protocol major `1`; contract version `1.4.0`; Kingdom is a separate service.
-
+The stable publication gate remains **BLOCKED**. No end-to-end install onto a separate disposable virtual disk, installed-system reboot, or evidence that the live source medium is not offered as a writable target has been recorded. Android signed-release and iOS device IPA jobs were skipped; neither has a verified device-distribution artifact. The only public stable release remains v1.0.0. See the [ship reality matrix](SHIP_REALITY_MATRIX.md) for the full current capability table.
 ## Published release versus current main
 
 The public v1.0.0 download remains the release built at commit `e0051a65656cf7678d3d5d814243c0e3a5f44cae`. It contains the original XFCE/Chromium desktop. It does not contain the refreshed home screen and everyday app bundle now present on `main`.

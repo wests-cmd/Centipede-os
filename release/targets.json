@@ -40,11 +40,12 @@
       "description": "QEMU qcow2 optical-media image converted from the Centipede-branded live and guided installer image; attach as virtual CD media, not as an installed system disk."
     },
     "android": {
-      "status": "BUILDABLE",
-      "revision": 4,
+      "status": "BLOCKED",
+      "revision": 5,
       "artifact": "centipede-android-{version}-release.apk",
       "architecture": "universal",
-      "description": "Publisher-signed Capacitor Android APK, checked against a pinned certificate fingerprint and launched in an Android emulator."
+      "description": "Publisher-signed Capacitor Android APK, checked against a pinned certificate fingerprint and launched in an Android emulator.",
+      "reason": "No signed release APK has passed the configured keystore, pinned certificate, and emulator verification gate. Branch debug APKs are validation-only."
     },
     "ios": {
       "status": "BLOCKED",
