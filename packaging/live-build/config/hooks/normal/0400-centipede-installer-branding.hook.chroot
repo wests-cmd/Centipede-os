@@ -1,0 +1,105 @@
+#!/bin/sh
+set -eu
+
+# The Debian settings package provides the tested Calamares module ordering
+# and Debian live-media integration. Replace only its Debian-labelled menu
+# launcher; the installer itself remains Calamares.
+rm -f /usr/share/applications/install-debian.desktop
+mkdir -p /usr/share/applications /etc/skel/Desktop
+cat > /usr/share/applications/centipede-installer.desktop <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Install Centipede OS
+Comment=Install Centipede OS to a disk
+Exec=centipede-installer
+Icon=centipede
+Terminal=false
+Categories=System;
+EOF
+install -m 0755 /usr/share/applications/centipede-installer.desktop /etc/skel/Desktop/centipede-installer.desktop
+chmod 0755 /usr/share/applications/centipede-installer.desktop
+if command -v update-desktop-database >/dev/null 2>&1; then
+  update-desktop-database /usr/share/applications || true
+fi
+
+python3 - <<'PY'
+from pathlib import Path
+import yaml
+import xml.etree.ElementTree as ET
+import subprocess
+
+root = Path('/etc/calamares')
+settings = yaml.safe_load((root / 'settings.conf').read_text())
+partition = yaml.safe_load((root / 'modules/partition.conf').read_text())
+welcome = yaml.safe_load((root / 'modules/welcome.conf').read_text())
+branding = yaml.safe_load((root / 'branding/centipede/branding.desc').read_text())
+policy = ET.parse('/usr/share/polkit-1/actions/org.centipede.installer.policy').getroot()
+assert settings.get('branding') == 'centipede'
+assert settings.get('prompt-install') is True
+assert settings.get('dont-chroot') is False
+assert any('partition' in phase.get('show', []) for phase in settings['sequence'] if isinstance(phase, dict))
+exec_steps = {module for phase in settings['sequence'] if isinstance(phase, dict) for module in phase.get('exec', [])}
+assert {'mount', 'unpackfs', 'fstab', 'users', 'grubcfg', 'bootloader', 'initramfs'} <= exec_steps
+assert partition.get('initialPartitioningChoice') == 'none'
+assert partition.get('initialSwapChoice') == 'none'
+assert welcome['requirements']['requiredStorage'] >= 32
+assert '@CENTIPEDE_VERSION@' not in (root / 'branding/centipede/branding.desc').read_text()
+assert branding['strings']['productName'] == 'Centipede OS'
+release_identity = Path('/etc/os-release').read_text()
+assert 'NAME="Centipede OS"' in release_identity
+assert 'PRETTY_NAME="Centipede OS ' in release_identity
+assert 'Centipede OS' in Path('/etc/issue').read_text()
+assert 'Centipede OS' in Path('/etc/issue.net').read_text()
+assert (root / 'branding/centipede/centipede-logo.png').is_file()
+assert (root / 'branding/centipede/centipede-logo.png').stat().st_size > 10_000
+for path in [
+    Path('/usr/share/backgrounds/centipede/centipede-workspace.png'),
+    Path('/usr/share/backgrounds/centipede/centipede-earth.png'),
+    Path('/usr/share/backgrounds/centipede/centipede-menu.png'),
+    Path('/usr/share/plymouth/themes/centipede/centipede-boot.png'),
+    Path('/usr/share/icons/hicolor/scalable/apps/centipede.svg'),
+    Path('/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml'),
+    Path('/etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml'),
+    Path('/etc/live/config.conf.d/centipede.conf'),
+    Path('/etc/xdg/autostart/centipede-desktop.desktop'),
+    Path('/etc/skel/.config/gtk-3.0/settings.ini'),
+    Path('/etc/lightdm/lightdm-gtk-greeter.conf.d/50-centipede.conf'),
+    Path('/etc/lightdm/lightdm.conf.d/99-centipede.conf'),
+    Path('/etc/default/grub.d/50-centipede.cfg'),
+]:
+    assert path.is_file() and path.stat().st_size > 0, f'Missing Centipede branding: {path}'
+desktop_autostart = Path('/etc/xdg/autostart/centipede-desktop.desktop').read_text()
+assert 'Exec=/usr/local/bin/centipede-desktop' in desktop_autostart
+readiness_unit = Path('/etc/systemd/system/centipede-desktop-readiness.service').read_text()
+assert 'ExecStart=/usr/bin/python3 /usr/local/libexec/centipede-desktop-readiness.py' in readiness_unit
+assert 'centipede-workspace.png' in Path('/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml').read_text()
+live_config = Path('/etc/live/config.conf.d/centipede.conf').read_text()
+assert 'LIVE_USERNAME="centipede"' in live_config
+assert 'LIVE_USER_FULLNAME="Centipede OS"' in live_config
+assert 'LIVE_HOSTNAME="centipede"' in live_config
+greeter_branding = Path('/etc/lightdm/lightdm-gtk-greeter.conf.d/50-centipede.conf').read_text()
+assert '/usr/share/backgrounds/centipede/centipede-workspace.png' in greeter_branding
+assert '/usr/share/icons/hicolor/scalable/apps/centipede.svg' in greeter_branding
+seat_branding = Path('/etc/lightdm/lightdm.conf.d/99-centipede.conf').read_text()
+assert 'autologin-user=centipede' in seat_branding
+assert 'Debian' not in (root / 'branding/centipede/branding.desc').read_text()
+assert 'Debian' not in Path('/etc/lightdm/lightdm-gtk-greeter.conf.d/50-centipede.conf').read_text()
+assert 'Debian' not in Path('/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml').read_text()
+grub_branding = Path('/etc/default/grub.d/50-centipede.cfg').read_text()
+assert 'GRUB_DISTRIBUTOR="Centipede OS"' in grub_branding
+assert 'GRUB_BACKGROUND="/usr/share/backgrounds/centipede/centipede-menu.png"' in grub_branding
+assert subprocess.check_output(['plymouth-set-default-theme'], text=True).strip() == 'centipede'
+assert Path('/usr/bin/calamares').is_file()
+assert not Path('/usr/share/applications/install-debian.desktop').exists()
+assert 'Name=Install Centipede OS' in Path('/usr/share/applications/centipede-installer.desktop').read_text()
+assert 'Exec=centipede-installer' in Path('/etc/skel/Desktop/centipede-installer.desktop').read_text()
+assert Path('/usr/bin/pkexec').is_file()
+assert Path('/usr/bin/xhost').is_file()
+assert Path('/usr/bin/zenity').is_file()
+assert policy.find('./action[@id="org.centipede.installer"]/annotate[@key="org.freedesktop.policykit.exec.path"]').text == '/usr/local/libexec/centipede-installer-root'
+assert policy.find('./action[@id="org.centipede.installer"]/annotate[@key="org.freedesktop.policykit.exec.allow_gui"]').text == 'true'
+assert Path('/usr/local/bin/centipede-installer').stat().st_mode & 0o111
+assert Path('/usr/local/libexec/centipede-installer-root').stat().st_mode & 0o111
+PY
+sh -n /usr/local/bin/centipede-installer
+sh -n /usr/local/libexec/centipede-installer-root

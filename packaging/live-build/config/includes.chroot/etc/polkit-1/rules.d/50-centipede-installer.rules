@@ -1,0 +1,6 @@
+polkit.addRule(function(action, subject) {
+    if (action.id === "org.centipede.installer" &&
+        subject.user === "centipede") {
+        return polkit.Result.YES;
+    }
+});

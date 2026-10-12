@@ -34,9 +34,9 @@ export const App: React.FC = () => {
   const [homeVisual, setHomeVisual] = useState<HomeVisual>(() => {
     try {
       const saved = window.localStorage.getItem('centipede_home_visual');
-      return HOME_VISUALS.some((profile) => profile.id === saved) ? (saved as HomeVisual) : 'centipede-world';
+      return HOME_VISUALS.some((profile) => profile.id === saved) ? (saved as HomeVisual) : 'classic';
     } catch {
-      return 'centipede-world';
+      return 'classic';
     }
   });
 

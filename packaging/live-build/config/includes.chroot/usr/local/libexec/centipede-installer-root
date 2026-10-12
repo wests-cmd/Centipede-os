@@ -1,0 +1,49 @@
+#!/bin/sh
+set -eu
+
+fail() {
+  zenity --error --title='Centipede installer stopped safely' --width=480 --text="$1" 2>/dev/null || true
+  exit 1
+}
+
+[ "$(id -u)" -eq 0 ] || fail 'The installer could not get system permission. Restart the installer and approve the system permission prompt.'
+[ -x /usr/bin/calamares ] || fail 'The disk installer is not present in this live image.'
+[ -d /run/live/medium ] || fail 'The live USB could not be identified. No disks were changed. Restart Centipede from its USB drive and try again.'
+
+# Protect the device that supplied the live system before Calamares enumerates
+# writable installation targets. If any part of this identification fails,
+# stop; never guess which disk is safe to modify.
+SOURCE=$(findmnt --noheadings --raw --output SOURCE --target /run/live/medium 2>/dev/null | sed 's/\[.*$//')
+[ -n "$SOURCE" ] || fail 'Centipede could not identify the USB or disc it started from. No disks were changed.'
+SOURCE_TYPE=$(lsblk --noheadings --raw --output TYPE "$SOURCE" 2>/dev/null | head -n 1 | xargs || true)
+case "$SOURCE_TYPE" in
+  disk|rom) SOURCE_DISK="$SOURCE" ;;
+  part)
+    SOURCE_DISK=$(lsblk --noheadings --raw --paths --output PKNAME "$SOURCE" 2>/dev/null | head -n 1 | xargs || true)
+    [ -n "$SOURCE_DISK" ] || fail 'Centipede could not identify the full disk containing its boot partition. No disks were changed.'
+    case "$SOURCE_DISK" in
+      /dev/*) ;;
+      *) SOURCE_DISK="/dev/$SOURCE_DISK" ;;
+    esac
+    ;;
+  *) fail 'Centipede cannot safely identify the physical disk behind its live system. No disks were changed.' ;;
+esac
+[ -b "$SOURCE_DISK" ] || fail 'Centipede could not verify its boot media as a disk. No disks were changed.'
+
+DEVICES=$(lsblk --list --noheadings --raw --paths --output NAME "$SOURCE_DISK" 2>/dev/null) || fail 'Centipede could not list its boot-media partitions. No disks were changed.'
+[ -n "$DEVICES" ] || fail 'Centipede could not list its boot-media partitions. No disks were changed.'
+while IFS= read -r device; do
+  [ -n "$device" ] || continue
+  blockdev --setro "$device" 2>/dev/null || fail 'Centipede could not protect every partition on its boot media. The installer was closed without changing any disks.'
+done <<EOF
+$DEVICES
+EOF
+blockdev --setro "$SOURCE_DISK" 2>/dev/null || fail 'Centipede could not protect its boot media. The installer was closed without changing any disks.'
+
+[ "$(blockdev --getro "$SOURCE_DISK" 2>/dev/null || printf 0)" = 1 ] || fail 'Centipede could not confirm that its boot media is read-only. The installer was closed without changing any disks.'
+while IFS= read -r device; do
+  [ "$(blockdev --getro "$device" 2>/dev/null || printf 0)" = 1 ] || fail 'Centipede could not confirm that every boot-media partition is read-only. The installer was closed without changing any disks.'
+done <<EOF
+$DEVICES
+EOF
+exec /usr/bin/calamares

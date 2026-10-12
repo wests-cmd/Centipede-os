@@ -78,4 +78,53 @@ describe('Centipede read-only Kingdom proxy', () => {
 
     expect(response).toEqual({ status: 502, error: 'Kingdom response exceeded the allowed size.' });
   });
+
+  it('forwards explicitly submitted tasks only from the local host and keeps Kingdom credentials server-side', async () => {
+    process.env.KINGDOM_API_URL = 'http://kingdom.internal:8000';
+    process.env.KINGDOM_API_TOKEN = 'test-owner-token';
+    let target = '';
+    let options: RequestInit | undefined;
+    globalThis.fetch = (async (input, init) => {
+      target = String(input);
+      options = init;
+      return new Response(JSON.stringify({ id: 'task-1', prompt: 'Build report', status: 'queued' }), { status: 200 });
+    }) as typeof fetch;
+
+    const response = await apiRouter.handleRequest({
+      path: '/api/v1/kingdom/tasks', method: 'POST', isLocalAdmin: true,
+      body: {
+        prompt: 'Build report',
+        metadata: {
+          client: 'centipede_os_activity_view', contextCompression: 'bounded-source-extracts',
+          attachments: [{ fileName: 'report.pdf', mimeType: 'application/pdf', sizeBytes: 512, sha256: 'a'.repeat(64), kind: 'pdf', trust: 'UNTRUSTED_EXTERNAL_DATA' }],
+          ignoredCredential: 'must not be forwarded',
+        },
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(target).toBe('http://kingdom.internal:8000/tasks');
+    expect((options?.headers as Record<string, string>).Authorization).toBe('Bearer test-owner-token');
+    expect(JSON.parse(String(options?.body))).toEqual({
+      prompt: 'Build report',
+      metadata: {
+        client: 'centipede_os_activity_view', contextCompression: 'bounded-source-extracts',
+        attachments: [{ fileName: 'report.pdf', mimeType: 'application/pdf', sizeBytes: 512, sha256: 'a'.repeat(64), kind: 'pdf', trust: 'UNTRUSTED_EXTERNAL_DATA' }],
+      },
+    });
+  });
+
+  it('blocks remote task submissions and rejects binary attachments or oversized prompts', async () => {
+    process.env.KINGDOM_API_URL = 'http://kingdom.internal:8000';
+    process.env.KINGDOM_API_TOKEN = 'test-owner-token';
+    let called = false;
+    globalThis.fetch = (async () => { called = true; throw new Error('must not be called'); }) as typeof fetch;
+    const remote = await apiRouter.handleRequest({ path: '/api/v1/kingdom/tasks', method: 'POST', isLocalAdmin: false, body: { prompt: 'do work' } });
+    const binary = await apiRouter.handleRequest({ path: '/api/v1/kingdom/tasks', method: 'POST', isLocalAdmin: true, body: { prompt: 'do work', metadata: { attachments: [{ fileName: 'secret.bin', sizeBytes: 10, trust: 'TRUSTED' }] } } });
+    const oversized = await apiRouter.handleRequest({ path: '/api/v1/kingdom/tasks', method: 'POST', isLocalAdmin: true, body: { prompt: 'x'.repeat(220_001) } });
+    expect(remote.status).toBe(403);
+    expect(binary.status).toBe(400);
+    expect(oversized.status).toBe(400);
+    expect(called).toBe(false);
+  });
 });

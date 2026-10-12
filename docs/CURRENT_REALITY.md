@@ -2,16 +2,18 @@
 
 > Current release gates are maintained in [SHIP_REALITY_MATRIX.md](SHIP_REALITY_MATRIX.md); the full supplied checklist and its implementation status are tracked in [MASTER_RELEASE_EXECUTION_CHECKLIST.md](MASTER_RELEASE_EXECUTION_CHECKLIST.md) and [MASTER_RELEASE_EXECUTION_STATUS.md](MASTER_RELEASE_EXECUTION_STATUS.md). Historical readiness documents may contain outdated completion claims and do not override those records or current code.
 
-**Core version:** `package.json` (`1.0.0`)
-**Public stable release:** [`v1.0.0`](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0)
-**Desktop refresh merge:** `f17a9365f223572dc0ea411dfbfdf214eee3ed5a`
-**Kingdom compatibility:** protocol major `1`; contract version `1.4.0`; Kingdom is a separate service.
+## Current release update — 2026-10-12
 
+The current core version is `1.0.1`; the public stable release remains [`v1.0.0`](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0). PR [#119](https://github.com/wests-cmd/Centipede-os/pull/119) contains the unpublished branded installer candidate and local-model/richer-task workspace. Its latest commit is `247aa713aec66e6c86b93ac56bb8cda9515`. Kingdom remains separate; compatibility is protocol major `1`, contract version `1.4.0`.
+
+Platform build run [37889670497](https://github.com/wests-cmd/Centipede-os/actions/runs/37889670497) succeeded: it built ISO/USB/VM candidates, passed BIOS normal and safe graphics plus signed UEFI normal and safe graphics desktop boot checks, built and smoke-tested the Docker image, built Android debug and iOS Simulator apps, and uploaded artifacts. Main CI and CodeQL passed on the current PR head. The separate Copilot security-review job failed before analysis because its service returned HTTP 402 for exhausted monthly quota; this is not a completed review and did not report a source finding.
+
+The stable publication gate remains **BLOCKED**. No end-to-end install onto a separate disposable virtual disk, installed-system reboot, or evidence that the live source medium is not offered as a writable target has been recorded. Android signed-release and iOS device IPA jobs were skipped; neither has a verified device-distribution artifact. The only public stable release remains v1.0.0. See the [ship reality matrix](SHIP_REALITY_MATRIX.md) for the full current capability table.
 ## Published release versus current main
 
 The public v1.0.0 download remains the release built at commit `e0051a65656cf7678d3d5d814243c0e3a5f44cae`. It contains the original XFCE/Chromium desktop. It does not contain the refreshed home screen and everyday app bundle now present on `main`.
 
-The refreshed desktop work was validated on PR commit `1f99f79eddb3dd06bd86dbc55074b20993f87d0b` before it was merged. Platform build run [36805229329](https://github.com/wests-cmd/Centipede-os/actions/runs/36805229329) built the Debian ISO, byte-identical USB image, QEMU qcow2, Docker image, Android debug APK, and iOS Simulator app. QEMU reached the desktop readiness marker; Docker's HTTP/health smoke test passed; the iPhone Simulator launched the app. The merged source still needs a new version tag and release publication before those updated images become downloads from the stable release page.
+The refreshed desktop work was validated on PR commit `1f99f79eddb3dd06bd86dbc55074b20993f87d0b` before it was merged. Platform build run [36805229329](https://github.com/wests-cmd/Centipede-os/actions/runs/36805229329) built the live ISO, byte-identical USB image, QEMU qcow2, Docker image, Android debug APK, and iOS Simulator app. QEMU reached the desktop readiness marker; Docker's HTTP/health smoke test passed; the iPhone Simulator launched the app. The merged source still needs a new version tag and release publication before those updated images become downloads from the stable release page.
 
 The primary CI and CodeQL checks passed on the PR head. The separate Copilot security-review job failed before it could review the code because the configured model was unsupported; it reported no source findings. Android signed APK and iPhone IPA jobs were skipped because publisher signing is not configured.
 
@@ -23,7 +25,7 @@ A boot/recovery workstream was merged from PR [#117](https://github.com/wests-cm
 | Target | Gate | Current public status | Current main evidence |
 |---|---|---|---|
 | Desktop web bundle | BUILDABLE | v1.0.0 bundle published | Updated home screen is merged; a new tagged release is still needed. |
-| ISO | BUILDABLE | v1.0.0 ISO published | Updated Debian live ISO built in run 36805229329; not published as a new release. |
+| ISO | BUILDABLE | v1.0.0 ISO published | Updated live ISO built in run 36805229329; not published as a new release. |
 | Live USB | BUILDABLE | v1.0.0 image published | Updated ISO is byte-identical to the USB output; not published as a new release. |
 | VM | BUILDABLE | v1.0.0 qcow2 published | Updated QEMU media passed structural and boot-readiness checks; not published as a new release. |
 | Docker | BUILDABLE | v1.0.0 archive published | Updated Linux/amd64 image passed its HTTP and health smoke test; not published as a new release or registry image. |

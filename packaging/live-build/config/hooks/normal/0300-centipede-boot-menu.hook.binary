@@ -5,9 +5,22 @@ set -eu
 # Rename visible labels after generation while preserving the generated commands.
 GRUB_DIR=boot/grub
 ISOLINUX_DIR=isolinux
+MENU_ART=../config/includes.chroot/usr/share/backgrounds/centipede/centipede-menu.png
 for dir in "$GRUB_DIR" "$ISOLINUX_DIR"; do
   [ -d "$dir" ] || { echo "Expected boot menu directory missing: $dir" >&2; exit 1; }
 done
+[ -s "$MENU_ART" ] || { echo 'Centipede boot-menu artwork is missing.' >&2; exit 1; }
+cp "$MENU_ART" "$GRUB_DIR/centipede-menu.png"
+cp "$MENU_ART" "$ISOLINUX_DIR/centipede-menu.png"
+# Debian's packaged Syslinux theme is included after isolinux.cfg and replaces
+# the configured menu background with its own splash containing Debian text.
+# Replace that late override as well so the first visible boot screen is ours.
+for splash in splash.png splash800x600.png; do
+  [ ! -f "$ISOLINUX_DIR/$splash" ] || cp "$MENU_ART" "$ISOLINUX_DIR/$splash"
+done
+if [ -f "$ISOLINUX_DIR/stdmenu.cfg" ]; then
+  sed -i 's/^[[:space:]]*menu background splash\.png[[:space:]]*$/menu background centipede-menu.png/I' "$ISOLINUX_DIR/stdmenu.cfg"
+fi
 
 if ! grep -Rqs "fail-safe mode" "$GRUB_DIR" "$ISOLINUX_DIR"; then
   echo "Live-build produced no failsafe menu entries." >&2
@@ -17,14 +30,91 @@ fi
 for file in "$GRUB_DIR"/*.cfg "$ISOLINUX_DIR"/*.cfg; do
   [ -f "$file" ] || continue
   sed -i \
+    -e 's/^[[:space:]]*MENU TITLE.*/MENU TITLE Centipede OS/I' \
+    -e 's/^[[:space:]]*UI[[:space:]]\+gfxboot[^[:space:]]*.*$/UI vesamenu.c32/I' \
+    -e '/^[[:space:]]*gfxboot\([[:space:]].*\)\?$/Id' \
     -e '/^[[:space:]]*menuentry .*fail-safe mode/s/".*"/"Centipede OS (Safe Graphics)"/' \
-    -e '/^[[:space:]]*menu label .*fail-safe mode/s/.*$/menu label Centipede OS (Safe Graphics)/' \
+    -e '/^[[:space:]]*menu label .*fail-safe mode/Is/.*$/MENU LABEL Centipede OS (Safe Graphics)/' \
     -e '/^[[:space:]]*menuentry "Live system/s/".*"/"Start Centipede OS"/' \
-    -e '/^[[:space:]]*menu label .*Live system/s/.*$/menu label Start Centipede OS/' \
-    -e 's/Debian GNU\/Linux/Centipede OS/g' \
-    -e 's/Debian Live/Centipede OS/g' \
+    -e '/^[[:space:]]*menuentry "Debian GNU\/Linux.*Live/s/"[^"]*"/"Start Centipede OS"/' \
+    -e '/^[[:space:]]*menu label .*Live system/Is/.*$/MENU LABEL Start Centipede OS/' \
+    -e '/^[[:space:]]*menu label .*Debian GNU\/Linux/Is/.*$/MENU LABEL Start Centipede OS/' \
+    -e 's/Debian GNU\/Linux[^"]*/Centipede OS/g' \
+    -e 's/Debian Live[^"]*/Centipede OS/g' \
+    -e 's/--class[[:space:]]\+debian\(-live\)\?//g' \
     "$file"
 done
 
+# Replace the distro's gfxboot splash (which carries its logo and title) with
+# the standard image-capable menu renderer before applying our own menu art.
+BIOS_CONFIG="$ISOLINUX_DIR/isolinux.cfg"
+if [ ! -f "$BIOS_CONFIG" ]; then
+  for file in "$ISOLINUX_DIR"/*.cfg; do
+    [ -f "$file" ] || continue
+    BIOS_CONFIG="$file"
+    break
+  done
+fi
+[ -f "$BIOS_CONFIG" ] || { echo 'Generated BIOS menu configuration is missing.' >&2; exit 1; }
+# Root config must select the renderer. Checking for a renderer anywhere in
+# an included file can leave the active menu on the distro's gfxboot screen.
+sed -i \
+  -e '1i UI vesamenu.c32' \
+  -e '1i MENU TITLE Centipede OS' \
+  -e '1i MENU BACKGROUND centipede-menu.png' \
+  -e '/^[[:space:]]*UI[[:space:]]/Id' \
+  -e '/^[[:space:]]*MENU[[:space:]]*TITLE[[:space:]]/Id' \
+  -e '/^[[:space:]]*MENU[[:space:]]*BACKGROUND[[:space:]]/Id' \
+  "$BIOS_CONFIG"
+
+GRUB_CONFIG="$GRUB_DIR/grub.cfg"
+[ -f "$GRUB_CONFIG" ] || { echo 'Generated GRUB configuration is missing.' >&2; exit 1; }
+if ! grep -Fq 'background_image $prefix/centipede-menu.png' "$GRUB_CONFIG"; then
+  sed -i '1i\
+insmod png\
+background_image $prefix/centipede-menu.png\
+set menu_color_normal=light-gray/black\
+set menu_color_highlight=black/light-cyan\
+' "$GRUB_CONFIG"
+fi
+
+for file in "$ISOLINUX_DIR"/*.cfg; do
+  [ -f "$file" ] || continue
+  if grep -Eqi '^[[:space:]]*UI[[:space:]]+vesamenu\.c32' "$file" && ! grep -Fq 'MENU BACKGROUND centipede-menu.png' "$file"; then
+    sed -i '/^[[:space:]]*UI[[:space:]]\+vesamenu\.c32/Ia MENU BACKGROUND centipede-menu.png' "$file"
+  fi
+done
+
+# live-build versions can place the menu UI in an included file or omit the
+# explicit UI line; put the setting in the root BIOS config so it is always
+# read before included menu entries.
+if ! grep -Rqs 'MENU BACKGROUND centipede-menu.png' "$ISOLINUX_DIR"; then
+  BIOS_CONFIG="$ISOLINUX_DIR/isolinux.cfg"
+  if [ ! -f "$BIOS_CONFIG" ]; then
+    for file in "$ISOLINUX_DIR"/*.cfg; do
+      [ -f "$file" ] || continue
+      BIOS_CONFIG="$file"
+      break
+    done
+  fi
+  [ -f "$BIOS_CONFIG" ] || { echo 'Generated BIOS menu configuration is missing.' >&2; exit 1; }
+  sed -i '1i MENU BACKGROUND centipede-menu.png' "$BIOS_CONFIG"
+fi
+
 grep -Rqs 'Safe Graphics' "$GRUB_DIR" || { echo 'Safe Graphics entry missing from GRUB menu.' >&2; exit 1; }
 grep -Rqs 'Safe Graphics' "$ISOLINUX_DIR" || { echo 'Safe Graphics entry missing from BIOS menu.' >&2; exit 1; }
+grep -Fq 'background_image $prefix/centipede-menu.png' "$GRUB_CONFIG" || { echo 'Centipede GRUB background was not installed.' >&2; exit 1; }
+grep -Rqs 'MENU BACKGROUND centipede-menu.png' "$ISOLINUX_DIR" || { echo 'Centipede BIOS background was not installed.' >&2; exit 1; }
+if [ -f "$ISOLINUX_DIR/stdmenu.cfg" ] && grep -Eqi '^[[:space:]]*menu background splash\.png' "$ISOLINUX_DIR/stdmenu.cfg"; then
+  echo 'The Debian Syslinux splash still overrides the Centipede boot artwork.' >&2
+  exit 1
+fi
+if grep -REi '^[[:space:]]*(menuentry|menu[[:space:]]+label).*Debian' "$GRUB_DIR" "$ISOLINUX_DIR"; then
+  echo 'A boot-menu label still exposes Debian branding.' >&2
+  exit 1
+fi
+grep -RqiE '^[[:space:]]*MENU[[:space:]]+TITLE[[:space:]]+Centipede OS' "$ISOLINUX_DIR" || { echo 'Centipede BIOS menu title is missing.' >&2; exit 1; }
+if grep -RqiE '^[[:space:]]*(UI[[:space:]]+gfxboot|gfxboot[[:space:]])' "$ISOLINUX_DIR"; then
+  echo 'The distro gfxboot splash still overrides Centipede boot artwork.' >&2
+  exit 1
+fi

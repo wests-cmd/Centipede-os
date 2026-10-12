@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { centipedeServer } from '../../src/server/server';
+import packageJson from '../../package.json';
 
 describe('Centipede API Server & Transport Test Suite', () => {
   const TEST_PORT = 3099;
@@ -49,7 +50,7 @@ describe('Centipede API Server & Transport Test Suite', () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.status).toBe('HEALTHY');
-    expect(data.version).toBe('1.0.0');
+    expect(data.version).toBe(packageJson.version);
     expect(data.timestamp).toBeDefined();
   });
 
@@ -57,7 +58,7 @@ describe('Centipede API Server & Transport Test Suite', () => {
     const res = await fetch(`http://localhost:${TEST_PORT}/api/v1/runtime`);
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data.centipedeVersion).toBe('1.0.0');
+    expect(data.centipedeVersion).toBe(packageJson.version);
     expect(data.platform).toBeDefined();
     expect(data.hardware).toBeDefined();
   });
