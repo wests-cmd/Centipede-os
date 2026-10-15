@@ -19,7 +19,8 @@ The desktop build keeps its normal graphical behavior; the SSH server is
 enabled only when the server kernel flag and valid seed are present.
 
 BIOS and UEFI menus automatically select the server entry after five seconds.
-The server entry uses `nomodeset` and boots to the non-graphical system target.
+The server entry uses `nomodeset`, disables reuse of existing swap with `noswap`,
+and boots to the non-graphical system target.
 A person must still insert the USB, power on the machine and arrange USB boot
 in firmware when necessary. An Ethernet cable cannot boot a corrupt operating
 system without a separately configured network-boot or management facility.

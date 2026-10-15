@@ -46,6 +46,11 @@ class SeedTests(unittest.TestCase):
 
 
 class BootTests(unittest.TestCase):
+    def test_server_profile_does_not_activate_existing_internal_swap(self):
+        script=(ROOT/'scripts/build-live-image.sh').read_text()
+        self.assertIn("SERVER_FLAGS='centipede.server=1 systemd.unit=multi-user.target nomodeset noswap'",script)
+        self.assertIn('console=ttyS0,115200n8',script)
+
     def test_personalized_server_autoboots_bios_and_uefi_without_menu_input(self):
         with tempfile.TemporaryDirectory() as temporary:
             root=Path(temporary);(root/'isolinux').mkdir();(root/'boot/grub').mkdir(parents=True)
