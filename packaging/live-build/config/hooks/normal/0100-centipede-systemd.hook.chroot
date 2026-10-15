@@ -4,3 +4,9 @@ systemctl enable centipede-web.service
 systemctl enable lightdm.service
 systemctl enable centipede-desktop-readiness.service
 systemctl enable centipede-safe-graphics.service
+systemctl enable centipede-server-bootstrap.service centipede-server-ssh.service
+# Only the opt-in, key-only service may expose SSH. Never ship generated host keys.
+if [ -x /usr/sbin/sshd ]; then
+  systemctl mask ssh.service ssh.socket
+  rm -f /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub
+fi

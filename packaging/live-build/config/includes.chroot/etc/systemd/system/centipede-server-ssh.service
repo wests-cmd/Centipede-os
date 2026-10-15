@@ -1,0 +1,18 @@
+[Unit]
+Description=Centipede key-only headless server access
+Requires=centipede-server-bootstrap.service
+After=centipede-server-bootstrap.service
+ConditionKernelCommandLine=centipede.server=1
+ConditionPathExists=/run/centipede/server-ready
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/sshd -D -e -f /etc/centipede/server-sshd.conf
+ExecStartPost=/usr/bin/python3 /usr/local/libexec/centipede-server-bootstrap.py --verify-ssh
+StandardOutput=journal+console
+StandardError=journal+console
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
