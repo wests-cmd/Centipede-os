@@ -10,6 +10,7 @@ import secrets
 import struct
 import subprocess
 import sys
+import time
 import uuid
 
 USER = 'centipede-admin'
@@ -49,8 +50,19 @@ def network_profile(seed):
     method='link-local' if seed['network']=='direct' else 'auto'
     return ('[connection]\nid=Centipede server Ethernet\nuuid='+str(uuid.uuid5(uuid.NAMESPACE_DNS,'centipede-server-ethernet'))+
         '\ntype=ethernet\nautoconnect=true\nautoconnect-priority=100\n[ethernet]\n'
-        '[ipv4]\nmethod='+method+'\n'+('never-default=true\n' if method=='link-local' else '')+
+        '[ipv4]\nmethod='+method+'\nmay-fail=false\n'+('never-default=true\n' if method=='link-local' else '')+
         '[ipv6]\nmethod=link-local\nnever-default=true\n')
+
+
+def network_ready(seed,addresses):
+    for interface in addresses:
+        if interface.get('ifname')=='lo':continue
+        for address in interface.get('addr_info',[]):
+            if address.get('family')!='inet':continue
+            value=address.get('local','')
+            if seed['network']=='direct' and value.startswith('169.254.'):return True
+            if seed['network']=='dhcp' and value and not value.startswith(('127.','169.254.')):return True
+    return False
 
 
 def configure_boot_menu(root):
@@ -107,11 +119,16 @@ def provision(seed):
     Path('/run/sshd').mkdir(mode=0o755,exist_ok=True)
     run('sshd','-t','-f','/etc/centipede/server-sshd.conf')
     run('loginctl','enable-linger',USER)
-    addresses=run('ip','-j','address','show',capture_output=True).stdout
+    deadline=time.monotonic()+45
+    while True:
+        addresses=json.loads(run('ip','-j','address','show',capture_output=True).stdout)
+        if network_ready(seed,addresses):break
+        if time.monotonic()>=deadline:raise TimeoutError('Requested IPv4 network is not ready; server receipt withheld')
+        time.sleep(1)
     host_key=Path('/etc/ssh/ssh_host_ed25519_key.pub').read_text().split()[1]
     receipt={'phase':'configured','user':USER,'hostname':seed['hostname'],'network':seed['network'],'admin':seed['admin'],
         'host_key_sha256':base64.b64encode(hashlib.sha256(base64.b64decode(host_key)).digest()).decode().rstrip('='),
-        'addresses':json.loads(addresses),'installation_performed':False,'kingdom_installed':False}
+        'addresses':addresses,'installation_performed':False,'kingdom_installed':False}
     write('/run/centipede/server-ready',json.dumps(receipt,indent=2),0o644)
     run('systemctl','--no-block','start','centipede-server-ssh.service')
     print('CENTIPEDE_SERVER_CONFIGURED '+json.dumps(receipt),flush=True)

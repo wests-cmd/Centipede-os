@@ -139,6 +139,10 @@ def main():
             evidence['status'] = 'passed'
     except Exception as error:
         evidence['error'] = str(error)
+        for diagnostic in (serial, args.output / 'qemu.log'):
+            if diagnostic.is_file():
+                print('--- ' + diagnostic.name + ' (last 120 lines) ---', flush=True)
+                print('\n'.join(diagnostic.read_text(errors='replace').splitlines()[-120:]), flush=True)
         raise
     finally:
         (args.output / 'receipt.json').write_text(json.dumps(evidence, indent=2) + '\n')

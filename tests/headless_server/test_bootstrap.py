@@ -44,6 +44,17 @@ class SeedTests(unittest.TestCase):
             path.write_text(' '*4097)
             with self.assertRaises(ValueError):bootstrap.read_seed(path)
 
+    def test_ipv6_activation_does_not_claim_direct_ipv4_readiness(self):
+        direct=bootstrap.validate_seed(seed())
+        interfaces=[{'ifname':'eth0','addr_info':[{'family':'inet6','local':'fe80::1'}]}]
+        self.assertFalse(bootstrap.network_ready(direct,interfaces))
+        interfaces[0]['addr_info'].append({'family':'inet','local':'10.0.2.15'})
+        self.assertFalse(bootstrap.network_ready(direct,interfaces))
+        self.assertTrue(bootstrap.network_ready(bootstrap.validate_seed(seed(network='dhcp')),interfaces))
+        interfaces[0]['addr_info'].append({'family':'inet','local':'169.254.2.3'})
+        self.assertTrue(bootstrap.network_ready(direct,interfaces))
+        self.assertIn('may-fail=false',bootstrap.network_profile(direct))
+
 
 class BootTests(unittest.TestCase):
     def test_server_profile_does_not_activate_existing_internal_swap(self):
