@@ -8,6 +8,9 @@ ConditionPathExists=/run/centipede/server-ready
 [Service]
 Type=simple
 ExecStart=/usr/sbin/sshd -D -e -f /etc/centipede/server-sshd.conf
+ExecStartPost=/usr/bin/python3 /usr/local/libexec/centipede-server-bootstrap.py --verify-ssh
+StandardOutput=journal+console
+StandardError=journal+console
 Restart=on-failure
 RestartSec=3
 

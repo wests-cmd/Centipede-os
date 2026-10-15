@@ -8,6 +8,14 @@ spec.loader.exec_module(smoke)
 
 
 class ReceiptTests(unittest.TestCase):
+    def test_monitor_echo_is_not_command_completion(self):
+        class Control:
+            def __init__(self,chunks):self.chunks=iter(chunks)
+            def recv(self,size):return next(self.chunks,b'')
+        reply=smoke.monitor_reply(Control([b'h',b'ostfwd_add n0 tcp:x\r\n',b'(qe',b'mu) ']))
+        self.assertTrue(reply.endswith('(qemu) '))
+        with self.assertRaises(RuntimeError):smoke.monitor_reply(Control([b'hostfwd_add']))
+
     def test_kernel_prefix_and_truncated_output(self):
         self.assertIsNone(smoke.configured('CENTIPEDE_SERVER_CONFIGURED {'))
         self.assertEqual(smoke.configured('[12] CENTIPEDE_SERVER_CONFIGURED {"phase":"configured"}\r\n')['phase'], 'configured')

@@ -134,9 +134,26 @@ def provision(seed):
     print('CENTIPEDE_SERVER_CONFIGURED '+json.dumps(receipt),flush=True)
 
 
+def verify_ssh():
+    receipt=json.loads(Path('/run/centipede/server-ready').read_text())
+    deadline=time.monotonic()+20
+    while True:
+        scan=subprocess.run(['ssh-keyscan','-T','2','-t','ed25519','127.0.0.1'],capture_output=True,text=True,timeout=5)
+        for line in scan.stdout.splitlines():
+            fields=line.split()
+            if len(fields)==3 and fields[1]=='ssh-ed25519':
+                fingerprint=base64.b64encode(hashlib.sha256(base64.b64decode(fields[2])).digest()).decode().rstrip('=')
+                if fingerprint!=receipt['host_key_sha256']:raise ValueError('Local SSH host key differs from configured key')
+                print('CENTIPEDE_SERVER_SSH_LISTENING '+json.dumps({'host_key_sha256':fingerprint,'verified':'localhost-key-exchange'}),flush=True)
+                return
+        if time.monotonic()>=deadline:raise TimeoutError('Configured local SSH listener did not answer')
+        time.sleep(1)
+
+
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('--validate-seed');parser.add_argument('--configure-boot-menu')
+    parser=argparse.ArgumentParser();parser.add_argument('--validate-seed');parser.add_argument('--configure-boot-menu');parser.add_argument('--verify-ssh',action='store_true')
     args=parser.parse_args()
     if args.validate_seed:read_seed(args.validate_seed);print('Seed valid (public key only)')
     elif args.configure_boot_menu:configure_boot_menu(args.configure_boot_menu)
+    elif args.verify_ssh:verify_ssh()
     else:provision(read_seed(SEED))

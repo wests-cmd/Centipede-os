@@ -96,9 +96,10 @@ def main():
                     with socket.socket(socket.AF_UNIX) as control:
                         control.settimeout(10)
                         control.connect(str(monitor))
-                        control.recv(8192)
+                        monitor_reply(control)
                         control.sendall(('hostfwd_add n0 tcp:127.0.0.1:' + str(port) + '-' + ip + ':22\n').encode())
-                        response = control.recv(8192).decode(errors='replace')
+                        response = monitor_reply(control)
+                        (args.output/'monitor.log').write_text(response)
                         if 'Error' in response or 'Could not' in response:
                             raise RuntimeError('QEMU host forwarding rejected: ' + response)
                     scanned = ''
@@ -146,6 +147,17 @@ def main():
         raise
     finally:
         (args.output / 'receipt.json').write_text(json.dumps(evidence, indent=2) + '\n')
+
+
+def monitor_reply(control):
+    """HMP echoes arbitrary chunks; only the next prompt completes a command."""
+    reply=b''
+    while not reply.endswith(b'(qemu) '):
+        chunk=control.recv(8192)
+        if not chunk:raise RuntimeError('QEMU monitor disconnected before command completed')
+        reply+=chunk
+        if len(reply)>65536:raise RuntimeError('Oversized QEMU monitor reply')
+    return reply.decode(errors='replace')
 
 
 if __name__ == '__main__':
