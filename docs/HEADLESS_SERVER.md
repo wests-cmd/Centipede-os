@@ -45,3 +45,30 @@ internal disk and confirm the intended erase target. Complete the separate disk
 installation gate, then boot with the USB removed. Only after that verification
 should this machine be treated as a persistent Kingdom server. See
 `DISK_INSTALLATION_GUIDE.md` and `SHIP_REALITY_MATRIX.md` for remaining gates.
+
+## Persistent installation blocker and next bounded task
+
+The existing permanent installer is graphical Calamares. This live server
+profile deliberately does not start a display manager, and key-only SSH access
+does not by itself make Calamares a supported headless installer. Therefore a
+headless OptiPlex cannot yet be declared permanently installed from this image.
+
+Implement a separate SSH-driven offline BIOS installer first. It should inspect
+the live source and available disks, produce a reviewable plan naming the target
+by serial, size and path, and require a matching explicit confirmation before
+any erase. Reject the boot medium, the root disk, ambiguous identity and mounted
+targets. Copy the verified live system to the selected target, configure an
+installed-system server bootstrap (the current one requires live media), install
+the legacy BIOS bootloader, and preserve the owner's public key. Persistent
+SSH host keys must be generated for the installed machine, not copied from CI.
+
+Acceptance must run only against disposable QEMU image files: boot the live
+candidate, install to a blank target with a second sentinel disk attached, shut
+down, detach the ISO entirely, and boot solely from the installed target. Verify
+owner-key login, reject an unrelated key, verify the source image and unselected
+sentinel are unchanged, and test refusal of wrong serial, wrong size and source
+disk selections before writes. Save command results, disk identities and boot
+receipts. A passing live-boot smoke is not a substitute for this gate. Physical
+installation remains blocked until this installer and the intended OptiPlex disk
+identity are verified. A temporary display and Calamares remain an alternative;
+an untested X-forwarded session is not an unattended headless installation path.
