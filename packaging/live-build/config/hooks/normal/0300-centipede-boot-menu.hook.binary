@@ -118,3 +118,6 @@ if grep -RqiE '^[[:space:]]*(UI[[:space:]]+gfxboot|gfxboot[[:space:]])' "$ISOLIN
   echo 'The distro gfxboot splash still overrides Centipede boot artwork.' >&2
   exit 1
 fi
+if [ "$(cat ../config/includes.chroot/etc/centipede/build-profile 2>/dev/null || true)" = server ]; then
+  python3 ../config/includes.chroot/usr/local/libexec/centipede-server-bootstrap.py --configure-boot-menu .
+fi

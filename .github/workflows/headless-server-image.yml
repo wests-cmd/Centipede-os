@@ -1,0 +1,57 @@
+name: Centipede headless server candidate
+on:
+  push:
+    branches: ['server/headless-*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m unittest discover -s tests/headless_server -v
+  image:
+    needs: validate
+    if: vars.CENTIPEDE_SERVER_PUBLIC_KEY != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      OWNER_PUBLIC_KEY: ${{ vars.CENTIPEDE_SERVER_PUBLIC_KEY }}
+      OWNER_ADMIN: ${{ vars.CENTIPEDE_SERVER_ADMIN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install image tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ca-certificates curl debootstrap debian-archive-keyring qemu-utils qemu-system-x86 ovmf file unzip
+          curl --fail --silent --show-error --location https://deb.debian.org/debian/pool/main/l/live-build/live-build_20230502_all.deb --output "$RUNNER_TEMP/live-build.deb"
+          sudo apt-get install -y "$RUNNER_TEMP/live-build.deb"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Prepare owner public-key seed
+        run: |
+          python3 - <<'PY'
+          import json,os,pathlib
+          data={'version':1,'public_key':os.environ['OWNER_PUBLIC_KEY'],'network':'direct','hostname':'centipede-server','admin':os.environ.get('OWNER_ADMIN')=='true'}
+          pathlib.Path(os.environ['RUNNER_TEMP'],'server-seed.json').write_text(json.dumps(data))
+          PY
+      - name: Build owner-specific headless candidate (not a public release)
+        run: sudo -E env CENTIPEDE_BUILD_PROFILE=server CENTIPEDE_SERVER_SEED="$RUNNER_TEMP/server-seed.json" bash scripts/build-live-image.sh
+      - name: Check BIOS boot and actual SSH listener without writing target disks
+        run: |
+          sudo chown -R "$(id -u):$(id -g)" release
+          python3 scripts/qemu-headless-server-smoke.py release/iso/*-server-x86_64.iso --output release/server-proof
+      - name: Hash candidate
+        run: |
+          sha256sum release/iso/*-server-x86_64.iso > release/server-proof/image.sha256
+          printf '%s\n' "$GITHUB_SHA" > release/server-proof/source-commit.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: centipede-server-candidate-${{ github.sha }}
+          path: |
+            release/iso/*-server-x86_64.iso
+            release/server-proof
+          retention-days: 7
