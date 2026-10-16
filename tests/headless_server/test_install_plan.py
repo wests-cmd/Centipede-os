@@ -26,9 +26,16 @@ def plan(first=None,second=None):
 class InstallPlanTests(unittest.TestCase):
     def test_real_inventory_requests_tree_even_without_name_column(self):
         values=fixture()
-        with patch.object(module.sys,'platform','linux'),patch.object(module.os.path,'realpath',side_effect=lambda path:path),patch.object(module,'command',side_effect=[{'blockdevices':values['blockdevices']},{'filesystems':[{'source':'/dev/sdb1','target':'/run/live/medium'}]},{'swapdevices':[]}]) as command:
+        with patch.object(module.sys,'platform','linux'),patch.object(module.os.path,'realpath',side_effect=lambda path:path),patch.object(module.Path,'read_text',return_value='Filename Type Size Used Priority\n'),patch.object(module,'command',side_effect=[{'blockdevices':values['blockdevices']},{'filesystems':[{'source':'/dev/sdb1','target':'/run/live/medium'}]}]) as command:
             self.assertEqual(module.collect(),values)
         self.assertIn('--tree',command.call_args_list[0].args)
+
+    def test_swap_inventory_uses_kernel_format_without_unsupported_swapon_json(self):
+        with patch.object(module.os.path,'realpath',side_effect=lambda path:path):
+            self.assertEqual(module.parse_swaps('Filename Type Size Used Priority\n'),[])
+            self.assertEqual(module.parse_swaps('Filename Type Size Used Priority\n/dev/vda2 partition 1024 0 -2\n/swap\\040file file 2048 10 -3\n'),['/dev/vda2','/swap file'])
+        for text in ['', 'unexpected header\n', 'Filename Type Size Used Priority\n/dev/vda2 malformed\n']:
+            with self.assertRaises(ValueError):module.parse_swaps(text)
 
     def test_unused_exact_target_can_be_planned_and_confirmation_never_installs(self):
         value=plan()

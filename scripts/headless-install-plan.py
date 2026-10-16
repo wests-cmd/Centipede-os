@@ -24,13 +24,30 @@ def command(*arguments):
     return json.loads(result.stdout)
 
 
+def parse_swaps(text):
+    lines=text.splitlines()
+    if not lines or lines[0].split()!=['Filename','Type','Size','Used','Priority']:
+        raise ValueError('Kernel swap inventory header is missing')
+    paths=[]
+    for line in lines[1:]:
+        if not line.strip():continue
+        fields=line.split()
+        if len(fields)!=5 or fields[1] not in {'file','partition'}:
+            raise ValueError('Malformed kernel swap inventory')
+        for number in fields[2:]:int(number)
+        path=re.sub(r'\\([0-7]{3})',lambda match:chr(int(match.group(1),8)),fields[0])
+        if not path.startswith('/'):raise ValueError('Swap path is not absolute')
+        paths.append(os.path.realpath(path))
+    return sorted(paths)
+
+
 def collect():
     if sys.platform != 'linux':
         raise ValueError('Inventory requires the actual Linux live environment')
     data = command('lsblk', '--json', '--tree', '--bytes', '--output',
                    'PATH,TYPE,SIZE,SERIAL,WWN,RO,MOUNTPOINTS,FSTYPE,UUID,TRAN')
     medium = command('findmnt', '--json', '--evaluate', '--target', '/run/live/medium', '--output', 'SOURCE,TARGET')
-    swaps = command('swapon', '--show', '--json', '--output', 'NAME')
+    swaps = parse_swaps(Path('/proc/swaps').read_text())
     # Canonicalize all actual device paths consistently, including mapper aliases.
     def normalize(nodes):
         for node in nodes:
@@ -45,7 +62,7 @@ def collect():
         raise ValueError('Live boot source must resolve to a local block device')
     return {'version': VERSION, 'blockdevices': data['blockdevices'],
             'live_source': os.path.realpath(source),
-            'swaps': sorted(os.path.realpath(item['name']) for item in swaps.get('swapdevices', []))}
+            'swaps': swaps}
 
 
 def descendants(node):

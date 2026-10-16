@@ -1,7 +1,7 @@
 # Read-only permanent installation planning
 
 `python3 scripts/headless-install-plan.py inventory` runs only Linux storage
-queries (`lsblk`, `findmnt`, `swapon`). Run it through the owner's verified SSH
+queries (`lsblk`, `findmnt`, and the kernel's `/proc/swaps`). Run it through the owner's verified SSH
 connection after booting the headless live USB. Do not depend on the corrupted
 Linux installation. This tool contains no formatting, partitioning, bootloader
 installation, system copying or other disk execution code.
