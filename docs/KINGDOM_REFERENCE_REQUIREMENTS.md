@@ -1,5 +1,19 @@
 # Centipede requirements from the owner's architecture references
 
+## Installed integration update
+
+The installed Centipede host now runs the shared Kingdom request service,
+portable project memory, optional browser voice controls and durable schedules.
+The receiving-payment adapter is optional and disconnected until an owner
+links credentials. Separate installed Kingdoms passed signed peer restart and
+remote analysis acceptance through an owner relay. Kingdom's matching delivery
+record is docs/SHARED_PLATFORM_DELIVERY.md. These are service updates, not a
+reason to rewrite the installed OS disk. Generic offline deployment remains
+owner-pinned and keeps credentials and machine addresses out of the package.
+
+External connectors still need adoption of the shared request contract;
+merchant checkout/OAuth and direct peer networking remain separate gates.
+
 The five October 16, 2026 screenshots describe one shared assistant backend,
 multiple interfaces, tiered routing, portable memory and background automation.
 They are references, not installation instructions or proof of implementation.
