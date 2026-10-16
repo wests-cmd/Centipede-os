@@ -83,3 +83,20 @@ rejects. Obtain the actual desktop inventory first; do not silently bypass that
 refusal or disable swap on an unidentified disk. A separately reviewed migration
 policy and exact erase confirmation are required before expanding beyond the
 disposable QEMU executor. The current executor always refuses the OptiPlex DMI.
+
+## Separately reviewed inactive-swap migration plans
+
+The default planner remains conservative. `migration-plan` is a separate,
+read-only mode: it requires a bounded policy JSON and an explicit policy-digest
+review string before producing its own immutable plan and confirmation. The
+policy binds exact target path/serial/size/WWN, machine vendor/product, source USB
+serial, the exact inactive swap path and UUID, whole-disk erase scope, source
+squashfs/public-key digests and required partition-metadata/prefix/tail backup.
+Active swap, mounted targets, unknown/new swap entries, stale identity and source
+USB mismatch always fail. Review-plan confirmation still authorizes no write.
+
+Keep each owner's real hardware policy and public-key digest outside the public
+repository. Metadata backup is not a full file backup and cannot recover erased
+file contents. A physical executor and its final reviewed erase plan must report
+full-backup feasibility and the actual metadata backup receipt before writes.
+The current VM-only executor cannot accept or execute this migration plan.

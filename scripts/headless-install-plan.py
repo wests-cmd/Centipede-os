@@ -77,7 +77,7 @@ def disks(inventory):
     return [node for node in inventory['blockdevices'] if node.get('type') == 'disk']
 
 
-def validate_target(inventory, path, serial, size):
+def validate_target(inventory, path, serial, size, permitted_inactive_swap=None):
     if not re.fullmatch(r'/dev/[A-Za-z0-9._/-]+', path) or '/..' in path:
         raise ValueError('Use the exact inventory device path')
     if not isinstance(serial, str) or not serial.strip() or serial != serial.strip() or len(serial) > 128 or any(ord(c) < 32 for c in serial):
@@ -117,8 +117,12 @@ def validate_target(inventory, path, serial, size):
             raise ValueError('Mounted state is unknown')
         if any(mount for mount in mounts):
             raise ValueError('Target or descendant is mounted, including root')
-        if node.get('path') in swaps or node.get('fstype') == 'swap':
-            raise ValueError('Target has active or existing swap; review it separately')
+        if node.get('path') in swaps:
+            raise ValueError('Target has active swap; it cannot be selected')
+        if node.get('fstype') == 'swap':
+            permitted=permitted_inactive_swap or {}
+            if node.get('type')!='part' or node.get('path') not in permitted or node.get('uuid')!=permitted[node['path']]:
+                raise ValueError('Target has existing swap; review its exact inactive UUID separately')
     return {'path': path, 'serial': serial, 'size': size, 'wwn': target.get('wwn')}
 
 
@@ -164,6 +168,73 @@ def confirm(plan, inventory, text):
             'installation_performed': False, 'disk_executor_available': False}
 
 
+def validate_migration_policy(policy):
+    expected={'version','target','machine','source_disk_serial','inactive_swap','erase_all_existing_partitions',
+              'backup_requirement','source_squashfs_sha256','owner_public_key_sha256'}
+    if not isinstance(policy,dict) or set(policy)!=expected or type(policy['version']) is not int or policy['version']!=1:
+        raise ValueError('Unsupported migration policy schema')
+    if policy['erase_all_existing_partitions'] is not True or policy['backup_requirement']!='partition-metadata-and-prefix-tail':
+        raise ValueError('Migration requires explicit whole-disk erase scope and metadata backup')
+    if not isinstance(policy['target'],dict) or set(policy['target'])!={'path','serial','size','wwn'}:
+        raise ValueError('Migration target must bind path, serial, size and WWN')
+    for value in [policy['target']['wwn'],policy['source_disk_serial']]:
+        if not isinstance(value,str) or not value or value!=value.strip() or len(value)>128:raise ValueError('Nonempty exact source serial and target WWN required')
+    if not isinstance(policy['machine'],dict) or set(policy['machine'])!={'vendor','product'}:
+        raise ValueError('Migration must identify exact machine vendor and product')
+    if any(not isinstance(value,str) or not value.strip() or len(value)>128 for value in policy['machine'].values()):
+        raise ValueError('Invalid machine identity')
+    for key in ('source_squashfs_sha256','owner_public_key_sha256'):
+        if not isinstance(policy[key],str) or not re.fullmatch('[0-9a-f]{64}',policy[key]):raise ValueError('Migration requires exact source and owner public-key digests')
+    swaps=policy['inactive_swap']
+    if not isinstance(swaps,list) or len(swaps)>4:raise ValueError('Bounded explicit inactive swap policy required')
+    allowed={}
+    for swap in swaps:
+        if not isinstance(swap,dict) or set(swap)!={'path','uuid'} or not isinstance(swap['path'],str) or not swap['path'].startswith('/dev/'):
+            raise ValueError('Inactive swap entries must identify path and UUID')
+        if not isinstance(swap['uuid'],str) or not re.fullmatch('[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}',swap['uuid']):
+            raise ValueError('Inactive swap UUID is invalid')
+        if swap['path'] in allowed:raise ValueError('Duplicate inactive swap entry')
+        allowed[swap['path']]=swap['uuid']
+    return allowed
+
+
+def make_migration_plan(first,second,policy,policy_confirmation):
+    allowed=validate_migration_policy(policy)
+    policy_digest=fingerprint(policy)
+    if policy_confirmation!='REVIEW CENTIPEDE MIGRATION '+policy_digest:
+        raise ValueError('Migration policy requires separate exact digest review')
+    target=policy['target']
+    for inventory in (first,second):
+        identity=validate_target(inventory,target['path'],target['serial'],target['size'],allowed)
+        if identity!=target:raise ValueError('Migration target identity differs from reviewed policy')
+        source=[disk for disk in disks(inventory) if any(node.get('path')==inventory['live_source'] for node in descendants(disk))]
+        if len(source)!=1 or source[0].get('serial')!=policy['source_disk_serial']:
+            raise ValueError('Live source USB identity differs from migration policy')
+        existing={node['path']:node.get('uuid') for node in descendants(next(disk for disk in disks(inventory) if disk['path']==target['path'])) if node.get('fstype')=='swap'}
+        if existing!=allowed:raise ValueError('Inactive swap layout differs from reviewed policy')
+    if fingerprint(first)!=fingerprint(second):raise ValueError('Storage state changed while planning migration')
+    payload={'version':1,'mode':'review-only-migration-no-installation','target':target,'inventory':first,
+             'inventory_sha256':fingerprint(first),'review_policy':policy,'review_policy_sha256':policy_digest,
+             'implementation_status':'physical-executor-not-authorized-by-plan'}
+    value=fingerprint(payload)
+    return {'payload':payload,'plan_sha256':value,
+            'confirmation':'CONFIRM CENTIPEDE MIGRATION '+target['serial']+' '+str(target['size'])+' '+value}
+
+
+def confirm_migration(plan,inventory,text):
+    if not isinstance(plan,dict) or set(plan)!={'payload','plan_sha256','confirmation'}:
+        raise ValueError('Unexpected migration plan structure')
+    payload=plan['payload']
+    if payload.get('mode')!='review-only-migration-no-installation' or fingerprint(payload)!=plan['plan_sha256']:
+        raise ValueError('Migration plan authority or digest changed')
+    policy=payload['review_policy']
+    rebuilt=make_migration_plan(inventory,inventory,policy,'REVIEW CENTIPEDE MIGRATION '+fingerprint(policy))
+    if rebuilt!=plan or text!=rebuilt['confirmation']:
+        raise ValueError('Migration confirmation, policy or storage state changed')
+    return {'phase':'migration-confirmed-for-review-only','plan_sha256':plan['plan_sha256'],
+            'installation_performed':False,'physical_execution_authorized':False}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest='action', required=True)
@@ -176,6 +247,10 @@ def main():
     review = commands.add_parser('confirm-review')
     review.add_argument('--plan', required=True, type=Path)
     review.add_argument('--confirmation', required=True)
+    migration=commands.add_parser('migration-plan')
+    migration.add_argument('--policy',required=True,type=Path)
+    migration.add_argument('--policy-confirmation',required=True)
+    migration.add_argument('--output',required=True,type=Path)
     args = parser.parse_args()
     if args.action == 'inventory':
         print(json.dumps(collect(), indent=2))
@@ -184,10 +259,18 @@ def main():
         write_plan(args.output, result)
         print(json.dumps({'phase': 'review-only-plan-created', 'plan': str(args.output),
                           'plan_sha256': result['plan_sha256'], 'installation_performed': False}))
+    elif args.action=='migration-plan':
+        if args.policy.is_symlink() or not args.policy.is_file() or args.policy.stat().st_size>16384:
+            raise ValueError('Expected bounded regular reviewed policy file')
+        policy=json.loads(args.policy.read_text())
+        result=make_migration_plan(collect(),collect(),policy,args.policy_confirmation)
+        write_plan(args.output,result)
+        print(json.dumps({'phase':'migration-review-plan-created','plan':str(args.output),'plan_sha256':result['plan_sha256'],'installation_performed':False}))
     else:
         if args.plan.is_symlink() or not args.plan.is_file() or args.plan.stat().st_size > 1024 * 1024:
             raise ValueError('Expected a bounded regular plan file')
-        result = confirm(json.loads(args.plan.read_text()), collect(), args.confirmation)
+        value=json.loads(args.plan.read_text())
+        result = (confirm_migration if value.get('payload',{}).get('mode')=='review-only-migration-no-installation' else confirm)(value, collect(), args.confirmation)
         print(json.dumps(result))
 
 
