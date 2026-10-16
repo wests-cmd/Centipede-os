@@ -5,6 +5,7 @@ from contextlib import contextmanager
 import hashlib
 import importlib.util
 import json
+import os
 import re
 from pathlib import Path
 import shlex
@@ -112,7 +113,11 @@ def main():
     parser.add_argument('image',type=Path);parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=True)
     proof=args.output.resolve();report={'status':'failed','physical_disk_writes':False,
-        'owner_physical_key_login_verified':False,'base_source_commit':SOURCE_COMMIT}
+        'owner_physical_key_login_verified':False,'base_source_commit':SOURCE_COMMIT,
+        'tested_source_commit':os.environ.get('GITHUB_SHA'),
+        'shared_executor_sha256':smoke.digest(ROOT/'scripts/qemu-offline-install.py'),
+        'planner_sha256':smoke.digest(ROOT/'scripts/headless-install-plan.py'),
+        'bootstrap_sha256':smoke.digest(ROOT/'packaging/live-build/config/includes.chroot/usr/local/libexec/centipede-server-bootstrap.py')}
     process=None
     @contextmanager
     def workspace():
@@ -148,6 +153,7 @@ def main():
             squash=temp/'filesystem.squashfs'
             run('xorriso','-osirrox','on','-indev',str(test_iso),'-extract','/live/filesystem.squashfs',str(squash),timeout=600)
             squash_hash=smoke.digest(squash);squash.unlink()
+            report['source_squashfs_sha256']=squash_hash
             target=temp/'target.raw';sentinel=temp/'sentinel.raw'
             with target.open('wb') as file:file.truncate(16*1024**3)
             with sentinel.open('wb') as file:file.write(b'UNSELECTED CENTIPEDE SENTINEL\n');file.truncate(64*1024**2)
@@ -197,6 +203,8 @@ def main():
                 process=boot(None,target,sentinel,installed/'serial.log',temp/'installed-monitor.sock',log)
                 receipt,ssh,options,port=connect(process,installed/'serial.log',temp/'installed-monitor.sock',key,temp/'known-installed',installed)
                 if receipt.get('boot_mode')!='installed':raise ValueError('Target boot still reports live mode')
+                if receipt['host_key_sha256']!=execution['installed_host_key_sha256']:
+                    raise ValueError('Installed host key differs from pre-reboot installer receipt')
                 if receipt['host_key_sha256']==json.loads((live/'boot-receipt.json').read_text())['host_key_sha256']:
                     raise ValueError('Installed host reused ephemeral live host key')
                 actual_root=ssh('findmnt -n -o SOURCE /')
