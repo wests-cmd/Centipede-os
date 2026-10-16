@@ -36,6 +36,12 @@ def headless_shutdown_config(text):
     return '\n'.join(updated)+'\n',count
 
 
+def write_test_boot_config(path,content):
+    if path.is_symlink() or not path.is_file():raise ValueError('Expected regular extracted BIOS configuration')
+    path.chmod(path.stat().st_mode|0o200)
+    path.write_text(content)
+
+
 def wait_receipt(process,serial,timeout=600):
     deadline=time.monotonic()+timeout
     while time.monotonic()<deadline:
@@ -126,13 +132,14 @@ def main():
             test_iso=temp/'ephemeral-test.iso'
             menu=temp/'isolinux'
             run('xorriso','-osirrox','on','-indev',str(args.image.resolve()),'-extract','/isolinux',str(menu),timeout=120)
+            menu.chmod(menu.stat().st_mode|0o700)
             image_command=['xorriso','-indev',str(args.image.resolve()),'-outdev',str(test_iso),'-boot_image','any','replay',
                            '-map',str(seed),'/centipede-server.json']
             entries=0
             for config in menu.glob('*.cfg'):
                 content,count=headless_shutdown_config(config.read_text())
                 if count:
-                    config.write_text(content);entries+=count
+                    write_test_boot_config(config,content);entries+=count
                     image_command+=['-map',str(config),'/isolinux/'+config.name]
             if not entries:raise ValueError('No server BIOS boot entry available for noninteractive shutdown')
             run(*image_command,'-commit',timeout=600)

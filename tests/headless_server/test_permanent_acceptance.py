@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import unittest
+import tempfile
 from unittest.mock import patch
 
 spec=importlib.util.spec_from_file_location('acceptance',Path(__file__).resolve().parents[2]/'scripts/qemu-permanent-server-acceptance.py')
@@ -8,6 +9,11 @@ acceptance=importlib.util.module_from_spec(spec);spec.loader.exec_module(accepta
 
 
 class AcceptanceTests(unittest.TestCase):
+    def test_extracted_readonly_iso_config_can_be_edited_only_in_test_copy(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config=Path(directory)/'live.cfg';config.write_text('append old\n');config.chmod(0o444)
+            acceptance.write_test_boot_config(config,'append test noprompt noeject\n')
+            self.assertEqual(config.read_text(),'append test noprompt noeject\n')
     def test_headless_shutdown_flags_only_modify_server_append_entries(self):
         original='label live\n append boot=live centipede.server=1\nlabel desktop\n append boot=live\n'
         updated,count=acceptance.headless_shutdown_config(original)
