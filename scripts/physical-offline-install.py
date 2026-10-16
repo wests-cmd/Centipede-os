@@ -74,16 +74,19 @@ def main():
     proof=json.loads(args.proof.read_text());approval=json.loads(args.approval.read_text())
     metadata=json.loads(args.metadata.read_text())
     bootstrap=offline.ROOT/'packaging/live-build/config/includes.chroot/usr/local/libexec/centipede-server-bootstrap.py'
-    seed=json.loads(Path('/run/live/medium/centipede-server.json').read_text())
-    if seed.get('admin') is not True:raise PermissionError('Explicit owner administrator seed required')
-    key=' '.join(seed['public_key'].strip().split()[:2])
     bindings={'shared_executor_sha256':offline.digest(Path(offline.__file__)),
+              'physical_executor_sha256':offline.digest(Path(__file__)),
               'planner_sha256':offline.digest(Path(planner.__file__)),
               'bootstrap_sha256':offline.digest(bootstrap),'vm_proof_sha256':offline.digest(args.proof),
               'metadata_receipt_sha256':offline.digest(args.metadata)}
     def authorize(*values):
         if 'centipede.server=1' not in Path('/proc/cmdline').read_text().split():
             raise PermissionError('Requires headless live recovery environment')
+        seed_path=Path('/run/live/medium/centipede-server.json')
+        if seed_path.is_symlink():raise PermissionError('Owner seed must be a regular file')
+        seed=json.loads(seed_path.read_text())
+        if seed.get('admin') is not True:raise PermissionError('Explicit owner administrator seed required')
+        key=' '.join(seed['public_key'].strip().split()[:2])
         target=gates(*values,proof,approval,bindings,hashlib.sha256(key.encode()).hexdigest())
         metadata_check(target,metadata,args.metadata.parent)
         return target
