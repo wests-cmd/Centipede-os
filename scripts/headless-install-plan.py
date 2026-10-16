@@ -27,7 +27,7 @@ def command(*arguments):
 def collect():
     if sys.platform != 'linux':
         raise ValueError('Inventory requires the actual Linux live environment')
-    data = command('lsblk', '--json', '--bytes', '--output',
+    data = command('lsblk', '--json', '--tree', '--bytes', '--output',
                    'PATH,TYPE,SIZE,SERIAL,WWN,RO,MOUNTPOINTS,FSTYPE,UUID,TRAN')
     medium = command('findmnt', '--json', '--evaluate', '--target', '/run/live/medium', '--output', 'SOURCE,TARGET')
     swaps = command('swapon', '--show', '--json', '--output', 'NAME')

@@ -47,3 +47,32 @@ Also prove wrong serial/size, source selection, ambiguous identity, mounted/swap
 targets, stale plans and hot-swapped identity all fail before any write. Save
 actual command/tool results and boot receipts. Current live SSH CI and these
 fixture tests do not satisfy that permanent installation gate.
+
+## Experimental disposable VM executor
+
+`scripts/qemu-offline-install.py` is an experimental executor for the acceptance
+environment only. It refuses physical-machine DMI, non-root callers and every
+target except a 16 GiB QEMU disk with serial `CENTIPEDE-VM-TARGET`. It requires
+the reviewed plan confirmation, a second execution confirmation binding the plan
+and source squashfs hash, and fresh storage checks before the first write. It
+contains no switch to enable physical hardware installation.
+
+The offline path partitions that disposable disk, unpacks the live squashfs,
+installs BIOS GRUB and a persistent root UUID, and stages an installed server
+bootstrap which rejects reliance on mounted live media. It copies only the
+public seed, removes host keys and machine identity, retains key-only SSH, and
+leaves a receipt explicitly awaiting independent boot proof. It has not yet been
+executed in a VM, so none of these actions is claimed to have succeeded.
+
+The next CI acceptance harness must generate an ephemeral test key locally on
+the CI runner and replace only the public seed in a separate test ISO using
+xorriso boot-image replay. Preserve the verified owner ISO unchanged. Boot the
+test ISO with a 16 GiB target (`serial=CENTIPEDE-VM-TARGET`) and a second sentinel
+disk, verify the SSH host key against serial output, and use the ephemeral key
+for positive SSH. Stage this reviewed source, collect/confirm the plan, and run
+the VM-only executor. Shut down, detach the test ISO, boot the target alone, and
+require installed-mode receipt plus positive key login, wrong-key denial and
+unchanged sentinel/source. Save the actual executor receipt and both boot logs.
+Never upload the ephemeral private key or reinterpret this VM gate as physical
+OptiPlex compatibility. The current owner ISO remains the proven live recovery
+candidate until this additional acceptance passes.
