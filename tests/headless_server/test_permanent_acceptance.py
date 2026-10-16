@@ -14,6 +14,9 @@ class AcceptanceTests(unittest.TestCase):
         command=launch.call_args.args[0]
         self.assertNotIn('-cdrom',command)
         self.assertIn('order=c',command)
+        self.assertIn('tcg,thread=multi',command)
+        self.assertEqual(command[command.index('-smp')+1],'4')
+        self.assertEqual(command[command.index('-m')+1],'4096')
         self.assertIn('file='+str(Path('/tmp/test-target.raw'))+',format=raw,if=none,id=target',command)
         self.assertIn('virtio-blk-pci,drive=target,serial=CENTIPEDE-VM-TARGET',command)
         self.assertFalse(any(value.startswith('/dev/') for value in command))

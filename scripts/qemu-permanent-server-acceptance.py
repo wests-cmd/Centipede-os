@@ -69,7 +69,7 @@ def connect(process,serial,monitor,key,known,proof):
 
 
 def boot(image,target,sentinel,serial,monitor,log):
-    command=['qemu-system-x86_64','-machine','pc,accel=tcg','-m','3072','-display','none',
+    command=['qemu-system-x86_64','-machine','pc','-accel','tcg,thread=multi','-smp','4','-m','4096','-display','none',
              '-serial','file:'+str(serial),'-monitor','unix:'+str(monitor)+',server=on,wait=off',
              '-drive','file='+str(target)+',format=raw,if=none,id=target',
              '-device','virtio-blk-pci,drive=target,serial=CENTIPEDE-VM-TARGET',

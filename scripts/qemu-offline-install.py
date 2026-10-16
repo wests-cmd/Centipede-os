@@ -12,6 +12,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+import time
 
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('plan',Path(__file__).with_name('headless-install-plan.py'))
@@ -85,16 +86,30 @@ def install(args):
     if not seed.is_file() or seed.is_symlink():raise ValueError('Owner public seed missing')
     subprocess.run(['python3',str(sources['usr/local/libexec/centipede-server-bootstrap.py']),'--validate-seed',str(seed)],check=True,capture_output=True,text=True,timeout=30)
     receipt={'phase':'starting-disposable-vm-install','installation_complete':False,'target':target,'source_sha256':args.source_sha256,'commands':[]}
+    def save():
+        temporary=args.receipt.with_suffix('.partial')
+        temporary.write_text(json.dumps(receipt,indent=2)+'\n');temporary.replace(args.receipt)
+    def tail(value):
+        return (value.decode(errors='replace') if isinstance(value,bytes) else value or '')[-8000:]
     def run(*command,input=None):
+        started=time.monotonic()
         try:result=subprocess.run(command,input=input,text=True,capture_output=True,check=True,timeout=600)
         except subprocess.CalledProcessError as error:
-            receipt['commands'].append({'argv':list(command),'exit_code':error.returncode,'stderr':(error.stderr or '')[-8000:]})
+            receipt['commands'].append({'argv':list(command),'exit_code':error.returncode,'stderr':tail(error.stderr),'elapsed_seconds':time.monotonic()-started})
+            save()
             raise
-        receipt['commands'].append({'argv':list(command),'exit_code':result.returncode})
+        except subprocess.TimeoutExpired as error:
+            receipt['commands'].append({'argv':list(command),'exit_code':None,'timeout_seconds':600,
+                'stdout_tail':tail(error.stdout),'stderr_tail':tail(error.stderr),'elapsed_seconds':time.monotonic()-started})
+            save()
+            raise
+        receipt['commands'].append({'argv':list(command),'exit_code':result.returncode,'elapsed_seconds':time.monotonic()-started})
+        save()
         return result.stdout.strip()
     # Re-observe immediately before the first destructive tool. Guards cannot be
     # disabled from the CLI, and the source disk remains excluded by the plan.
     guard(plan,planner.collect(),args.review_confirmation,args.execution_confirmation,args.source_sha256,vendor,product,os.geteuid())
+    save()
     device=target['path'];partition=partition_path(device)
     try:
         run('sfdisk',device,input='label: dos\nunit: sectors\n\nstart=2048,type=83,bootable\n')
@@ -141,7 +156,7 @@ def install(args):
         receipt['error']=str(error)
         raise
     finally:
-        args.receipt.write_text(json.dumps(receipt,indent=2)+'\n')
+        save()
 
 
 if __name__=='__main__':
