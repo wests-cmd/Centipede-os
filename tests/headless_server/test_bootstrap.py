@@ -18,6 +18,14 @@ def seed(**changes):
 
 
 class SeedTests(unittest.TestCase):
+    def test_hostname_resolution_preserves_localhost_and_existing_aliases(self):
+        original='127.0.0.1 localhost\n127.0.1.1 centipede alias # local host\n::1 localhost ip6-localhost\n'
+        updated=bootstrap.hosts_profile(original,'centipede-server')
+        self.assertIn('127.0.1.1\tcentipede-server centipede alias # local host',updated)
+        self.assertIn('127.0.0.1 localhost',updated);self.assertIn('::1 localhost ip6-localhost',updated)
+        self.assertEqual(bootstrap.hosts_profile(updated,'centipede-server'),updated)
+        self.assertIn('127.0.1.1\tcentipede-server\n',bootstrap.hosts_profile('127.0.0.1 localhost\n','centipede-server'))
+
     def test_public_key_only_and_admin_requires_explicit_opt_in(self):
         self.assertFalse(bootstrap.validate_seed(seed())['admin'])
         self.assertTrue(bootstrap.validate_seed(seed(admin=True))['admin'])

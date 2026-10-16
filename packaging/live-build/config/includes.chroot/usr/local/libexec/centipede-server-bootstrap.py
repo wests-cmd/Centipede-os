@@ -54,6 +54,18 @@ def network_profile(seed):
         '[ipv6]\nmethod=link-local\nnever-default=true\n')
 
 
+def hosts_profile(text,hostname):
+    lines=text.splitlines();updated=False
+    for index,line in enumerate(lines):
+        body,separator,comment=line.partition('#');fields=body.split()
+        if fields and fields[0]=='127.0.1.1' and not updated:
+            aliases=[value for value in fields[1:] if value!=hostname]
+            lines[index]='127.0.1.1\t'+' '.join([hostname]+aliases)+(' #'+comment if separator else '')
+            updated=True
+    if not updated:lines.append('127.0.1.1\t'+hostname)
+    return '\n'.join(lines)+'\n'
+
+
 def network_ready(seed,addresses):
     for interface in addresses:
         if interface.get('ifname')=='lo':continue
@@ -118,6 +130,7 @@ def provision(seed,installed=False):
         write('/etc/sudoers.d/centipede-server-admin',USER+' ALL=(ALL:ALL) NOPASSWD: ALL\n',0o440)
         run('visudo','-c','-f','/etc/sudoers.d/centipede-server-admin')
     run('hostnamectl','set-hostname',seed['hostname'])
+    write('/etc/hosts',hosts_profile(Path('/etc/hosts').read_text(),seed['hostname']),0o644)
     profile=('/etc' if installed else '/run')+'/NetworkManager/system-connections/centipede-server.nmconnection'
     write(profile,network_profile(seed),0o600)
     run('nmcli','connection','load',profile)
