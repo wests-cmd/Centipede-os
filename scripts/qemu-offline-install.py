@@ -3,6 +3,7 @@
 This is not a production disk installer. It has no hardware execution mode.
 """
 import argparse
+from contextlib import contextmanager
 import hashlib
 import importlib.util
 import json
@@ -54,6 +55,16 @@ def installed_files(target,uuid):
             'etc/machine-id':''}
 
 
+@contextmanager
+def mount_workspace():
+    directory=Path(tempfile.mkdtemp(prefix='centipede-vm-root-'))
+    try:yield str(directory)
+    finally:
+        # Never recursively clean a directory which might still be mounted.
+        try:directory.rmdir()
+        except OSError:pass
+
+
 def install(args):
     plan=json.loads(args.plan.read_text())
     vendor=Path('/sys/class/dmi/id/sys_vendor').read_text()
@@ -72,6 +83,7 @@ def install(args):
     if any(not path.is_file() for path in sources.values()):raise ValueError('Trusted installed bootstrap templates missing')
     seed=Path('/run/live/medium/centipede-server.json')
     if not seed.is_file() or seed.is_symlink():raise ValueError('Owner public seed missing')
+    subprocess.run(['python3',str(sources['usr/local/libexec/centipede-server-bootstrap.py']),'--validate-seed',str(seed)],check=True,capture_output=True,text=True,timeout=30)
     receipt={'phase':'starting-disposable-vm-install','installation_complete':False,'target':target,'source_sha256':args.source_sha256,'commands':[]}
     def run(*command,input=None):
         result=subprocess.run(command,input=input,text=True,capture_output=True,check=True,timeout=600)
@@ -86,8 +98,9 @@ def install(args):
         run('udevadm','settle','--timeout=30')
         run('mkfs.ext4','-F','-L','CENTIPEDE_ROOT',partition)
         uuid=run('blkid','-s','UUID','-o','value',partition)
-        with tempfile.TemporaryDirectory(prefix='centipede-vm-root-') as directory:
+        with mount_workspace() as directory:
             mount=Path(directory);mounted=False
+            receipt['mountpoint']=str(mount)
             try:
                 run('mount','--',partition,str(mount));mounted=True
                 run('unsquashfs','-f','-d',str(mount),str(SOURCE))
@@ -112,7 +125,9 @@ def install(args):
                 run('grub-install','--target=i386-pc','--boot-directory='+str(mount/'boot'),'--recheck',device)
                 run('sync')
             finally:
-                if mounted:run('umount','--',str(mount))
+                if mounted:
+                    run('umount','--',str(mount))
+                    receipt['target_unmounted']=True
         if digest(SOURCE)!=args.source_sha256:raise ValueError('Live source changed during installation')
         receipt['phase']='installed-awaiting-independent-boot-proof'
         # This only records copying/bootloader execution. Installation completion

@@ -76,3 +76,10 @@ unchanged sentinel/source. Save the actual executor receipt and both boot logs.
 Never upload the ephemeral private key or reinterpret this VM gate as physical
 OptiPlex compatibility. The current owner ISO remains the proven live recovery
 candidate until this additional acceptance passes.
+
+Physical migration remains blocked even after a VM pass: the real corrupted
+Linux disk may contain an inactive swap partition, which current planning also
+rejects. Obtain the actual desktop inventory first; do not silently bypass that
+refusal or disable swap on an unidentified disk. A separately reviewed migration
+policy and exact erase confirmation are required before expanding beyond the
+disposable QEMU executor. The current executor always refuses the OptiPlex DMI.

@@ -3,6 +3,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 spec=importlib.util.spec_from_file_location('install_plan',Path(__file__).resolve().parents[2]/'scripts/headless-install-plan.py')
 module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
@@ -23,6 +24,12 @@ def plan(first=None,second=None):
 
 
 class InstallPlanTests(unittest.TestCase):
+    def test_real_inventory_requests_tree_even_without_name_column(self):
+        values=fixture()
+        with patch.object(module.sys,'platform','linux'),patch.object(module.os.path,'realpath',side_effect=lambda path:path),patch.object(module,'command',side_effect=[{'blockdevices':values['blockdevices']},{'filesystems':[{'source':'/dev/sdb1','target':'/run/live/medium'}]},{'swapdevices':[]}]) as command:
+            self.assertEqual(module.collect(),values)
+        self.assertIn('--tree',command.call_args_list[0].args)
+
     def test_unused_exact_target_can_be_planned_and_confirmation_never_installs(self):
         value=plan()
         result=module.confirm(value,fixture(),value['confirmation'])

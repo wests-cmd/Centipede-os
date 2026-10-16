@@ -2,6 +2,7 @@ import copy
 import importlib.util
 from pathlib import Path
 import unittest
+import tempfile
 from unittest.mock import patch
 from test_install_plan import fixture
 
@@ -20,6 +21,12 @@ def vm_plan():
 
 
 class DisposableInstallTests(unittest.TestCase):
+    def test_mount_cleanup_never_recursively_deletes_nonempty_or_mounted_root(self):
+        with vm.mount_workspace() as directory:
+            root=Path(directory);sentinel=root/'must-survive';sentinel.write_text('mounted-root-placeholder')
+        self.assertEqual(sentinel.read_text(),'mounted-root-placeholder')
+        sentinel.unlink();root.rmdir()
+
     def test_guard_is_read_only_and_accepts_only_exact_disposable_vm(self):
         inventory,plan=vm_plan();source='a'*64
         confirmation='INSTALL DISPOSABLE QEMU '+plan['plan_sha256']+' '+source
