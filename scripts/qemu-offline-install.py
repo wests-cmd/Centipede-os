@@ -86,7 +86,10 @@ def install(args):
     subprocess.run(['python3',str(sources['usr/local/libexec/centipede-server-bootstrap.py']),'--validate-seed',str(seed)],check=True,capture_output=True,text=True,timeout=30)
     receipt={'phase':'starting-disposable-vm-install','installation_complete':False,'target':target,'source_sha256':args.source_sha256,'commands':[]}
     def run(*command,input=None):
-        result=subprocess.run(command,input=input,text=True,capture_output=True,check=True,timeout=600)
+        try:result=subprocess.run(command,input=input,text=True,capture_output=True,check=True,timeout=600)
+        except subprocess.CalledProcessError as error:
+            receipt['commands'].append({'argv':list(command),'exit_code':error.returncode,'stderr':(error.stderr or '')[-8000:]})
+            raise
         receipt['commands'].append({'argv':list(command),'exit_code':result.returncode})
         return result.stdout.strip()
     # Re-observe immediately before the first destructive tool. Guards cannot be

@@ -177,6 +177,10 @@ def main():
                           installed_root=actual_root,base_image_sha256=EXPECTED,test_iso_sha256=test_hash)
     except Exception as error:
         report['error_type']=type(error).__name__;report['error']=str(error)
+        if isinstance(error,subprocess.CalledProcessError):
+            report['tool_exit_code']=error.returncode
+            report['tool_stdout']=(error.stdout or '')[-8000:]
+            report['tool_stderr']=(error.stderr or '')[-8000:]
         raise
     finally:
         stop(process)
