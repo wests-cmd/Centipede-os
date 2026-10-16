@@ -14,7 +14,8 @@ class AcceptanceTests(unittest.TestCase):
         command=launch.call_args.args[0]
         self.assertNotIn('-cdrom',command)
         self.assertIn('order=c',command)
-        self.assertIn('file='+str(Path('/tmp/test-target.raw'))+',format=raw,if=virtio,serial=CENTIPEDE-VM-TARGET',command)
+        self.assertIn('file='+str(Path('/tmp/test-target.raw'))+',format=raw,if=none,id=target',command)
+        self.assertIn('virtio-blk-pci,drive=target,serial=CENTIPEDE-VM-TARGET',command)
         self.assertFalse(any(value.startswith('/dev/') for value in command))
 
     def test_live_boot_is_explicit_and_does_not_use_host_disks(self):

@@ -64,8 +64,10 @@ def connect(process,serial,monitor,key,known,proof):
 def boot(image,target,sentinel,serial,monitor,log):
     command=['qemu-system-x86_64','-machine','pc,accel=tcg','-m','3072','-display','none',
              '-serial','file:'+str(serial),'-monitor','unix:'+str(monitor)+',server=on,wait=off',
-             '-drive','file='+str(target)+',format=raw,if=virtio,serial=CENTIPEDE-VM-TARGET',
-             '-drive','file='+str(sentinel)+',format=raw,if=virtio,serial=CENTIPEDE-VM-SAFE',
+             '-drive','file='+str(target)+',format=raw,if=none,id=target',
+             '-device','virtio-blk-pci,drive=target,serial=CENTIPEDE-VM-TARGET',
+             '-drive','file='+str(sentinel)+',format=raw,if=none,id=sentinel',
+             '-device','virtio-blk-pci,drive=sentinel,serial=CENTIPEDE-VM-SAFE',
              '-netdev','user,id=n0,net=169.254.0.0/16,host=169.254.1.1,dhcpstart=169.254.1.15',
              '-device','e1000,netdev=n0','-no-reboot']
     if image:command+=['-cdrom',str(image),'-boot','order=d']
