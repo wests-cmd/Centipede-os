@@ -8,6 +8,13 @@ acceptance=importlib.util.module_from_spec(spec);spec.loader.exec_module(accepta
 
 
 class AcceptanceTests(unittest.TestCase):
+    def test_headless_shutdown_flags_only_modify_server_append_entries(self):
+        original='label live\n append boot=live centipede.server=1\nlabel desktop\n append boot=live\n'
+        updated,count=acceptance.headless_shutdown_config(original)
+        self.assertEqual(count,1)
+        self.assertIn('centipede.server=1 noprompt noeject',updated)
+        self.assertIn('label desktop\n append boot=live\n',updated)
+        self.assertEqual(acceptance.headless_shutdown_config(updated)[0],updated)
     def test_second_boot_has_no_live_media_and_uses_disposable_image_paths(self):
         with patch.object(acceptance.subprocess,'Popen') as launch:
             acceptance.boot(None,Path('/tmp/test-target.raw'),Path('/tmp/test-sentinel.raw'),Path('/tmp/serial.log'),Path('/tmp/monitor.sock'),None)

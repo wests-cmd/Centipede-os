@@ -5,6 +5,7 @@ from contextlib import contextmanager
 import hashlib
 import importlib.util
 import json
+import re
 from pathlib import Path
 import shlex
 import socket
@@ -22,6 +23,17 @@ SOURCE_COMMIT='801315d801c3d4e77297510d4d27a014e39ac031'
 
 def run(*args,timeout=600):
     return subprocess.run(args,check=True,capture_output=True,text=True,timeout=timeout).stdout.strip()
+
+
+def headless_shutdown_config(text):
+    updated=[];count=0
+    for line in text.splitlines():
+        if re.match(r'\s*append\s+',line,re.I) and 'centipede.server=1' in line:
+            for flag in ('noprompt','noeject'):
+                if flag not in line.split():line+=' '+flag
+            count+=1
+        updated.append(line)
+    return '\n'.join(updated)+'\n',count
 
 
 def wait_receipt(process,serial,timeout=600):
@@ -112,8 +124,19 @@ def main():
             seed.write_text(json.dumps({'version':1,'public_key':key.with_suffix('.pub').read_text().strip(),
                 'network':'direct','hostname':'centipede-vm-test','admin':True}))
             test_iso=temp/'ephemeral-test.iso'
-            run('xorriso','-indev',str(args.image.resolve()),'-outdev',str(test_iso),'-boot_image','any','replay',
-                '-map',str(seed),'/centipede-server.json','-commit',timeout=600)
+            menu=temp/'isolinux'
+            run('xorriso','-osirrox','on','-indev',str(args.image.resolve()),'-extract','/isolinux',str(menu),timeout=120)
+            image_command=['xorriso','-indev',str(args.image.resolve()),'-outdev',str(test_iso),'-boot_image','any','replay',
+                           '-map',str(seed),'/centipede-server.json']
+            entries=0
+            for config in menu.glob('*.cfg'):
+                content,count=headless_shutdown_config(config.read_text())
+                if count:
+                    config.write_text(content);entries+=count
+                    image_command+=['-map',str(config),'/isolinux/'+config.name]
+            if not entries:raise ValueError('No server BIOS boot entry available for noninteractive shutdown')
+            run(*image_command,'-commit',timeout=600)
+            report['test_iso_customizations']=['ephemeral public seed','noprompt/noeject server shutdown arguments']
             test_hash=smoke.digest(test_iso)
             squash=temp/'filesystem.squashfs'
             run('xorriso','-osirrox','on','-indev',str(test_iso),'-extract','/live/filesystem.squashfs',str(squash),timeout=600)

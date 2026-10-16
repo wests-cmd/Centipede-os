@@ -25,7 +25,7 @@ if [ "$PROFILE" = server ]; then
   cp "$CENTIPEDE_SERVER_SEED" "$BUILD/config/includes.binary/centipede-server.json"
   printf '%s\n' server > "$BUILD/config/includes.chroot/etc/centipede/build-profile"
   printf '%s\n' openssh-server avahi-daemon python3-venv git sudo > "$BUILD/config/package-lists/centipede-server.list.chroot"
-  SERVER_FLAGS='centipede.server=1 systemd.unit=multi-user.target nomodeset noswap'
+  SERVER_FLAGS='centipede.server=1 systemd.unit=multi-user.target nomodeset noswap noprompt noeject'
 fi
 find "$BUILD/config" -type d -name __pycache__ -prune -exec rm -rf {} +
 find "$BUILD/config" -type f -name '*.py[co]' -delete
