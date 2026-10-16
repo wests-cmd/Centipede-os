@@ -34,6 +34,13 @@ class InstallPlanTests(unittest.TestCase):
         inventory=fixture();inventory['live_source']='/dev/sda1'
         with self.assertRaisesRegex(ValueError,'live boot source'):plan(inventory)
 
+    def test_disposable_qemu_optical_source_is_protected_without_blocking_blank_target(self):
+        inventory=fixture();inventory['live_source']='/dev/sr0'
+        inventory['blockdevices'].append({'path':'/dev/sr0','type':'rom','ro':True,'size':1711276032,'mountpoints':['/run/live/medium']})
+        self.assertEqual(plan(inventory)['payload']['target']['path'],'/dev/sda')
+        inventory['blockdevices'][-1]['type']='loop'
+        with self.assertRaisesRegex(ValueError,'source disk'):plan(inventory)
+
     def test_root_mounted_descendant_and_unknown_mount_state_fail_closed(self):
         for mounts in [['/'],['/mnt/data'],None]:
             inventory=fixture();inventory['blockdevices'][0]['children'][0]['mountpoints']=mounts

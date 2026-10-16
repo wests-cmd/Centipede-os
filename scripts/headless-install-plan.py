@@ -79,7 +79,10 @@ def validate_target(inventory, path, serial, size):
     if target.get('wwn') and len([disk for disk in candidates if disk.get('wwn') == target['wwn']]) != 1:
         raise ValueError('Disk WWN is ambiguous')
     source = inventory.get('live_source')
-    source_disks = [disk for disk in candidates if any(child.get('path') == source for child in descendants(disk))]
+    # QEMU's live ISO is optical media; physical USB boot is a whole disk.
+    # Unsupported loop/file-backed ancestry remains ineligible rather than guessed.
+    source_disks = [disk for disk in inventory['blockdevices'] if disk.get('type') in {'disk','rom'}
+                    and any(child.get('path') == source for child in descendants(disk))]
     if len(source_disks) != 1:
         raise ValueError('Live boot source disk cannot be uniquely protected')
     if source_disks[0]['path'] == path:
