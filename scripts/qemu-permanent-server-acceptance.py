@@ -36,6 +36,13 @@ def wait_receipt(process,serial,timeout=600):
 
 def connect(process,serial,monitor,key,known,proof):
     receipt=wait_receipt(process,serial)
+    # A listening process may still be killed if systemd ExecStartPost has not
+    # completed. Require the independent guest key exchange before using it.
+    deadline=time.monotonic()+180
+    while 'CENTIPEDE_SERVER_SSH_LISTENING ' not in serial.read_text(errors='replace'):
+        if process.poll() is not None:raise RuntimeError('VM exited before stable SSH readiness')
+        if time.monotonic()>=deadline:raise TimeoutError('Guest key exchange readiness marker missing')
+        time.sleep(2)
     ip=smoke.guest_address(receipt)
     with socket.socket() as reservation:
         reservation.bind(('127.0.0.1',0));port=reservation.getsockname()[1]

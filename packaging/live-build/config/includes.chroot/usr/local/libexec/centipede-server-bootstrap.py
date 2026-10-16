@@ -143,9 +143,13 @@ def provision(seed,installed=False):
 
 def verify_ssh():
     receipt=json.loads(Path('/run/centipede/server-ready').read_text())
-    deadline=time.monotonic()+20
+    deadline=time.monotonic()+60
     while True:
-        scan=subprocess.run(['ssh-keyscan','-T','2','-t','ed25519','127.0.0.1'],capture_output=True,text=True,timeout=5)
+        try:scan=subprocess.run(['ssh-keyscan','-T','5','-t','ed25519','127.0.0.1'],capture_output=True,text=True,timeout=15)
+        except subprocess.TimeoutExpired:
+            if time.monotonic()>=deadline:raise TimeoutError('Local SSH key exchange readiness deadline exceeded')
+            time.sleep(1)
+            continue
         for line in scan.stdout.splitlines():
             fields=line.split()
             if len(fields)==3 and fields[1]=='ssh-ed25519':

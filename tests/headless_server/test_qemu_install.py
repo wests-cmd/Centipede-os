@@ -1,9 +1,14 @@
 import copy
+import base64
+import hashlib
+import json
+import subprocess
 import importlib.util
 from pathlib import Path
 import unittest
 import tempfile
 from unittest.mock import patch
+from types import SimpleNamespace
 from test_install_plan import fixture
 
 ROOT=Path(__file__).resolve().parents[2]
@@ -21,6 +26,15 @@ def vm_plan():
 
 
 class DisposableInstallTests(unittest.TestCase):
+    def test_transient_local_keyscan_timeout_does_not_kill_sshd_readiness(self):
+        blob=b'public-key-test';encoded=base64.b64encode(blob).decode()
+        expected=base64.b64encode(hashlib.sha256(blob).digest()).decode().rstrip('=')
+        outputs=[subprocess.TimeoutExpired(['ssh-keyscan'],15),SimpleNamespace(stdout='localhost ssh-ed25519 '+encoded+'\n')]
+        with patch.object(bootstrap.Path,'read_text',return_value=json.dumps({'host_key_sha256':expected})),patch.object(bootstrap.subprocess,'run',side_effect=outputs) as scan,patch.object(bootstrap.time,'sleep'),patch('builtins.print') as emit:
+            bootstrap.verify_ssh()
+        self.assertEqual(scan.call_count,2)
+        self.assertTrue(emit.call_args.args[0].startswith('CENTIPEDE_SERVER_SSH_LISTENING '))
+
     def test_mount_cleanup_never_recursively_deletes_nonempty_or_mounted_root(self):
         with vm.mount_workspace() as directory:
             root=Path(directory);sentinel=root/'must-survive';sentinel.write_text('mounted-root-placeholder')
