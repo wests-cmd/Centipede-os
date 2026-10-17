@@ -83,19 +83,14 @@ export class MemoryStore {
   }
 
   public getMemories(scope?: MemoryScope, projectId?: string): MemoryEntry[] {
-    const active = Array.from(this.localEntries.values()).filter(
-      (e) => e.lifecycle === 'ACTIVE'
-    );
-
-    if (!scope && !projectId) {
-      return active;
+    const results: MemoryEntry[] = [];
+    for (const entry of this.localEntries.values()) {
+      if (entry.lifecycle !== 'ACTIVE') continue;
+      if (scope && entry.scope !== scope) continue;
+      if (projectId && entry.projectId !== projectId) continue;
+      results.push(entry);
     }
-
-    return active.filter((e) => {
-      if (scope && e.scope !== scope) return false;
-      if (projectId && e.projectId !== projectId) return false;
-      return true;
-    });
+    return results;
   }
 
   public getMemory(memoryId: string): MemoryEntry | undefined {

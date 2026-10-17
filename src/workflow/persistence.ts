@@ -6,21 +6,21 @@ export class WorkflowPersistenceStore {
   private persistedRuns: Map<string, WorkflowExecutionRun> = new Map();
 
   public saveWorkflow(workflow: WorkflowDefinition): void {
-    this.persistedWorkflows.set(workflow.workflowId, JSON.parse(JSON.stringify(workflow)));
+    this.persistedWorkflows.set(workflow.workflowId, structuredClone(workflow));
   }
 
   public getWorkflow(workflowId: string): WorkflowDefinition | undefined {
     const wf = this.persistedWorkflows.get(workflowId);
-    return wf ? JSON.parse(JSON.stringify(wf)) : undefined;
+    return wf ? structuredClone(wf) : undefined;
   }
 
   public saveRun(run: WorkflowExecutionRun): void {
-    this.persistedRuns.set(run.runId, JSON.parse(JSON.stringify(run)));
+    this.persistedRuns.set(run.runId, structuredClone(run));
   }
 
   public getRun(runId: string): WorkflowExecutionRun | undefined {
     const run = this.persistedRuns.get(runId);
-    return run ? JSON.parse(JSON.stringify(run)) : undefined;
+    return run ? structuredClone(run) : undefined;
   }
 
   public computeIntegritySignature(payloadJson: string): string {
