@@ -15,6 +15,12 @@ if (isNodeOrBun) {
 }
 
 export class PlatformDetector {
+  private cachedIsContainer: boolean | null = null;
+  private cachedOS: OSPlatform | null = null;
+  private cachedArch: string | null = null;
+  private cachedRelease: string | null = null;
+  private cachedNodeEnv: string | null = null;
+
   public getProfileRecommendation(hardware: HardwareInfo): ProfileRecommendation {
     const cores = hardware.cpuCores;
     const ramGb = hardware.totalMemoryMb === null ? null : Math.round(hardware.totalMemoryMb / 1024);
@@ -143,18 +149,28 @@ export class PlatformDetector {
       gpuProvenance: 'UNAVAILABLE',
     };
 
+    if (this.cachedArch === null) {
+      this.cachedArch = typeof process !== 'undefined' ? process.arch || 'UNKNOWN' : 'UNKNOWN';
+    }
+    if (this.cachedRelease === null) {
+      this.cachedRelease = typeof process !== 'undefined' ? process.platform || 'browser' : 'browser';
+    }
+    if (this.cachedNodeEnv === null) {
+      this.cachedNodeEnv = typeof process !== 'undefined' && process.env ? process.env.NODE_ENV || 'production' : 'production';
+    }
+
     return {
       centipedeVersion: CENTIPEDE_VERSION,
       platform: {
         os,
-        architecture: typeof process !== 'undefined' ? process.arch || 'UNKNOWN' : 'UNKNOWN',
-        osRelease: typeof process !== 'undefined' ? process.platform || 'browser' : 'browser',
+        architecture: this.cachedArch,
+        osRelease: this.cachedRelease,
       },
       hardware,
       environment: {
         isContainerized: isContainer,
         isDockerAvailable: false,
-        nodeEnv: typeof process !== 'undefined' && process.env ? process.env.NODE_ENV || 'production' : 'production',
+        nodeEnv: this.cachedNodeEnv,
         isDevelopment: false,
       },
       capabilities,
@@ -170,28 +186,36 @@ export class PlatformDetector {
   }
 
   private detectContainerEnvironment(): boolean {
+    if (this.cachedIsContainer !== null) return this.cachedIsContainer;
+    let isContainer = false;
     if (typeof process !== 'undefined' && process.env) {
       if (process.env.DOCKER_CONTAINER || process.env.KUBERNETES_SERVICE_HOST) {
-        return true;
+        isContainer = true;
       }
     }
-    return false;
+    this.cachedIsContainer = isContainer;
+    return isContainer;
   }
 
   private detectOS(isContainer: boolean): OSPlatform {
-    if (isContainer) return 'CONTAINER_LINUX';
+    if (this.cachedOS !== null) return this.cachedOS;
+    if (isContainer) {
+      this.cachedOS = 'CONTAINER_LINUX';
+      return 'CONTAINER_LINUX';
+    }
+    let detected: OSPlatform = 'UNKNOWN';
     if (typeof process !== 'undefined' && process.platform) {
-      if (process.platform === 'win32') return 'WINDOWS';
-      if (process.platform === 'darwin') return 'MACOS';
-      if (process.platform === 'linux') return 'LINUX';
-    }
-    if (typeof navigator !== 'undefined' && navigator.userAgent) {
+      if (process.platform === 'win32') detected = 'WINDOWS';
+      else if (process.platform === 'darwin') detected = 'MACOS';
+      else if (process.platform === 'linux') detected = 'LINUX';
+    } else if (typeof navigator !== 'undefined' && navigator.userAgent) {
       const ua = navigator.userAgent.toLowerCase();
-      if (ua.includes('win')) return 'WINDOWS';
-      if (ua.includes('mac')) return 'MACOS';
-      if (ua.includes('linux')) return 'LINUX';
+      if (ua.includes('win')) detected = 'WINDOWS';
+      else if (ua.includes('mac')) detected = 'MACOS';
+      else if (ua.includes('linux')) detected = 'LINUX';
     }
-    return 'UNKNOWN';
+    this.cachedOS = detected;
+    return detected;
   }
 }
 

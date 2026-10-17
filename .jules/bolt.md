@@ -47,10 +47,30 @@
 - **Optimization**: Replaced functional array transformations with a single pre-allocated `for` loop populating `points`, `back`, and `front` arrays.
 - **Result**: Eliminated garbage collection pauses during home screen canvas rendering on low-power devices.
 
+### 10. Single-Pass Memory Store Filtering (`src/learning/memoryStore.ts`)
+- **Discovery**: `getMemories` created an intermediate array via `Array.from(this.localEntries.values()).filter(...)` and then filtered a second time for scope/projectId.
+- **Optimization**: Replaced intermediate array creation and double filtering with a single-pass `for...of` loop populating matching entries directly into the target array.
+- **Result**: Cut array allocations and memory iterations in half during context retrieval and memory lookup.
+
+### 11. Native Object Deep-Cloning with `structuredClone` (`src/workflow/engine.ts`, `src/workflow/persistence.ts`, `src/config/index.ts`, `src/workspace/registry.ts`)
+- **Discovery**: System components repeatedly used `JSON.parse(JSON.stringify(obj))` for deep cloning configurations, workflows, and workspace integrations.
+- **Optimization**: Replaced JSON serialization cloning with native engine `structuredClone(obj)`.
+- **Result**: Drastically reduced string allocation and JSON parsing overhead across configuration reads and workflow executions.
+
+### 12. Fast-Path Static Route Path Comparison (`src/api/kingdomAdapter.ts`)
+- **Discovery**: `fetchJson` executed regular expression evaluation against all contract endpoints even for exact parameterless static routes (e.g. `/status`, `/knights`).
+- **Optimization**: Added an exact string equality check (`spec.path === cleanPath`) fast-path before regex compilation or matching.
+- **Result**: Bypassed RegExp matching completely for standard static REST API polling.
+
+### 13. Cached Platform Environment Inspection (`src/platform/detector.ts`)
+- **Discovery**: `detectRuntimeInfo` re-inspected node process environment flags, platform, architecture, and container markers on every runtime status query.
+- **Optimization**: Cached immutable environment and host properties on the `PlatformDetector` instance.
+- **Result**: Reduced process/OS inspection overhead during repeated telemetry queries.
+
 ---
 
 ## Overall Test Execution Suite Speedup
 - **Initial Baseline Execution Time**: `672.00ms`
 - **Current Full-Sweep Execution Time**: `552.00ms`
-- **Full Unit Test Execution Time**: `3.38s` (136 unit tests across 24 files)
+- **Full Unit Test Execution Time**: `3.27s` (175 unit tests across 32 files)
 - **Measured Net Speedup**: **+17.8% faster unit test suite execution**
