@@ -67,6 +67,8 @@ describe('CSPRNG Token & Grant ID Security Invariants', () => {
     const execResult = await toolExecutor.execute({
       id: 'req_1',
       toolId: 'filesystem.delete_restricted',
+      capability: 'filesystem.delete',
+      riskLevel: 'CRITICAL',
       parameters: { target: 'test.txt' },
       chainDepth: 1,
     });
