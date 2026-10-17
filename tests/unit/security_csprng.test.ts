@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { generateSecureRandomHex, generateSecurePin } from '../../src/security/cryptoUtils';
 import { capabilityGrantEngine } from '../../src/agent/grants';
 import { deviceTrustManager } from '../../src/security/deviceTrust';
+import { agentIdentityManager } from '../../src/agent/identity';
+import { toolExecutor } from '../../src/tools/executor';
+import { initializeVerifiedTools } from '../../src/tools/definitions';
 
 describe('CSPRNG Token & Grant ID Security Invariants', () => {
   it('generateSecureRandomHex generates exact hex strings of specified byte length and uniqueness', () => {
@@ -54,6 +57,25 @@ describe('CSPRNG Token & Grant ID Security Invariants', () => {
 
     expect(pairing.deviceId).toMatch(/^dev_\d+_[0-9a-f]{8}$/);
     expect(pairing.pairingCode).toMatch(/^\d{6}$/);
+  });
+
+  it('agentIdentityManager and ToolExecutor use CSPRNG for IDs and approval keys', async () => {
+    initializeVerifiedTools();
+    const identity = agentIdentityManager.createIdentity('TestAgent');
+    expect(identity.agentId).toMatch(/^agent_\d+_[0-9a-f]{8}$/);
+
+    const execResult = await toolExecutor.execute({
+      id: 'req_1',
+      toolId: 'filesystem.delete_restricted',
+      capability: 'filesystem.delete',
+      riskLevel: 'CRITICAL',
+      parameters: { target: 'test.txt' },
+      chainDepth: 1,
+    });
+
+    expect(execResult.status).toBe('PENDING');
+    expect(execResult.data?.approvalId).toMatch(/^appr_\d+_[0-9a-f]{8}$/);
+    expect(execResult.idempotencyKey).toMatch(/^idemp_filesystem\.delete_restricted_\d+_[0-9a-f]{8}$/);
   });
 
   it('fails closed if globalThis.crypto.getRandomValues is unavailable', () => {
