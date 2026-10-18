@@ -7,6 +7,16 @@
   "verifiedEpisodes": [],
   "totalEpisodeCount": null,
   "part23Verified": false,
+  "ownerSuppliedEpisodeLead": {
+    "url": "https://www.instagram.com/reel/DdH4qB5JKw6/",
+    "requestedEpisode": 23,
+    "creatorVerified": "alexcandothat",
+    "visibleDate": "2026-09-10",
+    "visibleCaption": "Hey I’m so tired… #womeninstem #dtx",
+    "episodeNumberIndependentlyVerified": false,
+    "demonstratedCapabilities": [],
+    "access": "Direct browser page exposed creator/date/caption; sign-up overlay prevented verification of full video. Web fetch throttled."
+  },
   "accessLimit": "Anonymous profile grid was visible; Reels and direct video access presented a sign-in gate. No bypass attempted.",
   "candidatesNotVerifiedAsSeries": [
     {"url": "https://www.instagram.com/alexcandothat/reel/Dabb47Ip030/", "profileDate": "2026-07-05", "episode": null, "demonstratedCapabilities": []},

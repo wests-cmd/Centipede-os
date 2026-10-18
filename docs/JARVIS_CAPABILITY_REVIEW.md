@@ -12,6 +12,8 @@ The requested creator is [@alexcandothat](https://www.instagram.com/alexcandotha
 
 **Zero numbered episodes were verified. This is not an inventory of every episode, and no claim is made that the series has only these posts.** Part 23 and the total episode count remain unverified. A public playlist or creator-provided episode links are needed to complete the requested coverage.
 
+Follow-up: the owner supplied [DdH4qB5JKw6](https://www.instagram.com/reel/DdH4qB5JKw6/) in response to the Part 23 request. Its public browser page verified creator `alexcandothat`, date September 10, 2026 and caption “Hey I’m so tired…” with `#womeninstem` / `#dtx`. The episode number, series title, transcript and demonstrated capabilities were not exposed. A sign-up overlay remained; the separate web fetch was throttled. This is a specific owner-supplied episode lead, not independent verification of Part 23 or grounds for attributing capabilities.
+
 The following are profile-discovered candidate links, **not confirmed Jarvis episodes**:
 
 | Public link | Visible profile date | Episode / demonstrated capability |
