@@ -1,0 +1,19 @@
+{
+  "checkedOn": "2026-10-18",
+  "creator": "alexcandothat",
+  "profile": "https://www.instagram.com/alexcandothat/",
+  "requestedSeriesTitles": ["Building Iron Man’s Jarvis", "BUILDING MY OWN JARVIS"],
+  "coverageComplete": false,
+  "verifiedEpisodes": [],
+  "totalEpisodeCount": null,
+  "part23Verified": false,
+  "accessLimit": "Anonymous profile grid was visible; Reels and direct video access presented a sign-in gate. No bypass attempted.",
+  "candidatesNotVerifiedAsSeries": [
+    {"url": "https://www.instagram.com/alexcandothat/reel/Dabb47Ip030/", "profileDate": "2026-07-05", "episode": null, "demonstratedCapabilities": []},
+    {"url": "https://www.instagram.com/alexcandothat/reel/DaOxsDkhzhG/", "profileDate": "2026-06-30", "episode": null, "demonstratedCapabilities": []},
+    {"url": "https://www.instagram.com/alexcandothat/reel/DUL0eZRDr0M/", "profileDate": "2026-01-31", "episode": null, "demonstratedCapabilities": []},
+    {"url": "https://www.instagram.com/alexcandothat/reel/DSian3KEj4H/", "profileDate": "2025-12-21", "episode": null, "demonstratedCapabilities": []}
+  ],
+  "secondaryLeads": [{"url": "https://www.linkedin.com/posts/colinstewartperreault_yesterday-i-said-chatgpt-launched-their-own-activity-7502002828207341568-LGrp", "status": "Unverified secondary commentary/transcript; not numbered episode evidence"}],
+  "nextEvidenceNeeded": "Accessible primary episode URLs or a creator playlist; do not infer missing episodes or demonstrations."
+}
