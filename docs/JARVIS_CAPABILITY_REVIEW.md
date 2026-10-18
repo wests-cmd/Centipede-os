@@ -8,9 +8,15 @@ Public Centipede baseline: `1602f82`. Kingdom public HEAD observed: `6cb8e0a40ae
 
 ## Creator research: incomplete, with explicit access limits
 
+**Signed-in update:** the owner has now signed in. The creator's Reels grid and Part23 playback are accessible. [The signed-in catalog](research/jarvis-signed-in-catalog.md) records 29 visible series-related posts with title cards reaching Part37, including duplicate labels. Part23 identity is verified from its opening frame. Full playback/capability review and exhaustive archive coverage remain incomplete; do not treat this catalog as 29 fully reviewed demonstrations. [Repository implementation gaps](research/jarvis-series-implementation-gaps.md) lists separate source-backed priorities and acceptance tests.
+
+**Primary-source expansion:** the creator's profile links to an official Fletcher site. All27 indexed build breakdowns were inspected and summarized with original-video links in [the official build review](research/fletcher-official-build-review.md). The notes explicitly distinguish completed tests, failed trials and plans. This provides substantially better capability evidence than the earlier secondary commentary. It does not establish full playback review of every Instagram video; newer Instagram covers and the official notes have different numbering/date ranges.
+
+### Historical anonymous-access attempt (superseded by signed-in update)
+
 The requested creator is [@alexcandothat](https://www.instagram.com/alexcandothat/). Anonymous public profile inspection exposed a limited post grid. Opening Reels or a listed video produced a sign-in gate. Public web searches for the handle, both supplied series titles, Jarvis and Part 23 did not establish an episode catalog. No access control was bypassed.
 
-**Zero numbered episodes were verified. This is not an inventory of every episode, and no claim is made that the series has only these posts.** Part 23 and the total episode count remain unverified. A public playlist or creator-provided episode links are needed to complete the requested coverage.
+At that earlier anonymous stage, zero numbered episodes had been verified. This was not an inventory of every episode, and no claim was made that the series had only those posts. The signed-in update above supersedes the earlier Part23 and access limitations; total episode count and complete archive coverage remain unverified.
 
 Follow-up: the owner supplied [DdH4qB5JKw6](https://www.instagram.com/reel/DdH4qB5JKw6/) in response to the Part 23 request. Its public browser page verified creator `alexcandothat`, date September 10, 2026 and caption “Hey I’m so tired…” with `#womeninstem` / `#dtx`. The episode number, series title, transcript and demonstrated capabilities were not exposed. A sign-up overlay remained; the separate web fetch was throttled. This is a specific owner-supplied episode lead, not independent verification of Part 23 or grounds for attributing capabilities.
 

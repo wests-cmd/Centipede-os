@@ -1,5 +1,7 @@
 # Jarvis direct-link follow-up — 2026-10-18
 
+**Historical record:** this note describes the anonymous attempt. The later owner-authorized signed-in session verified Part23's opening title and exposed a larger catalog. See [signed-in findings](jarvis-signed-in-catalog.md); the access and Part23 conclusions below are superseded, not current blockers.
+
 The owner supplied [Reel DdH4qB5JKw6](https://www.instagram.com/reel/DdH4qB5JKw6/) in response to a request for Part 23 or a series playlist. This is an **owner-supplied series lead**, not independent confirmation that it is Part 23.
 
 ## Independently observed primary metadata
