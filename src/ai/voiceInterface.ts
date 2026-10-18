@@ -64,10 +64,23 @@ export class VoiceProcessor {
     }
 
     this.state.isProcessing = true;
+    this.state.requiresConfirmation = false;
+    this.state.pendingText = undefined;
     this.state.statusMessage = 'Transcribing voice input...';
     this.notify();
 
-    const transcription = await this.sttProvider.transcribe(audioData);
+    let transcription: TranscriptionResult;
+    try {
+      transcription = await this.sttProvider.transcribe(audioData);
+      if (!transcription || typeof transcription.text !== 'string' || !transcription.text.trim() || transcription.text.length > 24000) {
+        throw new Error('Invalid transcription');
+      }
+    } catch (error) {
+      this.state.isProcessing = false;
+      this.state.statusMessage = 'Transcription failed. No voice command was dispatched; try text or retry.';
+      this.notify();
+      throw error;
+    }
     this.state.lastTranscription = transcription;
 
     // Check for voice interruption / cancellation keywords
@@ -82,7 +95,7 @@ export class VoiceProcessor {
     }
 
     // Voice confidence rule: Confidence < 0.85 requires explicit user confirmation before processing pipeline
-    if (transcription.confidence < 0.85) {
+    if (!Number.isFinite(transcription.confidence) || transcription.confidence < 0 || transcription.confidence > 1 || transcription.confidence < 0.85) {
       this.state.isProcessing = false;
       this.state.requiresConfirmation = true;
       this.state.pendingText = transcription.text;
@@ -127,13 +140,17 @@ export class VoiceProcessor {
     };
 
     // Voice passes through identical CentipedeAIPipeline & PermissionGate as text
-    const message = await centipedeAIPipeline.process(input);
-
-    this.state.isProcessing = false;
-    this.state.statusMessage = `Completed processing. Status: ${message.status}`;
-    this.notify();
-
-    return message;
+    try {
+      const message = await centipedeAIPipeline.process(input);
+      this.state.statusMessage = `Completed processing. Status: ${message.status}`;
+      return message;
+    } catch (error) {
+      this.state.statusMessage = 'Voice command failed. Check its retained task before trying again.';
+      throw error;
+    } finally {
+      this.state.isProcessing = false;
+      this.notify();
+    }
   }
 
   public getState(): VoiceState {

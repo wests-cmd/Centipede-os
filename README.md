@@ -2,6 +2,8 @@
 
 Centipede OS is a Debian live desktop with the Centipede web app. Kingdom is a separate service; it is not included in the download.
 
+Development update: [capture controls, Kingdom compatibility and installer gaps](docs/JARVIS_CAPABILITY_REVIEW.md), [Windows validation](docs/WINDOWS_AUDIT_VALIDATION.md). The optional **Camera, screen & mic** panel captures only after you start it; preview is not image understanding. These source changes do not update older download assets.
+
 ## Download and try Centipede
 
 **New to this?** Download the ISO, write it to an empty USB drive, and start the other computer from that USB. The live session does not install Centipede or replace Windows.

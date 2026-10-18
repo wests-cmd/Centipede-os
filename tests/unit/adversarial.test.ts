@@ -186,7 +186,7 @@ describe('Master Security Invariants 1–14 Test Suite', () => {
   });
 
   it('Invariant 11 — Kingdom Remains Sole Execution Authority', async () => {
-    const compat = mockAdapter.checkVersionCompatibility('40.1.0');
+    const compat = mockAdapter.checkVersionCompatibility('40.1.0', { major: 1, minor: 0 });
     expect(compat.status).toBe('COMPATIBLE');
   });
 
