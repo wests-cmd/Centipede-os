@@ -10,13 +10,14 @@ mkdir -p "$OUT_DIR"
 [[ "$FIRMWARE" == bios || "$FIRMWARE" == uefi ]] || exit 2
 [[ "$PROFILE" == normal || "$PROFILE" == safe ]] || exit 2
 command -v qemu-system-x86_64 >/dev/null || { echo 'qemu-system-x86_64 is required.' >&2; exit 2; }
+command -v xvfb-run >/dev/null || { echo 'xvfb-run is required for headless graphical boot validation.' >&2; exit 2; }
 
 NAME="${FIRMWARE}-${PROFILE}"
 MONITOR="$OUT_DIR/${NAME}.monitor"
 SERIAL="$OUT_DIR/${NAME}.serial.log"
 SCREEN="$OUT_DIR/${NAME}.ppm"
 rm -f "$MONITOR" "$SERIAL" "$SCREEN"
-QEMU=(qemu-system-x86_64 -cpu qemu64 -smp 2 -m 4096 -cdrom "$ISO" -boot order=d -nic none -display none -serial "file:$SERIAL" -monitor "unix:$MONITOR,server,nowait" -no-reboot)
+QEMU=(qemu-system-x86_64 -cpu qemu64 -smp 2 -m 4096 -cdrom "$ISO" -boot order=d -nic none -display gtk,gl=off -serial "file:$SERIAL" -monitor "unix:$MONITOR,server,nowait" -no-reboot)
 if [[ "$FIRMWARE" == uefi ]]; then
   CODE=$(find /usr/share/OVMF -maxdepth 1 -type f \( -name 'OVMF_CODE_4M.secboot.fd' -o -name 'OVMF_CODE.secboot.fd' \) -print -quit)
   VARS_TEMPLATE=$(find /usr/share/OVMF -maxdepth 1 -type f \( -name 'OVMF_VARS_4M.ms.fd' -o -name 'OVMF_VARS.ms.fd' \) -print -quit)
@@ -27,7 +28,7 @@ if [[ "$FIRMWARE" == uefi ]]; then
 else
   QEMU+=(-machine pc,accel=tcg)
 fi
-"${QEMU[@]}" &
+xvfb-run -a "${QEMU[@]}" &
 PID=$!
 cleanup() {
   if kill -0 "$PID" 2>/dev/null; then
@@ -63,13 +64,11 @@ import socket, sys, time
 s=socket.socket(socket.AF_UNIX, socket.SOCK_STREAM); s.settimeout(5); s.connect(sys.argv[1]); time.sleep(.4); s.recv(4096); s.sendall(b"sendkey ret\r\n"); time.sleep(.5); s.close()
 PY
 fi
-for _ in $(seq 1 180); do
+for _ in $(seq 1 300); do
   if grep -Fq 'CENTIPEDE_DESKTOP_READY' "$SERIAL" 2>/dev/null; then
-    python3 - "$MONITOR" "$SCREEN" <<'PY'
-import socket, sys, time
-s=socket.socket(socket.AF_UNIX, socket.SOCK_STREAM); s.settimeout(5); s.connect(sys.argv[1]); time.sleep(.3); s.recv(4096); s.sendall(("screendump " + sys.argv[2] + "\r\n").encode()); time.sleep(1); s.close()
-PY
+    python3 scripts/qemu-capture-rendered-desktop.py "$MONITOR" "$SCREEN" --timeout 300
     [[ -s "$SCREEN" ]] || { echo 'QEMU did not capture its booted desktop.' >&2; exit 1; }
+    python3 scripts/validate-qemu-desktop-screenshot.py "$SCREEN"
     if [[ "$PROFILE" == safe ]]; then
       grep -Fq 'CENTIPEDE_SAFE_GRAPHICS_ENABLED: nomodeset is active' "$SERIAL" || { echo 'Safe Graphics boot did not activate nomodeset.' >&2; exit 1; }
     else
@@ -81,6 +80,25 @@ PY
   kill -0 "$PID" 2>/dev/null || break
   sleep 1
 done
+if kill -0 "$PID" 2>/dev/null; then
+  python3 - "$MONITOR" "$SCREEN" <<'PY' || true
+import socket, sys, time
+s=socket.socket(socket.AF_UNIX, socket.SOCK_STREAM); s.settimeout(3)
+try:
+    s.connect(sys.argv[1]); time.sleep(.2)
+    try: s.recv(4096)
+    except OSError: pass
+    s.sendall(("screendump " + sys.argv[2] + "\r\n").encode())
+    time.sleep(.5)
+    try: s.recv(4096)
+    except OSError: pass
+finally:
+    s.close()
+PY
+fi
 cat "$SERIAL" 2>/dev/null || true
-echo "FAIL: $NAME did not reach CENTIPEDE_DESKTOP_READY within 180 seconds." >&2
+if [[ -s "$SCREEN" ]]; then
+  echo "Saved last boot screen to $SCREEN for diagnosis." >&2
+fi
+echo "FAIL: $NAME did not reach CENTIPEDE_DESKTOP_READY within 300 seconds." >&2
 exit 1

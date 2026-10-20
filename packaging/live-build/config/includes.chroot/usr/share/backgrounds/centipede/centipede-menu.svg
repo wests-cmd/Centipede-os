@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <image href="centipede-earth.png" width="1280" height="720" preserveAspectRatio="xMidYMid slice"/>
+  <defs>
+    <linearGradient id="panel" x1="0" x2="1"><stop stop-color="#030711" stop-opacity=".74"/><stop offset="1" stop-color="#030711" stop-opacity="0"/></linearGradient>
+  </defs>
+  <rect width="610" height="720" fill="url(#panel)"/>
+  <image href="centipede-mark.svg" x="54" y="50" width="72" height="72"/>
+  <text x="148" y="99" fill="#f7fbff" font-family="Inter, 'Segoe UI', sans-serif" font-size="28" font-weight="700" letter-spacing="3">CENTIPEDE OS</text>
+  <text x="150" y="125" fill="#ffad66" font-family="Inter, 'Segoe UI', sans-serif" font-size="12" font-weight="600" letter-spacing="2">A SYSTEM THAT KEEPS MOVING</text>
+</svg>

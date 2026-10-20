@@ -44,11 +44,13 @@ When you are done, shut down Centipede, remove the USB after the PC is off, and 
 ## What this USB can and cannot do
 
 - This is a **live USB**: Centipede runs from the USB for that session. It does not install itself on the PC’s internal drive.
-- The image does not include a disk installer. There is no supported “install permanently” button yet. Do not expect it to replace Windows or another system.
+- The currently published v1.0.0 image does not include a disk installer. A guided installer is being added to the next image; do not expect the public v1.0.0 download to install permanently.
 - Files and settings created in the temporary session may be lost when the PC shuts down. Save important work somewhere else.
 - This does not include the Kingdom service. Kingdom-backed features need a separately deployed Kingdom service.
 - Hardware support varies. Some Wi-Fi, graphics, or other devices may need firmware that is not included in this image.
 - The public v1.0.0 image does not contain the redesigned everyday-app desktop shown in the README preview. That change needs a new tagged release.
+
+When a newer image is published, check its release notes and the separate [disk installation guide](DISK_INSTALLATION_GUIDE.md) before installing. The release notes will say whether the guided installer passed its virtual-disk install and reboot checks.
 
 ## If the PC will not start from the USB
 

@@ -73,6 +73,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter, homeVisua
           {HOME_VISUALS.map((profile) => {
             const selected = homeVisual === profile.id;
             const swatch = {
+              classic: 'from-slate-950 via-slate-900 to-cyan-950',
               'centipede-world': 'from-blue-950 via-cyan-900 to-orange-500',
               'neon-dragon': 'from-fuchsia-950 via-purple-800 to-pink-400',
               'space-nebula': 'from-indigo-950 via-violet-700 to-cyan-400',

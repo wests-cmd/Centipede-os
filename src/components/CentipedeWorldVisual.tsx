@@ -2,9 +2,10 @@ import React, { useEffect, useRef } from 'react';
 
 export type VisualQuality = 'HIGH' | 'BALANCED' | 'LOW_POWER';
 export type MotionPreference = 'FULL' | 'REDUCED' | 'OFF';
-export type HomeVisual = 'centipede-world' | 'neon-dragon' | 'space-nebula' | 'abstract-orb';
+export type HomeVisual = 'classic' | 'centipede-world' | 'neon-dragon' | 'space-nebula' | 'abstract-orb';
 
 export const HOME_VISUALS: { id: HomeVisual; name: string; description: string }[] = [
+  { id: 'classic', name: 'Classic desktop', description: 'The original calm, dark Centipede workspace' },
   { id: 'centipede-world', name: 'Centipede + World', description: 'The Centipede OS signature scene' },
   { id: 'neon-dragon', name: 'Neon Dragon', description: 'A luminous creature crossing a star field' },
   { id: 'space-nebula', name: 'Space Nebula', description: 'A quiet cloud of color and distant stars' },

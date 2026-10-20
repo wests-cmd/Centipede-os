@@ -21,4 +21,26 @@ SUPPORT_URL="https://github.com/wests-cmd/Centipede-os/issues"
 BUG_REPORT_URL="https://github.com/wests-cmd/Centipede-os/issues"
 EOF
 printf '%s\n' 'Centipede OS \n \l' > /etc/issue
+printf 'Centipede OS %s\n' "$VERSION" > /etc/issue.net
 printf '%s\n' 'centipede' > /etc/hostname
+
+mkdir -p /etc/default/grub.d
+cat > /etc/default/grub.d/50-centipede.cfg <<'EOF'
+GRUB_DISTRIBUTOR="Centipede OS"
+GRUB_BACKGROUND="/usr/share/backgrounds/centipede/centipede-menu.png"
+EOF
+
+if ! command -v plymouth-set-default-theme >/dev/null 2>&1; then
+  echo 'Plymouth is required for Centipede boot branding.' >&2
+  exit 1
+fi
+plymouth-set-default-theme centipede
+[ "$(plymouth-set-default-theme)" = centipede ] || { echo 'Centipede Plymouth theme did not become the default.' >&2; exit 1; }
+
+HAS_INITRD=false
+for initrd in /boot/initrd.img-*; do
+  [ -f "$initrd" ] && HAS_INITRD=true
+done
+if [ "$HAS_INITRD" = true ]; then
+  update-initramfs -u -k all
+fi
