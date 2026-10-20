@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Centipede
+Description=Centipede OS startup
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/centipede
+ScriptFile=/usr/share/plymouth/themes/centipede/centipede.script

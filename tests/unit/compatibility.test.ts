@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { KingdomAdapter } from '../../src/api/kingdomAdapter';
 import { capabilityNegotiator } from '../../src/api/capabilityNegotiator';
 import { KINGDOM_CONTRACT_SPEC } from '../../src/api/contractSpec';
+import packageJson from '../../package.json';
 
 describe('Kingdom ↔ Centipede Compatibility & Adversarial Security Suite', () => {
   it('1. Capability Negotiation across Kingdom versions', () => {
@@ -112,14 +113,14 @@ describe('Kingdom ↔ Centipede Compatibility & Adversarial Security Suite', () 
     if (fs.existsSync(manifestPath)) {
       const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
       expect(manifest.product).toBe('Centipede OS');
-      expect(manifest.centipedeVersion).toBe('1.0.0');
+      expect(manifest.centipedeVersion).toBe(packageJson.version);
       expect(manifest.artifacts.length).toBeGreaterThan(0);
       expect(manifest.artifacts[0].sha256).toBeDefined();
     }
 
     // Verify version file single source of truth
     const { CENTIPEDE_VERSION, CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL } = await import('../../src/version');
-    expect(CENTIPEDE_VERSION).toBe('1.0.0');
+    expect(CENTIPEDE_VERSION).toBe(packageJson.version);
     expect(CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL).toBe('v1.0+');
   });
 });

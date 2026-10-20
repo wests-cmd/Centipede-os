@@ -1,0 +1,23 @@
+componentName: centipede
+welcomeStyleCalamares: true
+windowSize: 900px,600px
+windowPlacement: center
+strings:
+  productName: Centipede OS
+  shortProductName: Centipede
+  version: "@CENTIPEDE_VERSION@"
+  shortVersion: "@CENTIPEDE_VERSION@"
+  versionedName: "Centipede OS @CENTIPEDE_VERSION@"
+  shortVersionedName: "Centipede @CENTIPEDE_VERSION@"
+  bootloaderEntryName: Centipede OS
+  productUrl: https://github.com/wests-cmd/Centipede-os
+  supportUrl: https://github.com/wests-cmd/Centipede-os/issues
+  knownIssuesUrl: https://github.com/wests-cmd/Centipede-os/issues
+images:
+  productLogo: centipede-logo.png
+  productIcon: centipede-logo.png
+style:
+  sidebarBackground: "#1b2230"
+  sidebarText: "#ffffff"
+  sidebarTextSelect: "#70d6c5"
+
