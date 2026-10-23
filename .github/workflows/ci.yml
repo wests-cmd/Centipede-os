@@ -10,6 +10,16 @@ on:
       - main
 
 jobs:
+  local-inference-harness:
+    name: Local inference safety harness (no model)
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.2.2
+      - name: Test benchmark safety and Linux process cleanup
+        run: python3 -m unittest discover -s scripts -p test_local_inference_benchmark.py -v
+
   validate:
     name: Typecheck, Test & Build Validation
     runs-on: ubuntu-latest
