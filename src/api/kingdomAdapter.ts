@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { validateMobileEndpoint } from '../platform/mobileEndpoint';
+import { OBSERVATION_READ_PATHS, ObservationSummary, unavailableObservation } from './kingdomObservations';
 import {
   ApprovalRequest,
   AuditLogEntry,
@@ -72,6 +73,7 @@ export class KingdomAdapter {
   private currentBackoffDelay = 2000;
   private maxBackoffDelay = 16000;
   private isReconnecting = false;
+  private observationGeneration = 0;
 
   private diagnostics: HeartbeatDiagnostics = {
     lastHeartbeat: null,
@@ -131,6 +133,23 @@ export class KingdomAdapter {
     return this.connectionState;
   }
 
+  public async get_read_observations(): Promise<ObservationSummary[]> {
+    // These projected summaries are available only through the local-admin proxy.
+    // A direct backend/mobile connection must not acquire a broader read contract.
+    if (!this.usesCentipedeReadProxy()) return Array.from({ length: 3 }, unavailableObservation);
+    const generation = this.observationGeneration;
+    return Promise.all(OBSERVATION_READ_PATHS.map(async path => {
+      try {
+        const value = await this.fetchJson<ObservationSummary>(path, {}, false);
+        if (generation !== this.observationGeneration) return unavailableObservation();
+        // Browser receipt time is the sole UI age clock; upstream/server clock
+        // offsets must neither prolong nor prematurely expire this read.
+        return { ...value, receivedAt: Date.now() / 1000 };
+      }
+      catch { return unavailableObservation(); } // Older Kingdom releases may return 404.
+    }));
+  }
+
   public getCompatibilityInfo(): VersionCompatibility {
     return { ...this.compatibilityInfo };
   }
@@ -180,6 +199,7 @@ export class KingdomAdapter {
   }
 
   private notifyConnection(state: ConnectionState): void {
+    if (state !== this.connectionState) this.observationGeneration++;
     this.connectionState = state;
     this.connectionListeners.forEach((l) => l(state));
   }
@@ -260,7 +280,7 @@ export class KingdomAdapter {
     return safeMsg.substring(0, 300);
   }
 
-  private async fetchJson<T>(path: string, options: RequestInit = {}): Promise<T> {
+  private async fetchJson<T>(path: string, options: RequestInit = {}, trackConnection = true): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -277,8 +297,10 @@ export class KingdomAdapter {
       });
 
       clearTimeout(timeoutId);
-      this.diagnostics.latencyMs = Date.now() - startMs;
-      this.diagnostics.lastHeartbeat = Date.now();
+      if (trackConnection) {
+        this.diagnostics.latencyMs = Date.now() - startMs;
+        this.diagnostics.lastHeartbeat = Date.now();
+      }
 
       if (res.status === 400 || res.status === 422) {
         const errText = await res.text();
@@ -286,7 +308,7 @@ export class KingdomAdapter {
       }
 
       if (res.status === 401) {
-        this.notifyConnection('AUTHENTICATION_FAILED');
+        if (trackConnection) this.notifyConnection('AUTHENTICATION_FAILED');
         throw new KingdomApiError('AUTHENTICATION_FAILED', 'Authentication failed on Kingdom server.', 401);
       }
 
@@ -308,7 +330,7 @@ export class KingdomAdapter {
         throw new KingdomApiError('SERVER_ERROR', `HTTP ${res.status}: ${safeText || res.statusText}`, res.status, errorText);
       }
 
-      this.recordSuccess();
+      if (trackConnection) this.recordSuccess();
       const json = (await res.json()) as T;
 
       // Schema drift validation
@@ -342,7 +364,7 @@ export class KingdomAdapter {
         throw err;
       }
 
-      this.recordFailure();
+      if (trackConnection) this.recordFailure();
 
       if (err.name === 'AbortError') {
         throw new KingdomApiError('TIMEOUT', 'Request to Kingdom backend timed out after 10000ms.');
@@ -465,6 +487,7 @@ export class KingdomAdapter {
   }
 
   public disconnect(): void {
+    this.observationGeneration++;
     this.stopHeartbeat();
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
