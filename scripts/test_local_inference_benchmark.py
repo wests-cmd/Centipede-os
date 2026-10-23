@@ -49,8 +49,6 @@ class BaselineTests(unittest.TestCase):
                 bench.memory_available(path)
 
 
-if __name__ == '__main__':
-    unittest.main()
 
 # Production subprocess execution is also exercised on Linux without any model.
 class LinuxLifecycleTests(unittest.TestCase):
@@ -61,3 +59,7 @@ class LinuxLifecycleTests(unittest.TestCase):
             base = Path(directory)
             with self.assertRaises(TimeoutError):
                 bench.run_bounded([sys.executable, '-c', 'import time; time.sleep(30)'], base/'out', base/'err', 0.1, floor=0)
+
+
+if __name__ == '__main__':
+    unittest.main()
