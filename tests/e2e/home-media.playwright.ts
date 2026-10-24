@@ -4,6 +4,7 @@ test('local GIF persists, really pauses, honors reduced motion, and rejects exec
   await page.addInitScript(() => localStorage.setItem('centipede_first_run_completed', 'true'));
   await page.goto('/');
   await expect(page.getByAltText('Illuminated metallic centipede curled around Earth')).toBeVisible();
+  await expect.poll(() => page.getByAltText('Illuminated metallic centipede curled around Earth').evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 1000)).toBe(true);
   await page.getByRole('complementary').getByRole('button', { name: 'Settings', exact: true }).click();
   const picker = page.locator('input[type=file]');
   // A real tiny GIF, decoded by the browser and stored by the normal file picker handler.
@@ -30,5 +31,33 @@ test('local GIF persists, really pauses, honors reduced motion, and rejects exec
   await expect(page.getByRole('status').filter({ hasText: 'Removed the saved custom background' })).toBeVisible();
   await page.getByRole('complementary').getByRole('button', { name: 'Home / Desktop', exact: true }).click();
   await expect(page.getByAltText('Illuminated metallic centipede curled around Earth')).toBeVisible();
+  await page.getByAltText('Illuminated metallic centipede curled around Earth').evaluate((element: HTMLImageElement) => element.decode());
+  await expect.poll(() => page.getByAltText('Illuminated metallic centipede curled around Earth').evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 1000 && element.getBoundingClientRect().width > 500)).toBe(true);
   await page.screenshot({ path: 'test-results/home-media-signature-art.png' });
+});
+
+test('real video releases the old decoder on pause, offscreen and Home unmount', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('centipede_first_run_completed', 'true'));
+  await page.goto('/');
+  await page.getByRole('complementary').getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.locator('input[type=file]').setInputFiles('tests/fixtures/local-background.webm');
+  await expect(page.getByRole('status').filter({ hasText: 'Saved local-background.webm' })).toBeVisible();
+  await page.getByRole('complementary').getByRole('button', { name: 'Home / Desktop', exact: true }).click();
+  const start = async () => {
+    await page.getByRole('button', { name: 'Play background', exact: true }).click();
+    await expect.poll(() => page.locator('video').evaluate((element: HTMLVideoElement) => element.readyState >= 2 && !element.paused && element.videoWidth === 16)).toBe(true);
+    return page.locator('video').elementHandle();
+  };
+  const paused = await start();
+  await page.getByRole('button', { name: 'Pause background', exact: true }).click();
+  await expect.poll(() => paused!.evaluate((element: HTMLVideoElement) => element.paused && !element.getAttribute('src') && element.readyState === HTMLMediaElement.HAVE_NOTHING)).toBe(true);
+  const scrolled = await start();
+  await page.getByText('Everyday apps', { exact: true }).scrollIntoViewIfNeeded();
+  await page.getByText('Centipede tools', { exact: true }).scrollIntoViewIfNeeded();
+  await expect.poll(() => scrolled!.evaluate((element: HTMLVideoElement) => element.paused && !element.getAttribute('src') && element.readyState === HTMLMediaElement.HAVE_NOTHING)).toBe(true);
+  await page.getByRole('complementary').getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('complementary').getByRole('button', { name: 'Home / Desktop', exact: true }).click();
+  const detached = await start();
+  await page.getByRole('complementary').getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect.poll(() => detached!.evaluate((element: HTMLVideoElement) => !element.isConnected && element.paused && !element.getAttribute('src') && element.readyState === HTMLMediaElement.HAVE_NOTHING)).toBe(true);
 });

@@ -46,12 +46,16 @@ export function LocalMediaBackground({ custom = false, className = '' }: { custo
   useEffect(() => {
     const element = video.current;
     if (!element) return;
-    if (moving) void element.play().catch(() => { setPlay(false); setError('Playback unavailable. Showing the still preview.'); });
+    let active = true;
+    if (moving) void element.play().catch(() => { if (active) { setPlay(false); setError('Playback unavailable. Showing the still preview.'); } });
     else element.pause();
-  }, [moving]);
+    // The ref becomes null when React removes the video. Capture the actual old
+    // decoder here so pause, navigation and transport of a new file release it.
+    return () => { active = false; element.pause(); element.removeAttribute('src'); element.load(); };
+  }, [moving, urls?.media]);
   return <div ref={container} className={`absolute inset-0 overflow-hidden bg-slate-950 ${className}`}>
     {custom && media && urls ? media.kind === 'video' && moving
-      ? <video ref={video} src={urls.media} poster={urls.poster} muted loop playsInline className="h-full w-full object-cover" onError={() => { setPlay(false); setError('Playback failed. Showing the still preview.'); }} />
+      ? <video key={urls.media} ref={video} src={urls.media} poster={urls.poster} muted loop playsInline className="h-full w-full object-cover" onError={() => { setPlay(false); setError('Playback failed. Showing the still preview.'); }} />
       : <img src={moving ? urls.media : urls.poster} alt={media.name} className="h-full w-full object-cover" onError={() => { setMedia(null); setError('Background failed to load. Showing the signature artwork.'); }} />
       : <img src={ART_BACKGROUND} alt="Illuminated metallic centipede curled around Earth" className="h-full w-full object-cover" />}
     <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/30 to-slate-950/10" />
