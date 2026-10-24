@@ -1,14 +1,17 @@
 import React, { useEffect, useRef } from 'react';
+import { LocalMediaBackground } from './LocalMediaBackground';
 
 export type VisualQuality = 'HIGH' | 'BALANCED' | 'LOW_POWER';
 export type MotionPreference = 'FULL' | 'REDUCED' | 'OFF';
-export type HomeVisual = 'centipede-world' | 'neon-dragon' | 'space-nebula' | 'abstract-orb';
+export type HomeVisual = 'centipede-art' | 'custom-media' | 'centipede-world' | 'neon-dragon' | 'space-nebula' | 'abstract-orb';
 
 export const HOME_VISUALS: { id: HomeVisual; name: string; description: string }[] = [
+  { id: 'centipede-art', name: 'Centipede Earth artwork', description: 'Original signature art; static and light on CPU' },
   { id: 'centipede-world', name: 'Centipede + World', description: 'The Centipede OS signature scene' },
   { id: 'neon-dragon', name: 'Neon Dragon', description: 'A luminous creature crossing a star field' },
   { id: 'space-nebula', name: 'Space Nebula', description: 'A quiet cloud of color and distant stars' },
   { id: 'abstract-orb', name: 'Abstract Orb', description: 'Layered glass-like spheres and orbital rings' },
+  { id: 'custom-media', name: 'My local background', description: 'Choose a picture, GIF or video below' },
 ];
 
 interface CentipedeWorldVisualProps {
@@ -24,7 +27,7 @@ const seeded = (n: number) => {
 };
 
 export const CentipedeWorldVisual: React.FC<CentipedeWorldVisualProps> = ({
-  visual = 'centipede-world',
+  visual = 'centipede-art',
   quality = 'BALANCED',
   motion = 'FULL',
   className = '',
@@ -404,6 +407,8 @@ export const CentipedeWorldVisual: React.FC<CentipedeWorldVisualProps> = ({
   }, [visual, quality, motion]);
 
   const profileName = HOME_VISUALS.find((profile) => profile.id === visual)?.name ?? HOME_VISUALS[0].name;
+
+  if (visual === 'centipede-art' || visual === 'custom-media') return <LocalMediaBackground custom={visual === 'custom-media'} className={className} />;
 
   return (
     <div
