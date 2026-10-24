@@ -19,6 +19,8 @@ jobs:
         uses: actions/checkout@v4.2.2
       - name: Test benchmark safety and Linux process cleanup
         run: python3 -m unittest discover -s scripts -p test_local_inference_benchmark.py -v
+      - name: Test boot-menu branding and recovery fallback
+        run: python3 -m unittest discover -s scripts -p test_boot_branding.py -v
 
   validate:
     name: Typecheck, Test & Build Validation
