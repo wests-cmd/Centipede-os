@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { generateSecureRandomHex, generateSecurePin } from '../../src/security/cryptoUtils';
 import { capabilityGrantEngine } from '../../src/agent/grants';
 import { deviceTrustManager } from '../../src/security/deviceTrust';
+import { agentIdentityManager } from '../../src/agent/identity';
 
 describe('CSPRNG Token & Grant ID Security Invariants', () => {
   it('generateSecureRandomHex generates exact hex strings of specified byte length and uniqueness', () => {
@@ -54,6 +55,12 @@ describe('CSPRNG Token & Grant ID Security Invariants', () => {
 
     expect(pairing.deviceId).toMatch(/^dev_\d+_[0-9a-f]{8}$/);
     expect(pairing.pairingCode).toMatch(/^\d{6}$/);
+  });
+
+  it('agentIdentityManager creates agent identities with CSPRNG agent IDs', () => {
+    const identity = agentIdentityManager.createIdentity('Sentinel Agent');
+
+    expect(identity.agentId).toMatch(/^agent_\d+_[0-9a-f]{8}$/);
   });
 
   it('fails closed if globalThis.crypto.getRandomValues is unavailable', () => {
