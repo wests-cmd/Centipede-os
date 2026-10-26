@@ -1,5 +1,7 @@
 import { centipedeAIPipeline } from './pipeline';
 import { ActionResult, Message, RiskLevel, UserInput } from './types';
+import { generateSecureRandomHex } from '../security/cryptoUtils';
+import { incidentManager } from '../agent/incidentManager';
 
 export type AutonomyLevel = 'LEVEL_0' | 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3' | 'LEVEL_4';
 
@@ -29,7 +31,15 @@ export interface AutonomyRunState {
   startTime: number | null;
   statusMessage: string;
   history: { actionId: string; capability: string; timestamp: number }[];
+  selfRunningLoopActive: boolean;
 }
+
+const RISK_RANKS: Record<RiskLevel, number> = {
+  LOW: 1,
+  MEDIUM: 2,
+  HIGH: 3,
+  CRITICAL: 4,
+};
 
 export class AutonomyEngine {
   private level: AutonomyLevel = 'LEVEL_0';
@@ -39,6 +49,7 @@ export class AutonomyEngine {
   private startTime: number | null = null;
   private statusMessage = 'Autonomy Engine Idle (Level 0 - Manual Only)';
   private actionHistory: { actionId: string; capability: string; timestamp: number }[] = [];
+  private loopTimer: any = null;
 
   private listeners: Set<(state: AutonomyRunState) => void> = new Set();
 
@@ -63,6 +74,7 @@ export class AutonomyEngine {
 
   public activateKillSwitch(): void {
     this.killSwitchActive = true;
+    this.stopSelfRunningLoop();
     this.activeRunId = null;
     this.statusMessage = 'CRITICAL: Global Kill Switch Engaged! All autonomous execution blocked.';
     this.notify();
@@ -73,6 +85,64 @@ export class AutonomyEngine {
     this.level = 'LEVEL_0';
     this.statusMessage = 'Kill switch disengaged. Reset to Level 0 (Manual Only).';
     this.notify();
+  }
+
+  public async autoRemediateProblem(err: any): Promise<boolean> {
+    const errorMsg = err?.message || String(err);
+    const incident = incidentManager.recordIncident(
+      'MEDIUM',
+      'AUTONOMY_ENGINE',
+      'AUTONOMOUS_EXECUTION_ERROR',
+      `Autonomous execution error encountered: ${errorMsg}`,
+      'SELF_HEALING'
+    );
+
+    const result = await incidentManager.attemptSelfHealing(incident);
+    this.statusMessage = result.resolved
+      ? `Auto-Healing Succeeded: ${result.actionTaken}`
+      : `Auto-Healing Attempted: ${result.actionTaken} (Pending Manual Intervention)`;
+    this.notify();
+    return result.resolved;
+  }
+
+  public startSelfRunningLoop(routines: AutonomousRoutine[], intervalMs = 5000): void {
+    this.stopSelfRunningLoop();
+    if (this.killSwitchActive) {
+      throw new Error('Cannot start self-running loop: Kill Switch is engaged.');
+    }
+
+    this.statusMessage = `Self-Running Loop Started (${routines.length} routines configured)...`;
+    this.notify();
+
+    this.loopTimer = setInterval(async () => {
+      if (this.killSwitchActive || this.level === 'LEVEL_0' || this.level === 'LEVEL_1') return;
+
+      for (const routine of routines) {
+        if (!routine.enabled) continue;
+        try {
+          await this.executeRoutine(routine);
+        } catch (err: any) {
+          const healed = await this.autoRemediateProblem(err);
+          if (healed) {
+            // Retry execution once if auto-healed
+            try {
+              await this.executeRoutine(routine);
+            } catch {
+              /* Ignore secondary failure */
+            }
+          }
+        }
+      }
+    }, intervalMs);
+  }
+
+  public stopSelfRunningLoop(): void {
+    if (this.loopTimer) {
+      clearInterval(this.loopTimer);
+      this.loopTimer = null;
+      this.statusMessage = 'Self-Running Loop Stopped.';
+      this.notify();
+    }
   }
 
   public async executeRoutine(routine: AutonomousRoutine, conversationId = 'auto_conv'): Promise<Message> {
@@ -88,11 +158,16 @@ export class AutonomyEngine {
       throw new Error(`Routine "${routine.name}" is disabled.`);
     }
 
-    const runId = `run_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    // Risk ceiling verification
+    const routineRiskRank = RISK_RANKS[routine.riskCeiling] || 4;
+    const maxBudgetRiskRank = RISK_RANKS[routine.budget.maxRiskCeiling] || 1;
+    if (routineRiskRank > maxBudgetRiskRank) {
+      throw new Error(`Routine risk ceiling ("${routine.riskCeiling}") exceeds budget maximum risk ceiling ("${routine.budget.maxRiskCeiling}").`);
+    }
+
+    const runId = `run_${Date.now()}_${generateSecureRandomHex(4)}`;
     this.activeRunId = runId;
     this.startTime = Date.now();
-    this.actionsExecuted = 0;
-    this.actionHistory = [];
 
     this.statusMessage = `Executing routine "${routine.name}" (Run ID: ${runId})...`;
     this.notify();
@@ -104,7 +179,7 @@ export class AutonomyEngine {
     }
 
     const input: UserInput = {
-      id: `auto_in_${Date.now()}`,
+      id: `auto_in_${Date.now()}_${generateSecureRandomHex(3)}`,
       text: routine.prompt,
       timestamp: Date.now(),
       conversationId,
@@ -118,7 +193,21 @@ export class AutonomyEngine {
       throw new Error('Autonomy Loop Protection: Detected repeating execution cycle. Execution aborted.');
     }
 
-    const message = await centipedeAIPipeline.process(input);
+    let message: Message;
+    try {
+      message = await centipedeAIPipeline.process(input);
+    } catch (err: any) {
+      this.activeRunId = null;
+      await this.autoRemediateProblem(err);
+      throw err;
+    }
+
+    if (routine.budget.maxRuntimeMs > 0 && Date.now() - this.startTime > routine.budget.maxRuntimeMs) {
+      this.activeRunId = null;
+      this.statusMessage = 'Autonomy Budget Exceeded: Max runtime limit exceeded.';
+      this.notify();
+      throw new Error('Autonomy Budget Exceeded: Max runtime limit exceeded.');
+    }
 
     this.actionsExecuted++;
     this.actionHistory.push({
@@ -126,6 +215,10 @@ export class AutonomyEngine {
       capability: message.plan?.requiredCapabilities[0] || 'none',
       timestamp: Date.now(),
     });
+
+    if (this.actionHistory.length > 50) {
+      this.actionHistory.shift();
+    }
 
     this.activeRunId = null;
     this.statusMessage = `Routine execution completed with status: ${message.status}`;
@@ -150,6 +243,7 @@ export class AutonomyEngine {
       startTime: this.startTime,
       statusMessage: this.statusMessage,
       history: [...this.actionHistory],
+      selfRunningLoopActive: this.loopTimer !== null,
     };
   }
 }
