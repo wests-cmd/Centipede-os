@@ -1,13 +1,53 @@
+import { spawn, ChildProcess } from 'node:child_process';
+import { resolve } from 'node:path';
 import { KingdomAdapter, KingdomApiError } from '../../src/api/kingdomAdapter.ts';
+
+async function ensureFixtureServer(): Promise<ChildProcess | null> {
+  const onlineAdapter = new KingdomAdapter('http://127.0.0.1:8000');
+  try {
+    await onlineAdapter.get_status();
+    return null; // Server is already running
+  } catch (_) {
+    // Spawn python contract fixture server
+    const fixturePath = resolve(process.cwd(), 'tests/fixtures/kingdom-contract-fixture.py');
+    const child = spawn('python3', [fixturePath], {
+      stdio: 'ignore',
+      env: { ...process.env, PORT: '8000', HOST: '127.0.0.1' },
+    });
+
+    // Poll until server responds
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      try {
+        await onlineAdapter.get_status();
+        return child;
+      } catch (_) {}
+    }
+
+    return child;
+  }
+}
 
 async function runContractVerification() {
   console.log('===========================================================');
   console.log('  CENTIPEDE OS ↔ KINGDOM CONTRACT VERIFICATION SUITE');
   console.log('===========================================================');
 
+  const spawnedServer = await ensureFixtureServer();
+
   const onlineAdapter = new KingdomAdapter('http://127.0.0.1:8000');
   const offlineAdapter = new KingdomAdapter('http://127.0.0.1:9999');
 
+  try {
+    await executeSuite(onlineAdapter, offlineAdapter);
+  } finally {
+    if (spawnedServer) {
+      spawnedServer.kill('SIGTERM');
+    }
+  }
+}
+
+async function executeSuite(onlineAdapter: KingdomAdapter, offlineAdapter: KingdomAdapter) {
   // 1. Connection & Online/Offline Detection
   console.log('\n--- 1. CONNECTION & ONLINE/OFFLINE DETECTION ---');
   try {

@@ -333,20 +333,27 @@ export class KingdomAdapter {
       if (trackConnection) this.recordSuccess();
       const json = (await res.json()) as T;
 
-      // Schema drift validation
+      // Schema drift validation with fast-path static route string comparison
       const cleanPath = path.split('?')[0];
+      const reqMethod = options.method || 'GET';
       const matchingSpecKey = Object.keys(KINGDOM_CONTRACT_SPEC.endpoints).find((key) => {
         const spec = KINGDOM_CONTRACT_SPEC.endpoints[key];
         const specMethod = spec.method || 'GET';
-        const reqMethod = options.method || 'GET';
         if (specMethod !== reqMethod) return false;
 
-        let specPathRegex = this.endpointRegexCache.get(key);
-        if (!specPathRegex) {
-          specPathRegex = new RegExp('^' + spec.path.replace(/\{[^}]+\}/g, '[^/]+') + '$');
-          this.endpointRegexCache.set(key, specPathRegex);
+        // Fast-path: Exact path comparison for static endpoints without dynamic parameters
+        if (spec.path === cleanPath) return true;
+
+        if (spec.path.includes('{')) {
+          let specPathRegex = this.endpointRegexCache.get(key);
+          if (!specPathRegex) {
+            specPathRegex = new RegExp('^' + spec.path.replace(/\{[^}]+\}/g, '[^/]+') + '$');
+            this.endpointRegexCache.set(key, specPathRegex);
+          }
+          return specPathRegex.test(cleanPath);
         }
-        return specPathRegex.test(cleanPath);
+
+        return false;
       });
 
       if (matchingSpecKey && json && typeof json === 'object') {
