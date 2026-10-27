@@ -50,6 +50,7 @@ export class AutonomyEngine {
   private statusMessage = 'Autonomy Engine Idle (Level 0 - Manual Only)';
   private actionHistory: { actionId: string; capability: string; timestamp: number }[] = [];
   private loopTimer: any = null;
+  private isLoopTickRunning = false;
 
   private listeners: Set<(state: AutonomyRunState) => void> = new Set();
 
@@ -115,23 +116,27 @@ export class AutonomyEngine {
     this.notify();
 
     this.loopTimer = setInterval(async () => {
-      if (this.killSwitchActive || this.level === 'LEVEL_0' || this.level === 'LEVEL_1') return;
+      if (this.killSwitchActive || this.level === 'LEVEL_0' || this.level === 'LEVEL_1' || this.isLoopTickRunning) return;
 
-      for (const routine of routines) {
-        if (!routine.enabled) continue;
-        try {
-          await this.executeRoutine(routine);
-        } catch (err: any) {
-          const healed = await this.autoRemediateProblem(err);
-          if (healed) {
-            // Retry execution once if auto-healed
-            try {
-              await this.executeRoutine(routine);
-            } catch {
-              /* Ignore secondary failure */
+      this.isLoopTickRunning = true;
+      try {
+        for (const routine of routines) {
+          if (!routine.enabled) continue;
+          try {
+            await this.executeRoutine(routine);
+          } catch (err: any) {
+            const healed = await this.autoRemediateProblem(err);
+            if (healed) {
+              try {
+                await this.executeRoutine(routine);
+              } catch {
+                /* Ignore secondary failure */
+              }
             }
           }
         }
+      } finally {
+        this.isLoopTickRunning = false;
       }
     }, intervalMs);
   }
@@ -140,6 +145,7 @@ export class AutonomyEngine {
     if (this.loopTimer) {
       clearInterval(this.loopTimer);
       this.loopTimer = null;
+      this.isLoopTickRunning = false;
       this.statusMessage = 'Self-Running Loop Stopped.';
       this.notify();
     }
@@ -165,18 +171,17 @@ export class AutonomyEngine {
       throw new Error(`Routine risk ceiling ("${routine.riskCeiling}") exceeds budget maximum risk ceiling ("${routine.budget.maxRiskCeiling}").`);
     }
 
+    // Budget Enforcement check
+    if (routine.budget.maxActions <= 0 || this.actionsExecuted >= routine.budget.maxActions) {
+      throw new Error('Autonomy Budget Exceeded: Max actions budget reached.');
+    }
+
     const runId = `run_${Date.now()}_${generateSecureRandomHex(4)}`;
     this.activeRunId = runId;
     this.startTime = Date.now();
 
     this.statusMessage = `Executing routine "${routine.name}" (Run ID: ${runId})...`;
     this.notify();
-
-    // Budget Enforcement check
-    if (routine.budget.maxActions <= 0) {
-      this.activeRunId = null;
-      throw new Error('Autonomy Budget Exceeded: Max actions budget is zero.');
-    }
 
     const input: UserInput = {
       id: `auto_in_${Date.now()}_${generateSecureRandomHex(3)}`,
@@ -198,7 +203,6 @@ export class AutonomyEngine {
       message = await centipedeAIPipeline.process(input);
     } catch (err: any) {
       this.activeRunId = null;
-      await this.autoRemediateProblem(err);
       throw err;
     }
 
