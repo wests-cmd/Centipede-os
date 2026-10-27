@@ -172,13 +172,14 @@ export class AutonomyEngine {
     }
 
     // Budget Enforcement check
-    if (routine.budget.maxActions <= 0 || this.actionsExecuted >= routine.budget.maxActions) {
-      throw new Error('Autonomy Budget Exceeded: Max actions budget reached.');
+    if (routine.budget.maxActions <= 0) {
+      throw new Error('Autonomy Budget Exceeded: Max actions budget is zero.');
     }
 
     const runId = `run_${Date.now()}_${generateSecureRandomHex(4)}`;
     this.activeRunId = runId;
     this.startTime = Date.now();
+    this.actionsExecuted = 0;
 
     this.statusMessage = `Executing routine "${routine.name}" (Run ID: ${runId})...`;
     this.notify();
