@@ -44,7 +44,6 @@ export class CentipedeAIPipeline {
     // 1. UNDERSTANDING
     currentMsg = { ...currentMsg, status: 'UNDERSTANDING' };
     this.notify(currentMsg);
-    await new Promise((r) => setTimeout(r, 50));
 
     // 2. INTENT_IDENTIFIED
     const intent: Intent = intentParser.parse(input);
@@ -77,7 +76,6 @@ export class CentipedeAIPipeline {
     // 3. PLANNING
     currentMsg = { ...currentMsg, status: 'PLANNING' };
     this.notify(currentMsg);
-    await new Promise((r) => setTimeout(r, 50));
 
     const plan: Plan = planner.createPlan(intent);
     currentMsg = { ...currentMsg, plan };

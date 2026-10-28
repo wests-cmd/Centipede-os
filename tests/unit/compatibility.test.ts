@@ -4,6 +4,15 @@ import { capabilityNegotiator } from '../../src/api/capabilityNegotiator';
 import { KINGDOM_CONTRACT_SPEC } from '../../src/api/contractSpec';
 
 describe('Kingdom ↔ Centipede Compatibility & Adversarial Security Suite', () => {
+  it('does not infer protocol or capabilities from a version or local specification', () => {
+    const adapter = new KingdomAdapter('http://127.0.0.1:8000');
+    expect(adapter.checkVersionCompatibility('40.1.0').status).toBe('UNKNOWN');
+    expect(adapter.getCompatibilityInfo().protocol).toBeNull();
+    const runtime = { ...adapter.getKingdomRuntimeInfo(), connectionState: 'CONNECTED' as const, protocol: { major: 1, minor: 0 } };
+    expect(capabilityNegotiator.evaluateCapability('filesystem.read', runtime).status).toBe('UNKNOWN');
+    expect(capabilityNegotiator.evaluateCapability('filesystem.read', { ...runtime, capabilities: { 'filesystem.read': false } }).status).toBe('INCOMPATIBLE');
+    expect(capabilityNegotiator.evaluateCapability('filesystem.read', { ...runtime, capabilities: { 'filesystem.read': true }, protocol: null }).status).toBe('UNKNOWN');
+  });
   it('1. Capability Negotiation across Kingdom versions', () => {
     const adapter = new KingdomAdapter('http://127.0.0.1:8000');
 
@@ -25,6 +34,7 @@ describe('Kingdom ↔ Centipede Compatibility & Adversarial Security Suite', () 
       running: true,
       mode: 'adaptive',
       protocol: { major: 1, minor: 4 },
+      capabilities: { 'filesystem.read': true },
     };
 
     const nav1 = capabilityNegotiator.evaluateCapability('filesystem.read', onlineRuntime);
@@ -78,7 +88,7 @@ describe('Kingdom ↔ Centipede Compatibility & Adversarial Security Suite', () 
 
     // Even if negotiator says SUPPORTED, adapter does not grant authority!
     const res = capabilityNegotiator.evaluateCapability('system.admin', forgedRuntime);
-    expect(res.status).toBe('SUPPORTED');
+    expect(res.status).toBe('UNKNOWN');
 
     // Offline mode denies privileged execution fail-closed
     const offlineRuntime = { ...forgedRuntime, connectionState: 'DISCONNECTED' as const };
