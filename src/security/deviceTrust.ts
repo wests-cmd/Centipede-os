@@ -111,13 +111,16 @@ export class DeviceTrustManager {
   }
 
   public validateSessionToken(sessionToken: string): { valid: boolean; device?: TrustedDevice; error?: string } {
-    const device = this.sessionTokenIndex.get(sessionToken) || Array.from(this.devices.values()).find((d) => d.sessionToken === sessionToken);
-    if (!device) {
+    if (!sessionToken || typeof sessionToken !== 'string' || sessionToken.trim() === '') {
       return { valid: false, error: 'Device not authenticated or session token invalid.' };
     }
 
-    if (device.trustState === 'REVOKED') {
-      return { valid: false, error: 'REVOKED_DEVICE: Device access has been revoked by system administrator.' };
+    const device = this.sessionTokenIndex.get(sessionToken) || Array.from(this.devices.values()).find((d) => d.sessionToken === sessionToken);
+    if (!device || device.trustState !== 'PAIRED_ACTIVE' || device.sessionToken !== sessionToken) {
+      if (device && device.trustState === 'REVOKED') {
+        return { valid: false, error: 'REVOKED_DEVICE: Device access has been revoked by system administrator.' };
+      }
+      return { valid: false, error: 'Device not authenticated or session token invalid.' };
     }
 
     device.lastSeenAt = Date.now();
