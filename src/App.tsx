@@ -1,3 +1,4 @@
+import { PerceptionPanel } from './components/PerceptionPanel';
 import React, { useEffect, useState } from 'react';
 import { kingdomAdapter } from './api/kingdomAdapter';
 import { DesktopShell } from './components/DesktopShell';
@@ -34,9 +35,9 @@ export const App: React.FC = () => {
   const [homeVisual, setHomeVisual] = useState<HomeVisual>(() => {
     try {
       const saved = window.localStorage.getItem('centipede_home_visual');
-      return HOME_VISUALS.some((profile) => profile.id === saved) ? (saved as HomeVisual) : 'centipede-world';
+      return HOME_VISUALS.some((profile) => profile.id === saved) ? (saved as HomeVisual) : 'centipede-art';
     } catch {
-      return 'centipede-world';
+      return 'centipede-art';
     }
   });
 
@@ -98,6 +99,8 @@ export const App: React.FC = () => {
             homeVisual={homeVisual}
           />
         );
+      case 'perception':
+        return <Window id="win_perception" title="Camera, screen and microphone" icon={Bot} isOpen={true} onClose={() => setActiveAppId('launcher')}><PerceptionPanel /></Window>;
       case 'agent_control':
         return (
           <Window id="win_agent_control" title="Agent Control Plane & Security" icon={ShieldAlert} isOpen={true} onClose={() => setActiveAppId('launcher')}>

@@ -10,6 +10,8 @@ Writing an image erases the selected USB. Check its name and capacity before app
 
 The published image contains the original desktop. Refreshed desktop and everyday-app configuration on main require a separately tested, tagged release before becoming updated stable downloads.
 
+Source media controls are reviewed in [capture and capability notes](docs/JARVIS_CAPABILITY_REVIEW.md) and [Windows validation](docs/WINDOWS_AUDIT_VALIDATION.md). The optional Camera, screen & mic panel captures only after you start it; preview is not image understanding. Source changes do not update published download assets.
+
 ## Project map
 
 | Area | Source | Responsibility |

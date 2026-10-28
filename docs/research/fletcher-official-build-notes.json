@@ -1,0 +1,285 @@
+{
+  "checkedOn": "2026-10-18",
+  "index": "https://alexschar.dev/fletcher/updates/",
+  "discoveryChain": [
+    "https://www.instagram.com/alexcandothat/",
+    "https://linktr.ee/AlexCanDoThat",
+    "https://alexschar.dev/fletcher/"
+  ],
+  "indexedNoteCount": 27,
+  "reviewedNoteCount": 27,
+  "allIndexedBuildNotesCovered": true,
+  "allInstagramVideosFullyReviewed": false,
+  "records": [
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7693347135550475534.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7693347135550475534",
+      "visiblePartLabel": "34",
+      "publishedDate": "2026-10-05",
+      "topic": "Jetson language-model offload",
+      "summary": "Creator reports Jetson-first Ollama/Llama3.2 3B with Pi/Qwen2.5 1.5B fallback. The measured model step was about0.8s, versus about6s for the whole spoken exchange; another spoken request failed. Reliable voice and vision on Jetson are not established.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7692580583527992589.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7692580583527992589",
+      "visiblePartLabel": "34",
+      "publishedDate": "2026-10-03",
+      "topic": "Transparent-screen teardown",
+      "summary": "Monitor disassembly is documented. Another builder’s transparent-screen insert is not Fletcher footage; no working stripped-panel display is proven.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7690740801432767775.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7690740801432767775",
+      "visiblePartLabel": "33",
+      "publishedDate": "2026-09-28",
+      "topic": "Small greeting display",
+      "summary": "Wired ESP8266/ST7789 LCD displays a greeting. Full wake-word-to-screen triggering, idle timeout and network recovery are not demonstrated.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7688514727365905678.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7688514727365905678",
+      "visiblePartLabel": "32",
+      "publishedDate": "2026-09-22",
+      "topic": "Swipe between computers",
+      "summary": "Creator documents Mac hand-control and bidirectional monitor-input switching using the monitor control protocol. A touch-sensor alternative remains planned; this is not evidence of merged computers or generic OS control.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7687394249502903566.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7687394249502903566",
+      "visiblePartLabel": "31",
+      "publishedDate": "2026-09-19",
+      "topic": "Voice-controlled lamp",
+      "summary": "Creator records a successful Kasa smart-plug/Home Assistant voice test for one lamp. A suspected network-projector address was later identified as another device; network projector control was not proven.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7686680764242578702.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7686680764242578702",
+      "visiblePartLabel": "30",
+      "publishedDate": "2026-09-17",
+      "topic": "Rig reassembly",
+      "summary": "Bench checks detect camera/sensor hardware and catch disconnected SSD/intermittent connections. Mounted desk interaction and depth-assisted touch remain separate tests.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7685961957563845901.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7685961957563845901",
+      "visiblePartLabel": "29",
+      "publishedDate": "2026-09-15",
+      "topic": "Depth-sensor wiring",
+      "summary": "Header soldering and wiring are shown; this clip ends without electrical/readout/touch proof. Later sensor-data records do not establish useful touch detection.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7685526681192353037.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7685526681192353037",
+      "visiblePartLabel": "28",
+      "publishedDate": "2026-09-14",
+      "topic": "Camera replacement",
+      "summary": "Camera replacement aims to reduce lens distortion. Measured tracking improvement and depth-assisted touch are not demonstrated by the swap.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7684809680203402509.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7684809680203402509",
+      "visiblePartLabel": "27",
+      "publishedDate": "2026-09-12",
+      "topic": "SSD migration",
+      "summary": "Creator reports cloning to an existing SSD while retaining the accelerator. The separate reboot with the microSD physically removed remained open; no model-quality gain follows from storage replacement.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7684080428516445454.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7684080428516445454",
+      "visiblePartLabel": "26",
+      "publishedDate": "2026-09-10",
+      "topic": "Hand control on Mac",
+      "summary": "Local camera/Apple Vision landmarks and calibration support a Mac pinch/grab prototype according to build notes. A later live-window streaming bridge is outside this test.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7683333018148162830.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7683333018148162830",
+      "visiblePartLabel": "25",
+      "publishedDate": "2026-09-08",
+      "topic": "Voice-started projector sequence",
+      "summary": "Known IR navigation is used after boot. Vision-based highlighted-tile navigation was unreliable and deferred. Later power checks and bounded retries are follow-up work, not proof every filmed attempt used them.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7682937127251856654.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7682937127251856654",
+      "visiblePartLabel": "23",
+      "publishedDate": "2026-09-07",
+      "topic": "Controller enclosure",
+      "summary": "A printed holder has fit/failure and placement problems. Subsequent transmitter power corrections and successful cycles belong to later records.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7682546295537487118.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7682546295537487118",
+      "visiblePartLabel": "23",
+      "publishedDate": "2026-09-06",
+      "topic": "IR controller prototype",
+      "summary": "Captured remote codes are placed on a controller/transmitter. Software clicks and a flashing transmitter do not prove reliable projector response; this prototype has delivery problems.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7682208915089575181.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7682208915089575181",
+      "visiblePartLabel": "22",
+      "publishedDate": "2026-09-05",
+      "topic": "Remote-code capture",
+      "summary": "The creator records capturing the owned projector remote and successfully replaying its power command. Codes are device-specific; voice automation is not yet proven here.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7681840974288522509.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7681840974288522509",
+      "visiblePartLabel": "21",
+      "publishedDate": "2026-09-04",
+      "topic": "Calibration and dragging",
+      "summary": "Repeated grab/drop and touch/drag tests follow calibration corrections. Depth sensing and later two-hand layout features are separate work.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7681463112259734798.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7681463112259734798",
+      "visiblePartLabel": "19",
+      "publishedDate": "2026-09-03",
+      "topic": "Complete desk baseline",
+      "summary": "Camera tracking reaches the test surface, but card grabbing remains unreliable. Cursor motion alone does not prove useful dragging.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7681086737635937550.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7681086737635937550",
+      "visiblePartLabel": "19",
+      "publishedDate": "2026-09-02",
+      "topic": "Brighter projected UI",
+      "summary": "Lighter projection improves tapping in this physical setup. Calibration and dependable card grabs still need testing; this is not a universal theme recommendation.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7680715951288880398.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7680715951288880398",
+      "visiblePartLabel": "18",
+      "publishedDate": "2026-09-01",
+      "topic": "Lighting diagnosis",
+      "summary": "The accelerator alone does not solve tracking. Inspecting camera visibility identifies projected brightness as a contributor. Depth sensing remains prospective.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7680358657220971790.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7680358657220971790",
+      "visiblePartLabel": null,
+      "publishedDate": "2026-08-31",
+      "topic": "Personal knowledge architecture",
+      "summary": "Obsidian notes, transcript ingestion, Hermes on a Mac mini and a Pi/voice front door are described. A correct spoken question→retrieval→spoken answer is not demonstrated; this is not proof of model training.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7680001326155074830.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7680001326155074830",
+      "visiblePartLabel": null,
+      "publishedDate": "2026-08-30",
+      "topic": "Tracking accelerator",
+      "summary": "Creator reports tracking slowing during speech and fits an accelerator to divide workloads. This episode ends before the post-upgrade result; fitting hardware alone is not a benchmark.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7679238297318706446.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7679238297318706446",
+      "visiblePartLabel": "14",
+      "publishedDate": "2026-08-28",
+      "topic": "Projector speech output",
+      "summary": "Audio routing and on-screen conversation state are tested separately. Attempts are mixed; neither reliable visual voice state nor broad assistant capability follows from an output beep.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7678896794872368397.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7678896794872368397",
+      "visiblePartLabel": null,
+      "publishedDate": "2026-08-27",
+      "topic": "Listening/thinking/speaking split",
+      "summary": "Wake and speech are present, but replies use the wrong output device. CPU allocation/thread limits address contention; they do not prove accelerator support for every stage.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7678542702350257421.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7678542702350257421",
+      "visiblePartLabel": null,
+      "publishedDate": "2026-08-26",
+      "topic": "Mounted HDMI workaround",
+      "summary": "Physical mounting/connectors are reworked. A projected image does not establish camera-to-control interaction.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7678130172322680078.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7678130172322680078",
+      "visiblePartLabel": null,
+      "publishedDate": "2026-08-25",
+      "topic": "First projected image",
+      "summary": "A temporary HDMI arrangement yields an image. Tracking accuracy and gestures are not tested by display output.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7677818973085388045.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7677818973085388045",
+      "visiblePartLabel": null,
+      "publishedDate": "2026-08-24",
+      "topic": "Projected-desk restart",
+      "summary": "Pi, camera and projector are introduced with calibration goals. The final intended interface image is a design target, not a completed assistant.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7677815696578841870.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7677815696578841870",
+      "visiblePartLabel": null,
+      "publishedDate": "2026-08-24",
+      "topic": "Early calibration view",
+      "summary": "Projection and a manual calibration page are visible. Mapping accuracy, touch and card movement are not measured here.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    },
+    {
+      "noteUrl": "https://alexschar.dev/fletcher/updates/7544504095533518135.html",
+      "videoUrl": "https://www.tiktok.com/@alex.schar1/video/7544504095533518135",
+      "visiblePartLabel": null,
+      "publishedDate": "2025-08-30",
+      "topic": "Earlier relay experiment",
+      "summary": "The light-switching experiment exposes power/connection failures. Its wiring is not a verified build guide; later IR work does not prove this circuit fixed.",
+      "provenance": "Creator-owned build breakdown read in browser; not an independent hardware reproduction",
+      "fullVideoWatched": false
+    }
+  ]
+}

@@ -209,10 +209,11 @@ export class KingdomAdapter {
     if (status?.version) {
       this.lastKnownKingdomVersion = status.version;
     }
-    if (status?.capabilities) {
+    this.discoveredCapabilities = {};
+    if (Array.isArray(status?.capabilities)) {
       const capsMap: Record<string, boolean> = {};
       status.capabilities.forEach((cap) => {
-        capsMap[cap] = true;
+        if (typeof cap === 'string') capsMap[cap] = true;
       });
       this.discoveredCapabilities = capsMap;
     }
@@ -243,10 +244,11 @@ export class KingdomAdapter {
     }
 
     const clean = (rawVersion || '').trim().replace(/^v/i, '');
-    let status: VersionCompatibilityStatus = 'COMPATIBLE';
+    let status: VersionCompatibilityStatus = protocolHeader ? 'COMPATIBLE' : 'UNKNOWN';
     const protMajor = protocolHeader ? protocolHeader.major : KINGDOM_PROTOCOL_MAJOR;
     const protMinor = protocolHeader ? protocolHeader.minor : 0;
     let message = `Kingdom v${clean || 'unknown'} (Protocol v${protMajor}.${protMinor}) is compatible.`;
+    if (!protocolHeader) message = 'Kingdom version received, but protocol compatibility has not been verified.';
 
     // Protocol major negotiation
     if (protMajor !== KINGDOM_PROTOCOL_MAJOR) {
@@ -256,7 +258,7 @@ export class KingdomAdapter {
 
     const info: VersionCompatibility = {
       detectedVersion: clean || null,
-      protocol: protocolHeader || { major: protMajor, minor: protMinor },
+      protocol: protocolHeader || null,
       minSupportedVersion: `Protocol v${KINGDOM_PROTOCOL_MAJOR}.0`,
       maxTestedVersion: `Protocol v${KINGDOM_PROTOCOL_MAJOR}.x`,
       status,
