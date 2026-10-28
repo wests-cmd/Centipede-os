@@ -6,7 +6,7 @@ Status reviewed 2026-10-28. This summary navigates source, target decisions and 
 
 The latest public stable release verified in the release listing is [v1.0.0](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0), published 2026-09-30 with 12 assets. [package.json](../package.json) also declares 1.0.0; that does not make current-main changes part of those earlier published bytes.
 
-Main includes [PR #136](https://github.com/wests-cmd/Centipede-os/pull/136)'s device-session authentication and CSPRNG identifier fixes. [PR #137](https://github.com/wests-cmd/Centipede-os/pull/137) is the pending source integration candidate for explicit camera/screen/microphone capture controls, original Centipede artwork, selectable local image/GIF/video backgrounds and optional static boot-menu branding. Its reviewed code head `2fa8c28` passed 209 unit/security tests, seven browser checks, type-check/build, safety fixtures and CodeQL. Capture unit tests inject browser APIs; browser media checks decode actual GIF/WebM fixtures. These results do not prove physical capture hardware, a rebuilt ISO, physical boot, persistent OS installation or an installed-device update. None of this changes the published v1.0.0 assets.
+Main includes [PR #136](https://github.com/wests-cmd/Centipede-os/pull/136)'s device-session authentication and CSPRNG identifier fixes. Main also includes [PR #137](https://github.com/wests-cmd/Centipede-os/pull/137)'s source implementation of explicit camera/screen/microphone capture controls, original Centipede artwork, selectable local image/GIF/video backgrounds and optional static boot-menu branding. Its final reviewed head `419ddce` passed 209 unit/security tests, seven browser checks, type-check/build, safety fixtures and CodeQL. Capture unit tests inject browser APIs; browser media checks decode actual GIF/WebM fixtures. These results do not prove physical capture hardware, a rebuilt ISO, physical boot, persistent OS installation or an installed-device update. None of this changes the published v1.0.0 assets.
 
 | Area | Source reality | Remaining boundary |
 | --- | --- | --- |
@@ -31,9 +31,9 @@ Detailed references: [target manifest](../release/targets.json), [ship reality m
 5. Finish signed Android/iPhone distribution and real-device interactions.
 6. Demonstrate task-specific workflows against an actual authorized Kingdom deployment, separating proposals, execution and verified results.
 7. Validate trusted native resource/storage telemetry and measure inference on the actual target.
-8. Complete target-device memory/codec and physical boot acceptance for the tested media/branding source candidate; evaluate additional transports separately with explicit security and hardware criteria.
+8. Complete target-device memory/codec and physical boot acceptance for the merged media/branding source; evaluate additional transports separately with explicit security and hardware criteria.
 
-The media/capture implementation above remains a source candidate pending PR #137's merge; additional transport/autonomy proposals remain separate work. Source integration does not certify a published release or installed computer.
+The media/capture implementation above is merged source; additional transport/autonomy proposals remain separate work. Source integration does not certify a published release or installed computer.
 
 ## Completion evidence
 
