@@ -17,6 +17,7 @@ This navigation organizes existing source and evidence; it moves no runtime file
 - [Trust boundaries](TRUST_BOUNDARIES.md), [Centipede trust boundary](CENTIPEDE_TRUST_BOUNDARY.md), [security assumptions](SECURITY_ASSUMPTIONS.md)
 - [Accessibility checklist](ACCESSIBILITY_EXPANSION_CHECKLIST.md)
 - [Local inference baseline](implementation/LOCAL_INFERENCE_BASELINE_20261023.md): a separate measurement harness, not a bundled model or established hardware benchmark
+- [Selected local knowledge sources](implementation/SELECTED_KNOWLEDGE_SOURCES.md): opt-in native API and bounded untrusted excerpts, not a background learner or AI summary
 
 ## Builds, releases and outstanding gates
 

@@ -50,9 +50,12 @@ The two-process Vite setup is in [Development](docs/DEVELOPMENT.md).
 | `PUBLIC_URL` | Bun phone-facing advertised address, not administrative authority |
 | `KINGDOM_API_URL`, `KINGDOM_API_TOKEN` | Server-side external Kingdom connection |
 | `CENTIPEDE_API_PORT` | Vite proxy target, default 3001 |
+| `CENTIPEDE_KNOWLEDGE_HOME` | Native selected-source checkpoint directory; sources default empty, no automatic scan |
 | `CENTIPEDE_PUBLIC_URL` | Compose substitution into container `PUBLIC_URL`, not a native server variable |
 
 Keep credentials in the server environment, outside source control. Never paste a Kingdom token into a browser URL. See [configuration details](docs/DEVELOPMENT.md).
+
+The native Bun server also offers [explicitly selected text-source excerpts](docs/implementation/SELECTED_KNOWLEDGE_SOURCES.md) through the existing local-administration boundary. This source-only API has no picker UI, background scan or AI summarization; it does not change published images.
 
 ## Verification
 

@@ -45,6 +45,9 @@ jobs:
       - name: Run Unit & Security Test Suite
         run: bun test
 
+      - name: Verify selected knowledge sources through actual Bun HTTP
+        run: bun tests/integration/selected_knowledge_sources.integration.ts
+
       - name: Install Playwright browser for end-to-end interaction tests
         run: bun x playwright install --with-deps chromium
 
