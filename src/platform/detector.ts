@@ -58,9 +58,12 @@ export class PlatformDetector {
     // Capability verification
     const capabilities: PlatformCapabilities = {
       filesystemAccess: true,
-      microphoneAccess: typeof window !== 'undefined' && 'navigator' in window && 'mediaDevices' in navigator,
+      microphoneAccess: false, // API presence does not establish user consent.
       speakerAccess: typeof window !== 'undefined' && 'AudioContext' in window,
-      cameraAccess: typeof window !== 'undefined' && 'navigator' in window && 'mediaDevices' in navigator,
+      cameraAccess: false,
+      cameraCaptureSupported: typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getUserMedia === 'function',
+      microphoneCaptureSupported: typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getUserMedia === 'function',
+      screenCaptureSupported: typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getDisplayMedia === 'function',
       notificationsSupported: typeof window !== 'undefined' && 'Notification' in window,
       networkInterfacesAvailable: typeof window !== 'undefined' && 'navigator' in window && navigator.onLine,
       dockerSocketMounted: false, // Security Directive: Docker socket mounting is prohibited!

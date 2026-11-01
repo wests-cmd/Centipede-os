@@ -18,6 +18,8 @@ cp -a "$CONFIG/." "$BUILD/config/"
 find "$BUILD/config" -type d -name __pycache__ -prune -exec rm -rf {} +
 find "$BUILD/config" -type f -name '*.py[co]' -delete
 cp -a "$ROOT/dist/." "$BUILD/config/includes.chroot/opt/centipede/web/"
+mkdir -p "$BUILD/config/includes.binary/boot/grub"
+cp "$ROOT/public/branding/centipede-boot-emblem.png" "$BUILD/config/includes.binary/boot/grub/centipede-boot-emblem.png"
 mkdir -p "$BUILD/config/includes.chroot/etc/centipede"
 printf '%s\n' "$VERSION" > "$BUILD/config/includes.chroot/etc/centipede/version"
 chmod +x "$BUILD/config/hooks/normal/0100-centipede-systemd.hook.chroot" "$BUILD/config/hooks/normal/0200-centipede-identity.hook.chroot" "$BUILD/config/hooks/normal/0300-centipede-boot-menu.hook.binary"

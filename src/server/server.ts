@@ -11,6 +11,9 @@ try {
   }
 } catch (_) {}
 
+// Maximum allowed incoming HTTP request body size (1 MB) to prevent denial-of-service memory exhaustion
+export const MAX_REQUEST_BODY_BYTES = 1024 * 1024;
+
 export class CentipedeServer {
   private isListening = false;
   private httpServer: any = null;
@@ -31,10 +34,32 @@ export class CentipedeServer {
 
           let body: any = undefined;
           if (req.method === 'POST' || req.method === 'PUT') {
-            const buffers: Uint8Array[] = [];
-            for await (const chunk of req) {
-              buffers.push(chunk);
+            // Check Content-Length upfront if supplied as early rejection
+            const contentLength = Number(req.headers?.['content-length'] || 0);
+            if (contentLength > MAX_REQUEST_BODY_BYTES) {
+              res.writeHead(413, { 'Content-Type': 'application/json', 'X-Content-Type-Options': 'nosniff' });
+              res.end(JSON.stringify({ error: 'PAYLOAD_TOO_LARGE: Request body exceeds maximum allowed size.' }));
+              req.destroy();
+              return;
             }
+
+            const buffers: Uint8Array[] = [];
+            let totalBytes = 0;
+            try {
+              for await (const chunk of req) {
+                totalBytes += chunk.byteLength || chunk.length || 0;
+                if (totalBytes > MAX_REQUEST_BODY_BYTES) {
+                  res.writeHead(413, { 'Content-Type': 'application/json', 'X-Content-Type-Options': 'nosniff' });
+                  res.end(JSON.stringify({ error: 'PAYLOAD_TOO_LARGE: Request body exceeds maximum allowed size.' }));
+                  req.destroy();
+                  return;
+                }
+                buffers.push(chunk);
+              }
+            } catch {
+              return;
+            }
+
             const rawBody = Buffer.concat(buffers).toString('utf8');
             if (rawBody.trim()) {
               try {
@@ -60,7 +85,7 @@ export class CentipedeServer {
           };
 
           const apiRes = await apiRouter.handleRequest(apiReq);
-          res.writeHead(apiRes.status, { 'Content-Type': 'application/json' });
+          res.writeHead(apiRes.status, { 'Content-Type': 'application/json', 'X-Content-Type-Options': 'nosniff' });
           if (apiRes.error) {
             res.end(JSON.stringify({ error: apiRes.error }));
           } else {

@@ -50,6 +50,12 @@ export class CapabilityNegotiator {
       }
     }
 
+    // A local contract describes possible features, not this server's authority.
+    if (!kingdomRuntime.protocol || !Object.prototype.hasOwnProperty.call(kingdomRuntime.capabilities || {}, capability)
+      || typeof kingdomRuntime.capabilities?.[capability] !== 'boolean') {
+      return { capability, status: 'UNKNOWN', reason: `Capability "${capability}" has not been explicitly negotiated with this Kingdom.` };
+    }
+
     // Check runtime capabilities if supplied by Kingdom
     if (kingdomRuntime.capabilities) {
       const isAvailable = kingdomRuntime.capabilities[capability];

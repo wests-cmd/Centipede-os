@@ -78,4 +78,70 @@ describe('Centipede read-only Kingdom proxy', () => {
 
     expect(response).toEqual({ status: 502, error: 'Kingdom response exceeded the allowed size.' });
   });
+
+  it('projects optional observations without forwarding prompts, names or node configuration', async () => {
+    process.env.KINGDOM_API_URL = 'http://kingdom.internal:8000';
+    process.env.KINGDOM_API_TOKEN = 'test-owner-token';
+    const now = Date.now() / 1000;
+    globalThis.fetch = (async () => new Response(JSON.stringify({ state: 'observed', observed_at: now,
+      jobs: [{ id: 'job', prompt: 'private prompt', secret: 'private key' }], configuration: 'private config', truncated: false,
+    }), { headers: { Date: new Date(now * 1000).toUTCString() } })) as typeof fetch;
+    const response = await apiRouter.handleRequest({ path: '/api/v1/kingdom/orchestration/activity', method: 'GET', isLocalAdmin: true });
+    expect(response.status).toBe(200);
+    expect(response.data).toMatchObject({ state: 'observed', count: 1, observedAt: now, scope: 'local_recent_job_records', truncated: false });
+    expect(response.data.receivedAt).toEqual(expect.any(Number));
+    expect(JSON.stringify(response)).not.toContain('private');
+  });
+
+  it('denies every new observation to remote clients and denies write/action/programme routes', async () => {
+    let calls = 0;
+    globalThis.fetch = (async () => { calls++; throw new Error('must not fetch'); }) as typeof fetch;
+    for (const path of ['/hierarchy', '/orchestration/activity', '/service-nodes/discovery']) {
+      expect((await apiRouter.handleRequest({ path: '/api/v1/kingdom' + path, method: 'GET', isLocalAdmin: false })).status).toBe(403);
+      for (const method of ['POST', 'PUT', 'DELETE'] as const) {
+        expect((await apiRouter.handleRequest({ path: '/api/v1/kingdom' + path, method, isLocalAdmin: true })).status).toBe(405);
+      }
+    }
+    for (const path of ['/orchestration', '/work-programmes', '/service-nodes/node/actions']) {
+      expect((await apiRouter.handleRequest({ path: '/api/v1/kingdom' + path, method: 'GET', isLocalAdmin: true })).status).toBe(404);
+    }
+    expect(calls).toBe(0);
+  });
+
+  it('allows only projected fleet/service reads and preserves old-backend 404', async () => {
+    process.env.KINGDOM_API_URL = 'http://kingdom.internal:8000';
+    process.env.KINGDOM_API_TOKEN = 'test-owner-token';
+    const now = Date.now() / 1000;
+    const fixtures = [
+      ['/hierarchy', { inventory: { reports: [] }, knights: [{ configuration: 'private' }] }],
+      ['/service-nodes/discovery', { state: 'observed', observed_at: now, scope: 'user_services', services: [{ name: 'private' }] }],
+    ] as const;
+    for (const [path, fixture] of fixtures) {
+      globalThis.fetch = (async (input, init) => {
+        expect(String(input)).toBe('http://kingdom.internal:8000' + path);
+        expect(init?.method).toBe('GET');
+        return new Response(JSON.stringify(fixture), { headers: { Date: new Date(now * 1000).toUTCString() } });
+      }) as typeof fetch;
+      const response = await apiRouter.handleRequest({ path: '/api/v1/kingdom' + path, method: 'GET', isLocalAdmin: true });
+      expect(response.status).toBe(200);
+      expect(response.data.state).toBe('observed');
+      expect(JSON.stringify(response)).not.toContain('private');
+      globalThis.fetch = (async () => new Response('private upstream error', { status: 404 })) as typeof fetch;
+      expect(await apiRouter.handleRequest({ path: '/api/v1/kingdom' + path, method: 'GET', isLocalAdmin: true }))
+        .toEqual({ status: 404, error: 'Kingdom does not provide this endpoint.' });
+    }
+  });
+
+  it('uses the upstream HTTP clock for local reads and reports missing clock evidence as unavailable', async () => {
+    process.env.KINGDOM_API_URL = 'http://kingdom.internal:8000';
+    process.env.KINGDOM_API_TOKEN = 'test-owner-token';
+    const upstreamNow = Date.now() / 1000 + 128;
+    const body = JSON.stringify({ state: 'observed', observed_at: upstreamNow, jobs: [] });
+    globalThis.fetch = (async () => new Response(body,
+      { headers: { Date: new Date(upstreamNow * 1000).toUTCString() } })) as typeof fetch;
+    const req = { path: '/api/v1/kingdom/orchestration/activity', method: 'GET' as const, isLocalAdmin: true };
+    expect((await apiRouter.handleRequest(req)).data).toMatchObject({ state: 'observed', count: 0 });
+    globalThis.fetch = (async () => new Response(body)) as typeof fetch;
+    expect((await apiRouter.handleRequest(req)).data).toMatchObject({ state: 'unavailable', count: null });
+  });
 });
