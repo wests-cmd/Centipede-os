@@ -109,8 +109,13 @@ export class KingdomAdapter {
   public setBaseUrl(url: string): void {
     if (Capacitor.isNativePlatform()) url = validateMobileEndpoint(url);
     this.disconnect();
+    this.endpointRegexCache.clear();
     this.baseUrl = url.replace(/\/$/, '');
     this.wsUrl = this.baseUrl.replace(/^http/, 'ws') + '/ws';
+  }
+
+  public clearEndpointRegexCache(): void {
+    this.endpointRegexCache.clear();
   }
 
   public getBaseUrl(): string {
