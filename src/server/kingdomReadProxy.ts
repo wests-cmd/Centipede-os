@@ -1,4 +1,5 @@
 import type { ApiRequest, ApiResponse } from './routes';
+import { OBSERVATION_READ_PATHS, summarizeObservation } from '../api/kingdomObservations';
 
 const PREFIX = '/api/v1/kingdom';
 const MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
@@ -6,11 +7,13 @@ const STATIC_READS = new Set([
   '/status', '/mode', '/knights', '/models', '/events', '/tasks', '/memory', '/maps',
   '/security/status', '/security/policies', '/security/permissions',
   '/security/approvals', '/security/audit',
+  ...OBSERVATION_READ_PATHS,
 ]);
+const DYNAMIC_READ_REGEX = /^\/(?:tasks|maps)\/[A-Za-z0-9_-]{1,128}$/;
 
 function isAllowedReadPath(path: string): boolean {
   if (STATIC_READS.has(path)) return true;
-  return /^\/(?:tasks|maps)\/[A-Za-z0-9_-]{1,128}$/.test(path);
+  return DYNAMIC_READ_REGEX.test(path);
 }
 
 /**
@@ -85,7 +88,9 @@ export async function proxyKingdomRead(req: ApiRequest): Promise<ApiResponse | n
     }
 
     try {
-      return { status: 200, data: JSON.parse(body) };
+      const data = JSON.parse(body);
+      return { status: 200, data: OBSERVATION_READ_PATHS.some(read => read === path)
+        ? summarizeObservation(path, data, response.headers.has('date') ? Date.parse(response.headers.get('date')!) / 1000 : undefined) : data };
     } catch {
       return { status: 502, error: 'Kingdom returned an invalid JSON response.' };
     }

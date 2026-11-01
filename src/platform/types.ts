@@ -41,6 +41,9 @@ export interface PlatformCapabilities {
   microphoneAccess: boolean;
   speakerAccess: boolean;
   cameraAccess: boolean;
+  cameraCaptureSupported?: boolean;
+  microphoneCaptureSupported?: boolean;
+  screenCaptureSupported?: boolean;
   notificationsSupported: boolean;
   networkInterfacesAvailable: boolean;
   dockerSocketMounted: boolean;

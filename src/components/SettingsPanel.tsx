@@ -5,6 +5,7 @@ import { platformDetector } from '../platform/detector';
 import { CentipedeProfile, ProfileRecommendation } from '../platform/types';
 import { HOME_VISUALS, HomeVisual } from './CentipedeWorldVisual';
 import { AccessibilitySettings } from './AccessibilitySettings';
+import { HomeMediaPicker } from './HomeMediaPicker';
 
 interface SettingsPanelProps {
   adapter: KingdomAdapter;
@@ -73,6 +74,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter, homeVisua
           {HOME_VISUALS.map((profile) => {
             const selected = homeVisual === profile.id;
             const swatch = {
+              'centipede-art': 'from-slate-950 via-blue-900 to-orange-500',
+              'custom-media': 'from-slate-900 via-slate-600 to-slate-400',
               'centipede-world': 'from-blue-950 via-cyan-900 to-orange-500',
               'neon-dragon': 'from-fuchsia-950 via-purple-800 to-pink-400',
               'space-nebula': 'from-indigo-950 via-violet-700 to-cyan-400',
@@ -99,6 +102,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter, homeVisua
             );
           })}
         </div>
+        <HomeMediaPicker onSelected={() => onHomeVisualChange('custom-media')} onReset={() => onHomeVisualChange('centipede-art')} />
         <p className="mt-3 text-[11px] text-slate-500">Animation pauses when the scene is off screen, the app is hidden, or reduced motion is enabled.</p>
       </section>
 

@@ -2,6 +2,8 @@ import { join, normalize } from 'node:path';
 import { networkInterfaces } from 'node:os';
 import { apiRouter, ApiRequest } from './routes';
 import { isLocalAdminRequest } from './requestTrust';
+import { SelectedKnowledgeSources } from './selectedKnowledgeSources';
+import { handleSelectedKnowledgeRequest } from './selectedKnowledgeRoutes';
 
 const root = process.cwd();
 const webRoot = join(root, 'dist');
@@ -15,6 +17,9 @@ const hostnames = process.env.HOST
   : ['127.0.0.1', ...(lanAddress ? [lanAddress] : [])];
 const publicUrl = process.env.PUBLIC_URL || (lanAddress ? `http://${lanAddress}:${port}` : `http://localhost:${port}`);
 const rateWindows = new Map<string, { startsAt: number; count: number }>();
+let knowledgeSources: SelectedKnowledgeSources | undefined;
+const selectedSources = () => knowledgeSources ??= new SelectedKnowledgeSources(
+  process.env.CENTIPEDE_KNOWLEDGE_HOME || join(root, 'data', 'selected-knowledge'));
 const hostnameFromHeader = (host: string) => host.startsWith('[') ? host.slice(1, host.indexOf(']')) : host.split(':')[0];
 
 const serverOptions: Omit<Parameters<typeof Bun.serve>[0], 'hostname'> = {
@@ -65,7 +70,7 @@ const serverOptions: Omit<Parameters<typeof Bun.serve>[0], 'hostname'> = {
         else if (window.count >= max) return Response.json({ error: 'Too many pairing requests. Wait one minute and try again.' }, { status: 429, headers: { 'Retry-After': '60' } });
         else window.count += 1;
       }
-      const result = await apiRouter.handleRequest(apiRequest);
+      const result = handleSelectedKnowledgeRequest(apiRequest, selectedSources) || await apiRouter.handleRequest(apiRequest);
       return Response.json(result.error ? { error: result.error } : result.data, { status: result.status });
     }
 

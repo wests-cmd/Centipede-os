@@ -28,3 +28,22 @@ done
 
 grep -Rqs 'Safe Graphics' "$GRUB_DIR" || { echo 'Safe Graphics entry missing from GRUB menu.' >&2; exit 1; }
 grep -Rqs 'Safe Graphics' "$ISOLINUX_DIR" || { echo 'Safe Graphics entry missing from BIOS menu.' >&2; exit 1; }
+
+# Keep generated boot commands and terminal selection intact. The optional image
+# only appears when GRUB already has graphical output and its PNG module works.
+# BIOS text menus and Safe Graphics remain available even without an image.
+if [ -s "$GRUB_DIR/centipede-boot-emblem.png" ]; then
+  cat > "$GRUB_DIR/centipede-branding.cfg" <<'EOF'
+# Optional Centipede static boot-menu emblem; failure retains the normal menu.
+if insmod png; then
+  if background_image /boot/grub/centipede-boot-emblem.png; then
+    true
+  fi
+fi
+EOF
+  BRANDING_TARGET="$GRUB_DIR/theme.cfg"
+  [ -f "$BRANDING_TARGET" ] || BRANDING_TARGET="$GRUB_DIR/grub.cfg"
+  if [ -f "$BRANDING_TARGET" ] && ! grep -Fq 'source /boot/grub/centipede-branding.cfg' "$BRANDING_TARGET"; then
+    printf '\n%s\n' 'source /boot/grub/centipede-branding.cfg' >> "$BRANDING_TARGET"
+  fi
+fi
