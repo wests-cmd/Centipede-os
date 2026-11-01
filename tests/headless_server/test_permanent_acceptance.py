@@ -1,0 +1,42 @@
+import importlib.util
+from pathlib import Path
+import unittest
+import tempfile
+from unittest.mock import patch
+
+spec=importlib.util.spec_from_file_location('acceptance',Path(__file__).resolve().parents[2]/'scripts/qemu-permanent-server-acceptance.py')
+acceptance=importlib.util.module_from_spec(spec);spec.loader.exec_module(acceptance)
+
+
+class AcceptanceTests(unittest.TestCase):
+    def test_extracted_readonly_iso_config_can_be_edited_only_in_test_copy(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config=Path(directory)/'live.cfg';config.write_text('append old\n');config.chmod(0o444)
+            acceptance.write_test_boot_config(config,'append test noprompt noeject\n')
+            self.assertEqual(config.read_text(),'append test noprompt noeject\n')
+    def test_headless_shutdown_flags_only_modify_server_append_entries(self):
+        original='label live\n append boot=live centipede.server=1\nlabel desktop\n append boot=live\n'
+        updated,count=acceptance.headless_shutdown_config(original)
+        self.assertEqual(count,1)
+        self.assertIn('centipede.server=1 noprompt noeject',updated)
+        self.assertIn('label desktop\n append boot=live\n',updated)
+        self.assertEqual(acceptance.headless_shutdown_config(updated)[0],updated)
+    def test_second_boot_has_no_live_media_and_uses_disposable_image_paths(self):
+        with patch.object(acceptance.subprocess,'Popen') as launch:
+            acceptance.boot(None,Path('/tmp/test-target.raw'),Path('/tmp/test-sentinel.raw'),Path('/tmp/serial.log'),Path('/tmp/monitor.sock'),None)
+        command=launch.call_args.args[0]
+        self.assertNotIn('-cdrom',command)
+        self.assertIn('order=c',command)
+        self.assertIn('tcg,thread=multi',command)
+        self.assertEqual(command[command.index('-smp')+1],'4')
+        self.assertEqual(command[command.index('-m')+1],'4096')
+        self.assertIn('file='+str(Path('/tmp/test-target.raw'))+',format=raw,if=none,id=target',command)
+        self.assertIn('virtio-blk-pci,drive=target,serial=CENTIPEDE-VM-TARGET',command)
+        self.assertFalse(any(value.startswith('/dev/') for value in command))
+
+    def test_live_boot_is_explicit_and_does_not_use_host_disks(self):
+        with patch.object(acceptance.subprocess,'Popen') as launch:
+            acceptance.boot(Path('/tmp/test-only.iso'),Path('/tmp/target.raw'),Path('/tmp/sentinel.raw'),Path('/tmp/serial.log'),Path('/tmp/monitor.sock'),None)
+        command=launch.call_args.args[0]
+        self.assertIn('-cdrom',command);self.assertIn(str(Path('/tmp/test-only.iso')),command)
+        self.assertIn('order=d',command)

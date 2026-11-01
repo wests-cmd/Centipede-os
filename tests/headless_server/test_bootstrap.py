@@ -18,6 +18,14 @@ def seed(**changes):
 
 
 class SeedTests(unittest.TestCase):
+    def test_hostname_resolution_preserves_localhost_and_existing_aliases(self):
+        original='127.0.0.1 localhost\n127.0.1.1 centipede alias # local host\n::1 localhost ip6-localhost\n'
+        updated=bootstrap.hosts_profile(original,'centipede-server')
+        self.assertIn('127.0.1.1\tcentipede-server centipede alias # local host',updated)
+        self.assertIn('127.0.0.1 localhost',updated);self.assertIn('::1 localhost ip6-localhost',updated)
+        self.assertEqual(bootstrap.hosts_profile(updated,'centipede-server'),updated)
+        self.assertIn('127.0.1.1\tcentipede-server\n',bootstrap.hosts_profile('127.0.0.1 localhost\n','centipede-server'))
+
     def test_public_key_only_and_admin_requires_explicit_opt_in(self):
         self.assertFalse(bootstrap.validate_seed(seed())['admin'])
         self.assertTrue(bootstrap.validate_seed(seed(admin=True))['admin'])
@@ -59,7 +67,7 @@ class SeedTests(unittest.TestCase):
 class BootTests(unittest.TestCase):
     def test_server_profile_does_not_activate_existing_internal_swap(self):
         script=(ROOT/'scripts/build-live-image.sh').read_text()
-        self.assertIn("SERVER_FLAGS='centipede.server=1 systemd.unit=multi-user.target nomodeset noswap'",script)
+        self.assertIn("SERVER_FLAGS='centipede.server=1 systemd.unit=multi-user.target nomodeset noswap noprompt noeject'",script)
         self.assertIn('console=ttyS0,115200n8',script)
 
     def test_personalized_server_autoboots_bios_and_uefi_without_menu_input(self):

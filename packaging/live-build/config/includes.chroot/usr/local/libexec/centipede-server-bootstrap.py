@@ -54,6 +54,18 @@ def network_profile(seed):
         '[ipv6]\nmethod=link-local\nnever-default=true\n')
 
 
+def hosts_profile(text,hostname):
+    lines=text.splitlines();updated=False
+    for index,line in enumerate(lines):
+        body,separator,comment=line.partition('#');fields=body.split()
+        if fields and fields[0]=='127.0.1.1' and not updated:
+            aliases=[value for value in fields[1:] if value!=hostname]
+            lines[index]='127.0.1.1\t'+' '.join([hostname]+aliases)+(' #'+comment if separator else '')
+            updated=True
+    if not updated:lines.append('127.0.1.1\t'+hostname)
+    return '\n'.join(lines)+'\n'
+
+
 def network_ready(seed,addresses):
     for interface in addresses:
         if interface.get('ifname')=='lo':continue
@@ -95,11 +107,18 @@ def write(path,content,mode):
     path.write_text(content);path.chmod(mode)
 
 
-def provision(seed):
-    if os.geteuid()!=0:raise PermissionError('Server bootstrap requires root in the live image')
-    if 'centipede.server=1' not in Path('/proc/cmdline').read_text().split():
+def validate_boot_mode(cmdline,medium_mounted,installed):
+    expected_flag='centipede.installed-server=1' if installed else 'centipede.server=1'
+    if expected_flag not in cmdline.split():
         raise PermissionError('Headless server boot was not selected')
-    if not Path('/run/live/medium').is_mount():raise ValueError('Expected live boot medium is not mounted')
+    if installed:
+        if medium_mounted:raise ValueError('Installed server must boot without live medium')
+    elif not medium_mounted:raise ValueError('Expected live boot medium is not mounted')
+
+
+def provision(seed,installed=False):
+    if os.geteuid()!=0:raise PermissionError('Server bootstrap requires root')
+    validate_boot_mode(Path('/proc/cmdline').read_text(),Path('/run/live/medium').is_mount(),installed)
     # Never enable the distro SSH service with its default authentication policy.
     if subprocess.run(['id','-u',USER],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode:
         run('useradd','--create-home','--shell','/bin/bash',USER)
@@ -111,7 +130,8 @@ def provision(seed):
         write('/etc/sudoers.d/centipede-server-admin',USER+' ALL=(ALL:ALL) NOPASSWD: ALL\n',0o440)
         run('visudo','-c','-f','/etc/sudoers.d/centipede-server-admin')
     run('hostnamectl','set-hostname',seed['hostname'])
-    profile='/run/NetworkManager/system-connections/centipede-server.nmconnection'
+    write('/etc/hosts',hosts_profile(Path('/etc/hosts').read_text(),seed['hostname']),0o644)
+    profile=('/etc' if installed else '/run')+'/NetworkManager/system-connections/centipede-server.nmconnection'
     write(profile,network_profile(seed),0o600)
     run('nmcli','connection','load',profile)
     run('nmcli','--wait','30','connection','up','uuid',str(uuid.uuid5(uuid.NAMESPACE_DNS,'centipede-server-ethernet')))
@@ -128,7 +148,7 @@ def provision(seed):
     host_key=Path('/etc/ssh/ssh_host_ed25519_key.pub').read_text().split()[1]
     receipt={'phase':'configured','user':USER,'hostname':seed['hostname'],'network':seed['network'],'admin':seed['admin'],
         'host_key_sha256':base64.b64encode(hashlib.sha256(base64.b64decode(host_key)).digest()).decode().rstrip('='),
-        'addresses':addresses,'installation_performed':False,'kingdom_installed':False}
+        'addresses':addresses,'boot_mode':'installed' if installed else 'live','installation_performed':False,'kingdom_installed':False}
     write('/run/centipede/server-ready',json.dumps(receipt,indent=2),0o644)
     run('systemctl','--no-block','start','centipede-server-ssh.service')
     print('CENTIPEDE_SERVER_CONFIGURED '+json.dumps(receipt),flush=True)
@@ -136,9 +156,13 @@ def provision(seed):
 
 def verify_ssh():
     receipt=json.loads(Path('/run/centipede/server-ready').read_text())
-    deadline=time.monotonic()+20
+    deadline=time.monotonic()+60
     while True:
-        scan=subprocess.run(['ssh-keyscan','-T','2','-t','ed25519','127.0.0.1'],capture_output=True,text=True,timeout=5)
+        try:scan=subprocess.run(['ssh-keyscan','-T','5','-t','ed25519','127.0.0.1'],capture_output=True,text=True,timeout=15)
+        except subprocess.TimeoutExpired:
+            if time.monotonic()>=deadline:raise TimeoutError('Local SSH key exchange readiness deadline exceeded')
+            time.sleep(1)
+            continue
         for line in scan.stdout.splitlines():
             fields=line.split()
             if len(fields)==3 and fields[1]=='ssh-ed25519':
@@ -156,4 +180,6 @@ if __name__=='__main__':
     if args.validate_seed:read_seed(args.validate_seed);print('Seed valid (public key only)')
     elif args.configure_boot_menu:configure_boot_menu(args.configure_boot_menu)
     elif args.verify_ssh:verify_ssh()
-    else:provision(read_seed(SEED))
+    else:
+        installed='centipede.installed-server=1' in Path('/proc/cmdline').read_text().split()
+        provision(read_seed('/etc/centipede/server-seed.json' if installed else SEED),installed=installed)
