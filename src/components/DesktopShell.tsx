@@ -27,6 +27,7 @@ import {
   Map,
   Cpu,
   Stethoscope,
+  GitBranch,
 } from 'lucide-react';
 
 interface DesktopShellProps {
@@ -107,6 +108,9 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   const sidebarApps = [
     { id: 'launcher', name: 'Home', icon: Home },
     { id: 'ai', name: 'Centipede AI', icon: Bot },
+    { id: 'swarm', name: 'Swarm Console', icon: Server },
+    { id: 'aitools', name: 'AI Tools & Adapters', icon: Cpu },
+    { id: 'self_improvement', name: 'Autonomous Timeline', icon: GitBranch },
     { id: 'perception', name: 'Camera, screen & mic', icon: Video },
     { id: 'agent_control', name: 'Agent Control Plane', icon: ShieldAlert },
     { id: 'workspace', name: 'Digital Workspace', icon: Grid },

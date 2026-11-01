@@ -41,6 +41,11 @@ export class VoiceProcessor {
 
   private listeners: Set<(state: VoiceState) => void> = new Set();
 
+  constructor(stt?: STTProvider, tts?: TTSProvider) {
+    this.sttProvider = stt;
+    this.ttsProvider = tts;
+  }
+
   public subscribe(listener: (state: VoiceState) => void): () => void {
     this.listeners.add(listener);
     listener(this.state);
@@ -158,4 +163,9 @@ export class VoiceProcessor {
   }
 }
 
-export const voiceProcessor = new VoiceProcessor();
+import { WebSpeechSTTProvider, WebSpeechTTSProvider } from './voiceProviders';
+
+export const voiceProcessor = new VoiceProcessor(
+  new WebSpeechSTTProvider(),
+  new WebSpeechTTSProvider()
+);
