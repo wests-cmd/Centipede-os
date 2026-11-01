@@ -1,0 +1,364 @@
+{
+  "checkedOn": "2026-10-18",
+  "creator": "alexcandothat",
+  "profile": "https://www.instagram.com/alexcandothat/",
+  "requestedSeriesTitles": [
+    "Building Iron Man’s Jarvis",
+    "BUILDING MY OWN JARVIS"
+  ],
+  "coverageComplete": false,
+  "verifiedEpisodes": [
+    {
+      "episode": 23,
+      "url": "https://www.instagram.com/alexcandothat/reel/DdH4qB5JKw6/",
+      "identityEvidence": "Opening video frame says Building Iron Man’s Jarvis pt.23?? and Part23 of",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "episode": 26,
+      "url": "https://www.instagram.com/alexcandothat/reel/DdU10Wht1Jq/",
+      "identityEvidence": "Creator caption explicitly identifies this as the real Part26; grid cover describes hand tracking.",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    }
+  ],
+  "totalEpisodeCount": null,
+  "part23Verified": true,
+  "ownerSuppliedEpisodeLead": {
+    "url": "https://www.instagram.com/reel/DdH4qB5JKw6/",
+    "requestedEpisode": 23,
+    "creatorVerified": "alexcandothat",
+    "visibleDate": "2026-09-10",
+    "visibleCaption": "Hey I’m so tired… #womeninstem #dtx",
+    "episodeNumberIndependentlyVerified": true,
+    "demonstratedCapabilities": [],
+    "access": "Signed-in follow-up: playback and opening Part23 title verified; prior modal restriction is historical."
+  },
+  "accessLimit": "Signed-in access now works. Earlier anonymous gating is historical. Exhaustive catalog and full-playback capability review remain incomplete.",
+  "candidatesNotVerifiedAsSeries": [
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/Dabb47Ip030/",
+      "profileDate": "2026-07-05",
+      "episode": null,
+      "demonstratedCapabilities": [],
+      "countedInSignedInSeriesCatalog": false,
+      "note": "Historical anonymous candidate; signed-in cover/caption did not establish membership in the numbered Jarvis series."
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DaOxsDkhzhG/",
+      "profileDate": "2026-06-30",
+      "episode": null,
+      "demonstratedCapabilities": [],
+      "countedInSignedInSeriesCatalog": false,
+      "note": "Historical anonymous candidate; signed-in cover/caption did not establish membership in the numbered Jarvis series."
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DUL0eZRDr0M/",
+      "profileDate": "2026-01-31",
+      "episode": null,
+      "demonstratedCapabilities": [],
+      "countedInSignedInSeriesCatalog": false,
+      "note": "Historical anonymous candidate; signed-in cover/caption did not establish membership in the numbered Jarvis series."
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DSian3KEj4H/",
+      "profileDate": "2025-12-21",
+      "episode": null,
+      "demonstratedCapabilities": [],
+      "countedInSignedInSeriesCatalog": false,
+      "note": "Historical anonymous candidate; signed-in cover/caption did not establish membership in the numbered Jarvis series."
+    }
+  ],
+  "secondaryLeads": [
+    {
+      "url": "https://www.linkedin.com/posts/colinstewartperreault_yesterday-i-said-chatgpt-launched-their-own-activity-7502002828207341568-LGrp",
+      "status": "Unverified secondary commentary/transcript; not numbered episode evidence"
+    }
+  ],
+  "nextEvidenceNeeded": "Full playback/transcript review of cataloged posts and primary evidence for unestablished parts; signed-in access now works.",
+  "signedInFollowup": {
+    "date": "2026-10-18",
+    "source": "https://www.instagram.com/alexcandothat/reels/",
+    "access": "Owner signed in; creator grid and Part 23 playback accessible. Earlier sign-in blocker is historical.",
+    "discoveredSeriesPostCount": 29,
+    "highestVisiblePartLabel": 37,
+    "coverage": "Cataloged visible series covers from newest row through Part12, then preceding unrelated posts. Not proof of complete archive or full playback review.",
+    "numberingCaveat": "Preserve duplicate title-card labels and uncertain labels; do not renumber by chronological position. Parts1-11 and16 not established by this catalog."
+  },
+  "discoveredSeriesPosts": [
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DemXan6xEal/",
+      "visiblePartLabel": "37",
+      "visibleCoverOrOpeningText": "Building my own Jarvis",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/Dec9ExjIuMB/",
+      "visiblePartLabel": "36",
+      "visibleCoverOrOpeningText": "Jarvis build tech desk",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DeUlyf1tOGd/",
+      "visiblePartLabel": "35",
+      "visibleCoverOrOpeningText": "Building my own Jarvis",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DeQEid1pa5v/",
+      "visiblePartLabel": "34",
+      "visibleCoverOrOpeningText": "Building my own Jarvis",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DeIQgwNJN73/",
+      "visiblePartLabel": "33",
+      "visibleCoverOrOpeningText": "Building my own Jarvis",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DeA00O-t4-N/",
+      "visiblePartLabel": "32",
+      "visibleCoverOrOpeningText": "Building my own Jarvis",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/Dd7gKAjofIP/",
+      "visiblePartLabel": "32",
+      "visibleCoverOrOpeningText": "Building my own Jarvis",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/Dd2cSXMtib0/",
+      "visiblePartLabel": "31",
+      "visibleCoverOrOpeningText": "Opening subtitle says part 30; cover says 31",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DdxOYtuphPf/",
+      "visiblePartLabel": "30",
+      "visibleCoverOrOpeningText": "Raspberry Pi hardware visible on cover",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DdsJWPMNEEz/",
+      "visiblePartLabel": "29",
+      "visibleCoverOrOpeningText": "Building my own Jarvis",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DdkbaP-t7pT/",
+      "visiblePartLabel": "29",
+      "visibleCoverOrOpeningText": "Building my own Jarvis",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DdeiCQbRcoi/",
+      "visiblePartLabel": "28",
+      "visibleCoverOrOpeningText": "Giving a camera to Jarvis",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DdZ7RM9JYXd/",
+      "visiblePartLabel": "27",
+      "visibleCoverOrOpeningText": "Building my own Jarvis",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DdU10Wht1Jq/",
+      "visiblePartLabel": "26",
+      "visibleCoverOrOpeningText": "Building hand tracking for Jarvis",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DdPzfxcNFey/",
+      "visiblePartLabel": "26",
+      "visibleCoverOrOpeningText": "Raspberry Pi is literally Jarvis",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DdNMGYnN9WC/",
+      "visiblePartLabel": null,
+      "visibleCoverOrOpeningText": "Building my own Jarvis; small cover number requires verification",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DdKnlIhNG73/",
+      "visiblePartLabel": "23 part 2",
+      "visibleCoverOrOpeningText": "Building my own Jarvis",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DdH4qB5JKw6/",
+      "visiblePartLabel": "23",
+      "visibleCoverOrOpeningText": "Opening video frame independently confirms Part 23",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DdCwLpBpIAB/",
+      "visiblePartLabel": "22",
+      "visibleCoverOrOpeningText": "Flipper Zero for Jarvis controls",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/Dc_1OV4JUir/",
+      "visiblePartLabel": "21",
+      "visibleCoverOrOpeningText": "Jarvis from Iron Man tech desk",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/Dc9nDeJpL7m/",
+      "visiblePartLabel": "20",
+      "visibleCoverOrOpeningText": "Gesture control for Jarvis",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/Dc7QxAgtxCP/",
+      "visiblePartLabel": "19",
+      "visibleCoverOrOpeningText": "Building my own Jarvis",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/Dc4qGbZtbqU/",
+      "visiblePartLabel": "18",
+      "visibleCoverOrOpeningText": "Building my own Jarvis",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/Dc2C4fHNr4Y/",
+      "visiblePartLabel": "17",
+      "visibleCoverOrOpeningText": "Building my own Jarvis",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DczYUPPtktd/",
+      "visiblePartLabel": "15",
+      "visibleCoverOrOpeningText": "Building Jarvis from Iron Man",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/Dcw20jwtS1G/",
+      "visiblePartLabel": "14",
+      "visibleCoverOrOpeningText": "Building Iron Man’s Jarvis",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/Dctj6YFRsj9/",
+      "visiblePartLabel": "14",
+      "visibleCoverOrOpeningText": "Building Iron Man’s Jarvis",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/Dcpd-QJtckS/",
+      "visiblePartLabel": null,
+      "visibleCoverOrOpeningText": "Building Jarvis from Iron Man; no number visible",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/Dcmo9edtaBi/",
+      "visiblePartLabel": "12",
+      "visibleCoverOrOpeningText": "Building Iron Man’s Jarvis",
+      "evidence": "Signed-in creator grid screenshot; Part23 additionally opening video frame",
+      "fullPlaybackReviewed": false,
+      "demonstratedCapabilities": []
+    }
+  ],
+  "sampledPrimaryEvidence": [
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DdH4qB5JKw6/",
+      "samplesSeconds": [
+        0,
+        64,
+        110
+      ],
+      "observed": "Part23 opening title; monitor/terminal workflow; IR-transmitter wiring diagram.",
+      "notEstablished": "Successful IR actuation, model intelligence or end-to-end automation."
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DdeiCQbRcoi/",
+      "samplesSeconds": [
+        19,
+        44,
+        58
+      ],
+      "observed": "Laptop preview/image with rectangle; ribbon cable, Raspberry Pi-style board and Arducam Camera Module V2 hardware.",
+      "notEstablished": "Semantic image understanding, recognition accuracy or sustained live vision."
+    },
+    {
+      "url": "https://www.instagram.com/alexcandothat/reel/DdU10Wht1Jq/",
+      "samplesSeconds": [
+        18,
+        59
+      ],
+      "observed": "Creator caption confirms Part26; laptop display and hand-landmark overlay are visible in sampled frames.",
+      "notEstablished": "Tracking accuracy, arbitrary task execution, complete video review or general computer-control reliability."
+    }
+  ],
+  "officialBuildIndex": {
+    "url": "https://alexschar.dev/fletcher/updates/",
+    "discoveredThrough": "https://linktr.ee/AlexCanDoThat",
+    "indexedNotes": 27,
+    "reviewedNotes": 27,
+    "allIndexedNotesCovered": true,
+    "report": "fletcher-official-build-review.md",
+    "inventory": "fletcher-official-build-notes.json",
+    "caveat": "Creator-documented outcomes, not independently reproduced hardware tests or full playback of every Instagram video. Newer Instagram covers exceed this index."
+  }
+}

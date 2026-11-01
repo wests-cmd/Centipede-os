@@ -10,6 +10,8 @@ export interface AgentIdentity {
   expiresAt: number;
 }
 
+import { generateSecureRandomHex } from '../security/cryptoUtils';
+
 export class AgentIdentityManager {
   private activeAgentIdentities: Map<string, AgentIdentity> = new Map();
 
@@ -20,7 +22,7 @@ export class AgentIdentityManager {
     sessionId = 'session_default',
     ttlMs = 3600000 // 1 hour
   ): AgentIdentity {
-    const agentId = `agent_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const agentId = `agent_${Date.now()}_${generateSecureRandomHex(4)}`;
     const identity: AgentIdentity = {
       agentId,
       agentName,

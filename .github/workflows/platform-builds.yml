@@ -3,6 +3,11 @@ name: Centipede platform builds
 on:
   workflow_call:
   workflow_dispatch:
+    inputs:
+      signed_android:
+        description: Build a publisher-signed Android APK for validation
+        type: boolean
+        default: false
   push:
     branches:
       - 'codex/**'

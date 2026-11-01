@@ -27,9 +27,13 @@ export class DeviceTrustManager {
   private devices: Map<string, TrustedDevice> = new Map();
   private pendingPairingCodes: Map<string, { deviceId: string; expiresAt: number; attempts: number }> = new Map();
   private sessionTokenIndex: Map<string, TrustedDevice> = new Map();
+  private lastCleanupMs = 0;
 
   private cleanupExpired(): void {
     const now = Date.now();
+    if (now - this.lastCleanupMs < 10000 && this.pendingPairingCodes.size < 20) return;
+    this.lastCleanupMs = now;
+
     for (const [code, pending] of this.pendingPairingCodes.entries()) {
       if (pending.expiresAt < now || pending.attempts > DeviceTrustManager.MAX_PAIRING_ATTEMPTS) {
         this.pendingPairingCodes.delete(code);
@@ -111,13 +115,16 @@ export class DeviceTrustManager {
   }
 
   public validateSessionToken(sessionToken: string): { valid: boolean; device?: TrustedDevice; error?: string } {
-    const device = this.sessionTokenIndex.get(sessionToken) || Array.from(this.devices.values()).find((d) => d.sessionToken === sessionToken);
-    if (!device) {
+    if (!sessionToken || typeof sessionToken !== 'string' || sessionToken.trim() === '') {
       return { valid: false, error: 'Device not authenticated or session token invalid.' };
     }
 
-    if (device.trustState === 'REVOKED') {
-      return { valid: false, error: 'REVOKED_DEVICE: Device access has been revoked by system administrator.' };
+    const device = this.sessionTokenIndex.get(sessionToken) || Array.from(this.devices.values()).find((d) => d.sessionToken === sessionToken);
+    if (!device || device.trustState !== 'PAIRED_ACTIVE' || device.sessionToken !== sessionToken) {
+      if (device && device.trustState === 'REVOKED') {
+        return { valid: false, error: 'REVOKED_DEVICE: Device access has been revoked by system administrator.' };
+      }
+      return { valid: false, error: 'Device not authenticated or session token invalid.' };
     }
 
     device.lastSeenAt = Date.now();

@@ -2,25 +2,17 @@ import { AIModelInterface, AIModelResponse, Intent } from './types';
 
 export class LocalCentipedeModel implements AIModelInterface {
   public id = 'centipede-local-v1';
-  public name = 'Centipede Local Model Sandbox';
+  public name = 'Centipede local model (not configured)';
   public provider = 'local';
 
   public async generate(prompt: string, context?: Record<string, any>): Promise<AIModelResponse> {
-    const rawOutput = `Model reasoning output for prompt: "${prompt}"`;
-
-    // Strict schema validation check
-    const isValidSchema = true;
-
-    return {
-      rawOutput,
-      isValidSchema,
-    };
+    throw new Error('Local inference is not configured. Connect a verified Kingdom model provider; no inference was performed.');
   }
 
   public async health(): Promise<{ status: string; available: boolean }> {
     return {
-      status: 'ok',
-      available: true,
+      status: 'not_configured',
+      available: false,
     };
   }
 

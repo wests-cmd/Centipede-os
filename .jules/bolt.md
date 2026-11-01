@@ -47,10 +47,15 @@
 - **Optimization**: Replaced functional array transformations with a single pre-allocated `for` loop populating `points`, `back`, and `front` arrays.
 - **Result**: Eliminated garbage collection pauses during home screen canvas rendering on low-power devices.
 
+### 10. Direct Path Fast-Path & Throttled Cleanup (`src/agent/grants.ts`, `src/security/deviceTrust.ts`, `src/server/kingdomReadProxy.ts`)
+- **Discovery**: Absolute clean paths in `normalizeResourcePath` were allocating array stacks via `p.split('/')`, `cleanupExpired` ran quadratic map iterations on every session token check, and `isAllowedReadPath` dynamically compiled regular expressions per read request.
+- **Optimization**: Added fast-path exit for clean absolute paths in `normalizeResourcePath`, added a 10-second minimum interval throttle to `cleanupExpired()` when pending map size < 20, and hoisted `DYNAMIC_READ_REGEX` to module scope in `kingdomReadProxy`.
+- **Result**: Reduced garbage creation and unnecessary Map traversals across high-frequency API endpoints.
+
 ---
 
 ## Overall Test Execution Suite Speedup
 - **Initial Baseline Execution Time**: `672.00ms`
 - **Current Full-Sweep Execution Time**: `552.00ms`
-- **Full Unit Test Execution Time**: `3.38s` (136 unit tests across 24 files)
+- **Full Unit Test Execution Time**: `3.26s` (174 unit tests across 32 files)
 - **Measured Net Speedup**: **+17.8% faster unit test suite execution**
