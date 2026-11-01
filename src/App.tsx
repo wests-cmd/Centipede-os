@@ -22,6 +22,9 @@ import { Window } from './components/Window';
 import { applyAccessibilitySettings, DEFAULT_ACCESSIBILITY_SETTINGS, loadAccessibilitySettings } from './platform/accessibility';
 import { FirstRunWizard } from './components/FirstRunWizard';
 import { AppUpdateManager } from './components/AppUpdateManager';
+import { SwarmConsoleApp } from './components/SwarmConsoleApp';
+import { AIToolsApp } from './components/AIToolsApp';
+import { SelfImprovementApp } from './components/SelfImprovementApp';
 import { HOME_VISUALS, HomeVisual } from './components/CentipedeWorldVisual';
 import { ApprovalRequest, ConnectionState, RuntimeStatus } from './types';
 import { CENTIPEDE_VERSION } from './version';
@@ -98,6 +101,24 @@ export const App: React.FC = () => {
             pendingApprovalsCount={pendingApprovalsCount}
             homeVisual={homeVisual}
           />
+        );
+      case 'swarm':
+        return (
+          <Window id="win_swarm" title="Swarm & Multi-Device Console" icon={Server} isOpen={true} onClose={() => setActiveAppId('launcher')}>
+            <SwarmConsoleApp adapter={kingdomAdapter} />
+          </Window>
+        );
+      case 'aitools':
+        return (
+          <Window id="win_aitools" title="AI Tools & Adapter Registry" icon={Cpu} isOpen={true} onClose={() => setActiveAppId('launcher')}>
+            <AIToolsApp adapter={kingdomAdapter} />
+          </Window>
+        );
+      case 'self_improvement':
+        return (
+          <Window id="win_self_improvement" title="Autonomous Self-Improvement Timeline" icon={Cpu} isOpen={true} onClose={() => setActiveAppId('launcher')}>
+            <SelfImprovementApp adapter={kingdomAdapter} />
+          </Window>
         );
       case 'perception':
         return <Window id="win_perception" title="Camera, screen and microphone" icon={Bot} isOpen={true} onClose={() => setActiveAppId('launcher')}><PerceptionPanel /></Window>;
