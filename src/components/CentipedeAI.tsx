@@ -3,6 +3,7 @@ import { KingdomAdapter } from '../api/kingdomAdapter';
 import { centipedeAIPipeline, conversationManager } from '../ai';
 import { Message, UserInput } from '../ai/types';
 import { Bot, CheckCircle2, ShieldAlert, ArrowRight, Play, Lock, Cpu, Sparkles } from 'lucide-react';
+import { SpeechOutput } from './SpeechOutput';
 
 interface CentipedeAIProps {
   adapter: KingdomAdapter;
@@ -182,6 +183,7 @@ export const CentipedeAI: React.FC<CentipedeAIProps> = ({ adapter, onNavigateSec
                 <span>Open Permissions & Approvals View</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
+              <SpeechOutput text={activeMessage.text} />
             </div>
           )}
 
@@ -207,6 +209,7 @@ export const CentipedeAI: React.FC<CentipedeAIProps> = ({ adapter, onNavigateSec
                   {JSON.stringify(activeMessage.actionResult.data, null, 2)}
                 </pre>
               )}
+              <SpeechOutput text={activeMessage.text} />
             </div>
           )}
         </div>

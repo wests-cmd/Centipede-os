@@ -1,3 +1,5 @@
+import { generateSecureRandomHex, generateSecurePin } from './cryptoUtils';
+
 export type DeviceType = 'DESKTOP' | 'MOBILE_APP' | 'WEB_CLIENT';
 export type DeviceTrustState = 'UNPAIRED' | 'PENDING_PAIRING' | 'PAIRED_ACTIVE' | 'REVOKED';
 
@@ -20,33 +22,18 @@ export interface PairingConfirmationResult {
   error?: string;
 }
 
-function generateSecureRandomHex(bytes = 16): string {
-  if (typeof globalThis !== 'undefined' && globalThis.crypto && globalThis.crypto.getRandomValues) {
-    const array = new Uint8Array(bytes);
-    globalThis.crypto.getRandomValues(array);
-    return Array.from(array, (b) => b.toString(16).padStart(2, '0')).join('');
-  }
-  return Math.random().toString(36).substring(2, 10);
-}
-
-function generateSecurePin(): string {
-  if (typeof globalThis !== 'undefined' && globalThis.crypto && globalThis.crypto.getRandomValues) {
-    const array = new Uint32Array(1);
-    globalThis.crypto.getRandomValues(array);
-    const pin = (array[0] % 900000) + 100000;
-    return pin.toString();
-  }
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
 export class DeviceTrustManager {
   public static readonly MAX_PAIRING_ATTEMPTS = 5;
   private devices: Map<string, TrustedDevice> = new Map();
   private pendingPairingCodes: Map<string, { deviceId: string; expiresAt: number; attempts: number }> = new Map();
   private sessionTokenIndex: Map<string, TrustedDevice> = new Map();
+  private lastCleanupMs = 0;
 
   private cleanupExpired(): void {
     const now = Date.now();
+    if (now - this.lastCleanupMs < 10000 && this.pendingPairingCodes.size < 20) return;
+    this.lastCleanupMs = now;
+
     for (const [code, pending] of this.pendingPairingCodes.entries()) {
       if (pending.expiresAt < now || pending.attempts > DeviceTrustManager.MAX_PAIRING_ATTEMPTS) {
         this.pendingPairingCodes.delete(code);
@@ -54,7 +41,7 @@ export class DeviceTrustManager {
     }
   }
 
-  public initiatePairing(deviceName: string, deviceType: DeviceType): { deviceId: string; pairingCode: string; qrData: string } {
+  public initiatePairing(deviceName: string, deviceType: DeviceType, endpoint = 'http://localhost:3000'): { deviceId: string; pairingCode: string; qrData: string } {
     this.cleanupExpired();
     const deviceId = `dev_${Date.now()}_${generateSecureRandomHex(4)}`;
     const pairingCode = generateSecurePin(); // CSPRNG 6-digit PIN
@@ -76,7 +63,7 @@ export class DeviceTrustManager {
     return {
       deviceId,
       pairingCode,
-      qrData: JSON.stringify({ deviceId, pairingCode, centipedeEndpoint: 'http://localhost:3000' }),
+      qrData: JSON.stringify({ deviceId, pairingCode, centipedeEndpoint: endpoint }),
     };
   }
 
@@ -128,13 +115,16 @@ export class DeviceTrustManager {
   }
 
   public validateSessionToken(sessionToken: string): { valid: boolean; device?: TrustedDevice; error?: string } {
-    const device = this.sessionTokenIndex.get(sessionToken) || Array.from(this.devices.values()).find((d) => d.sessionToken === sessionToken);
-    if (!device) {
+    if (!sessionToken || typeof sessionToken !== 'string' || sessionToken.trim() === '') {
       return { valid: false, error: 'Device not authenticated or session token invalid.' };
     }
 
-    if (device.trustState === 'REVOKED') {
-      return { valid: false, error: 'REVOKED_DEVICE: Device access has been revoked by system administrator.' };
+    const device = this.sessionTokenIndex.get(sessionToken) || Array.from(this.devices.values()).find((d) => d.sessionToken === sessionToken);
+    if (!device || device.trustState !== 'PAIRED_ACTIVE' || device.sessionToken !== sessionToken) {
+      if (device && device.trustState === 'REVOKED') {
+        return { valid: false, error: 'REVOKED_DEVICE: Device access has been revoked by system administrator.' };
+      }
+      return { valid: false, error: 'Device not authenticated or session token invalid.' };
     }
 
     device.lastSeenAt = Date.now();

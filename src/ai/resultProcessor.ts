@@ -16,9 +16,9 @@ export class ResultProcessor {
 
     switch (intent.type) {
       case 'QUERY_STORAGE':
-        return 'Storage Manager Report: 256 GB free out of 512 GB total (50% free, NORMAL pressure). Breakdown: System 31 GB, VMs 52 GB, Docker 28 GB, User Files 22 GB, AI Models 21 GB, Applications 12 GB, Skills 7 GB, Kingdom Data 4 GB, Logs 2 GB.';
+        return 'Host storage information is unavailable: this browser app does not measure physical disk usage. Browser storage quota is not the same as free disk space.';
       case 'QUERY_STATUS':
-        return `Kingdom Engine Version ${result.data?.version ? 'v' + result.data.version : 'discovery active'} is ${result.data?.running ? 'RUNNING' : 'STOPPED'} in ${result.data?.mode || 'adaptive'} mode.`;
+        return `Kingdom Engine Version ${result.data?.version ? 'v' + String(result.data.version).replace(/^v/i, '') : 'unknown'} is ${typeof result.data?.running === 'boolean' ? (result.data.running ? 'RUNNING' : 'STOPPED') : 'UNKNOWN'} in ${result.data?.mode || 'unknown'} mode.`;
       case 'START_RUNTIME':
         return 'Kingdom runtime engine started successfully.';
       case 'STOP_RUNTIME':

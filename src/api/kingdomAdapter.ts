@@ -1,3 +1,6 @@
+import { Capacitor } from '@capacitor/core';
+import { validateMobileEndpoint } from '../platform/mobileEndpoint';
+import { OBSERVATION_READ_PATHS, ObservationSummary, unavailableObservation } from './kingdomObservations';
 import {
   ApprovalRequest,
   AuditLogEntry,
@@ -43,6 +46,21 @@ export class KingdomApiError extends Error {
   }
 }
 
+export function getDefaultKingdomApiUrl(): string {
+  const native = Capacitor.isNativePlatform();
+  if (typeof window !== 'undefined') {
+    try {
+      const saved = window.localStorage?.getItem('centipede_kingdom_url');
+      if (saved) return native ? validateMobileEndpoint(saved) : saved;
+    } catch { /* Ignore unavailable storage or an invalid old mobile endpoint. */ }
+  }
+  if (native) return '';
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin}/api/v1/kingdom`;
+  }
+  return 'http://localhost:8000';
+}
+
 export class KingdomAdapter {
   private baseUrl: string;
   private wsUrl: string;
@@ -55,6 +73,7 @@ export class KingdomAdapter {
   private currentBackoffDelay = 2000;
   private maxBackoffDelay = 16000;
   private isReconnecting = false;
+  private observationGeneration = 0;
 
   private diagnostics: HeartbeatDiagnostics = {
     lastHeartbeat: null,
@@ -80,25 +99,60 @@ export class KingdomAdapter {
   private lastKnownStatus: RuntimeStatus | null = null;
   private lastKnownKingdomVersion: string | null = null;
   private discoveredCapabilities: Record<string, boolean> = {};
+  private endpointRegexCache: Map<string, RegExp> = new Map();
 
-  constructor(baseUrl: string = 'http://localhost:8000') {
+  constructor(baseUrl: string = getDefaultKingdomApiUrl()) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
     this.wsUrl = this.baseUrl.replace(/^http/, 'ws') + '/ws';
   }
 
   public setBaseUrl(url: string): void {
+    if (Capacitor.isNativePlatform()) url = validateMobileEndpoint(url);
     this.disconnect();
+    this.endpointRegexCache.clear();
     this.baseUrl = url.replace(/\/$/, '');
     this.wsUrl = this.baseUrl.replace(/^http/, 'ws') + '/ws';
-    this.reconnect();
+  }
+
+  public clearEndpointRegexCache(): void {
+    this.endpointRegexCache.clear();
   }
 
   public getBaseUrl(): string {
     return this.baseUrl;
   }
 
+  public getDefaultBaseUrl(): string {
+    return getDefaultKingdomApiUrl();
+  }
+
+  private usesCentipedeReadProxy(): boolean {
+    try {
+      return new URL(this.baseUrl).pathname.replace(/\/$/, '') === '/api/v1/kingdom';
+    } catch {
+      return false;
+    }
+  }
+
   public getConnectionState(): ConnectionState {
     return this.connectionState;
+  }
+
+  public async get_read_observations(): Promise<ObservationSummary[]> {
+    // These projected summaries are available only through the local-admin proxy.
+    // A direct backend/mobile connection must not acquire a broader read contract.
+    if (!this.usesCentipedeReadProxy()) return Array.from({ length: 3 }, unavailableObservation);
+    const generation = this.observationGeneration;
+    return Promise.all(OBSERVATION_READ_PATHS.map(async path => {
+      try {
+        const value = await this.fetchJson<ObservationSummary>(path, {}, false);
+        if (generation !== this.observationGeneration) return unavailableObservation();
+        // Browser receipt time is the sole UI age clock; upstream/server clock
+        // offsets must neither prolong nor prematurely expire this read.
+        return { ...value, receivedAt: Date.now() / 1000 };
+      }
+      catch { return unavailableObservation(); } // Older Kingdom releases may return 404.
+    }));
   }
 
   public getCompatibilityInfo(): VersionCompatibility {
@@ -150,6 +204,7 @@ export class KingdomAdapter {
   }
 
   private notifyConnection(state: ConnectionState): void {
+    if (state !== this.connectionState) this.observationGeneration++;
     this.connectionState = state;
     this.connectionListeners.forEach((l) => l(state));
   }
@@ -159,10 +214,11 @@ export class KingdomAdapter {
     if (status?.version) {
       this.lastKnownKingdomVersion = status.version;
     }
-    if (status?.capabilities) {
+    this.discoveredCapabilities = {};
+    if (Array.isArray(status?.capabilities)) {
       const capsMap: Record<string, boolean> = {};
       status.capabilities.forEach((cap) => {
-        capsMap[cap] = true;
+        if (typeof cap === 'string') capsMap[cap] = true;
       });
       this.discoveredCapabilities = capsMap;
     }
@@ -193,10 +249,11 @@ export class KingdomAdapter {
     }
 
     const clean = (rawVersion || '').trim().replace(/^v/i, '');
-    let status: VersionCompatibilityStatus = 'COMPATIBLE';
+    let status: VersionCompatibilityStatus = protocolHeader ? 'COMPATIBLE' : 'UNKNOWN';
     const protMajor = protocolHeader ? protocolHeader.major : KINGDOM_PROTOCOL_MAJOR;
     const protMinor = protocolHeader ? protocolHeader.minor : 0;
     let message = `Kingdom v${clean || 'unknown'} (Protocol v${protMajor}.${protMinor}) is compatible.`;
+    if (!protocolHeader) message = 'Kingdom version received, but protocol compatibility has not been verified.';
 
     // Protocol major negotiation
     if (protMajor !== KINGDOM_PROTOCOL_MAJOR) {
@@ -206,7 +263,7 @@ export class KingdomAdapter {
 
     const info: VersionCompatibility = {
       detectedVersion: clean || null,
-      protocol: protocolHeader || { major: protMajor, minor: protMinor },
+      protocol: protocolHeader || null,
       minSupportedVersion: `Protocol v${KINGDOM_PROTOCOL_MAJOR}.0`,
       maxTestedVersion: `Protocol v${KINGDOM_PROTOCOL_MAJOR}.x`,
       status,
@@ -230,7 +287,7 @@ export class KingdomAdapter {
     return safeMsg.substring(0, 300);
   }
 
-  private async fetchJson<T>(path: string, options: RequestInit = {}): Promise<T> {
+  private async fetchJson<T>(path: string, options: RequestInit = {}, trackConnection = true): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -247,8 +304,10 @@ export class KingdomAdapter {
       });
 
       clearTimeout(timeoutId);
-      this.diagnostics.latencyMs = Date.now() - startMs;
-      this.diagnostics.lastHeartbeat = Date.now();
+      if (trackConnection) {
+        this.diagnostics.latencyMs = Date.now() - startMs;
+        this.diagnostics.lastHeartbeat = Date.now();
+      }
 
       if (res.status === 400 || res.status === 422) {
         const errText = await res.text();
@@ -256,7 +315,7 @@ export class KingdomAdapter {
       }
 
       if (res.status === 401) {
-        this.notifyConnection('AUTHENTICATION_FAILED');
+        if (trackConnection) this.notifyConnection('AUTHENTICATION_FAILED');
         throw new KingdomApiError('AUTHENTICATION_FAILED', 'Authentication failed on Kingdom server.', 401);
       }
 
@@ -278,17 +337,30 @@ export class KingdomAdapter {
         throw new KingdomApiError('SERVER_ERROR', `HTTP ${res.status}: ${safeText || res.statusText}`, res.status, errorText);
       }
 
-      this.recordSuccess();
+      if (trackConnection) this.recordSuccess();
       const json = (await res.json()) as T;
 
-      // Schema drift validation
+      // Schema drift validation with fast-path static route string comparison
       const cleanPath = path.split('?')[0];
+      const reqMethod = options.method || 'GET';
       const matchingSpecKey = Object.keys(KINGDOM_CONTRACT_SPEC.endpoints).find((key) => {
         const spec = KINGDOM_CONTRACT_SPEC.endpoints[key];
-        const specPathRegex = new RegExp('^' + spec.path.replace(/\{[^}]+\}/g, '[^/]+') + '$');
         const specMethod = spec.method || 'GET';
-        const reqMethod = options.method || 'GET';
-        return specMethod === reqMethod && specPathRegex.test(cleanPath);
+        if (specMethod !== reqMethod) return false;
+
+        // Fast-path: Exact path comparison for static endpoints without dynamic parameters
+        if (spec.path === cleanPath) return true;
+
+        if (spec.path.includes('{')) {
+          let specPathRegex = this.endpointRegexCache.get(key);
+          if (!specPathRegex) {
+            specPathRegex = new RegExp('^' + spec.path.replace(/\{[^}]+\}/g, '[^/]+') + '$');
+            this.endpointRegexCache.set(key, specPathRegex);
+          }
+          return specPathRegex.test(cleanPath);
+        }
+
+        return false;
       });
 
       if (matchingSpecKey && json && typeof json === 'object') {
@@ -306,7 +378,7 @@ export class KingdomAdapter {
         throw err;
       }
 
-      this.recordFailure();
+      if (trackConnection) this.recordFailure();
 
       if (err.name === 'AbortError') {
         throw new KingdomApiError('TIMEOUT', 'Request to Kingdom backend timed out after 10000ms.');
@@ -326,7 +398,7 @@ export class KingdomAdapter {
     if (this.compatibilityInfo.status !== 'INCOMPATIBLE_PROTOCOL') {
       if (this.connectionState !== 'CONNECTED' && this.connectionState !== 'NEGOTIATING' && this.connectionState !== 'VALIDATING') {
         this.notifyConnection('CONNECTED');
-        this.initWebSocket();
+        if (!this.usesCentipedeReadProxy()) this.initWebSocket();
       }
     }
   }
@@ -429,6 +501,7 @@ export class KingdomAdapter {
   }
 
   public disconnect(): void {
+    this.observationGeneration++;
     this.stopHeartbeat();
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);

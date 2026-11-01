@@ -1,48 +1,44 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { KingdomAdapter } from '../api/kingdomAdapter';
-import { Sliders, CheckCircle2, RotateCcw, HardDrive, Cpu, Sparkles, Check, Server } from 'lucide-react';
+import { Sliders, CheckCircle2, RotateCcw, HardDrive, Cpu, Sparkles, Check, Server, Paintbrush } from 'lucide-react';
 import { platformDetector } from '../platform/detector';
-import { CentipedeProfile } from '../platform/types';
+import { CentipedeProfile, ProfileRecommendation } from '../platform/types';
+import { HOME_VISUALS, HomeVisual } from './CentipedeWorldVisual';
+import { AccessibilitySettings } from './AccessibilitySettings';
+import { HomeMediaPicker } from './HomeMediaPicker';
 
 interface SettingsPanelProps {
   adapter: KingdomAdapter;
+  homeVisual: HomeVisual;
+  onHomeVisualChange: (visual: HomeVisual) => void;
 }
 
-export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter }) => {
+export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter, homeVisual, onHomeVisualChange }) => {
   const [url, setUrl] = useState(adapter.getBaseUrl());
   const [pollInterval, setPollInterval] = useState('3000');
   const [savedMessage, setSavedMessage] = useState('');
   const [selectedProfile, setSelectedProfile] = useState<CentipedeProfile>('FULL_CENTIPEDE');
+  const [profileRec, setProfileRec] = useState<ProfileRecommendation | null>(null);
 
-  const detectedCores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 4 : 4;
-  const detectedRamMb = typeof navigator !== 'undefined' && 'deviceMemory' in navigator ? ((navigator as any).deviceMemory || 8) * 1024 : 8192;
-
-  const profileRec = platformDetector.getProfileRecommendation({
-    cpuCores: detectedCores,
-    cpuCoresProvenance: 'LOCAL_DETECTED',
-    totalMemoryMb: detectedRamMb,
-    totalMemoryMbProvenance: 'LOCAL_DETECTED',
-    availableMemoryMb: Math.round(detectedRamMb * 0.5),
-    availableMemoryMbProvenance: 'LOCAL_DETECTED',
-    storageTotalGb: 128,
-    storageTotalGbProvenance: 'LOCAL_DETECTED',
-    storageAvailableGb: 64,
-    storageAvailableGbProvenance: 'LOCAL_DETECTED',
-    gpuAvailable: false,
-    gpuProvenance: 'UNAVAILABLE',
-  });
+  useEffect(() => {
+    platformDetector.detectRuntimeInfo()
+      .then((runtime) => setProfileRec(platformDetector.getProfileRecommendation(runtime.hardware)))
+      .catch(() => setProfileRec(null));
+  }, []);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     adapter.setBaseUrl(url);
+    void adapter.reconnect();
     setSavedMessage('Settings applied successfully! Reconnecting to updated API URL...');
     setTimeout(() => setSavedMessage(''), 4000);
   };
 
   const handleReset = () => {
-    const defaultUrl = 'http://localhost:8000';
+    const defaultUrl = adapter.getDefaultBaseUrl();
     setUrl(defaultUrl);
     adapter.setBaseUrl(defaultUrl);
+    void adapter.reconnect();
     setSavedMessage('Reset to default API URL (http://localhost:8000).');
     setTimeout(() => setSavedMessage(''), 4000);
   };
@@ -53,7 +49,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter }) => {
         <Sliders className="w-7 h-7 text-slate-400" />
         <div>
           <h2 className="text-2xl font-bold text-white">Desktop App Settings</h2>
-          <p className="text-slate-400 text-sm">The Kingdom API endpoint is configurable here. Profile and storage displays are illustrative, not host system controls.</p>
+          <p className="text-slate-400 text-sm">Configure this browser client and choose accessibility preferences for this browser.</p>
         </div>
       </div>
 
@@ -63,6 +59,52 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter }) => {
           <span>{savedMessage}</span>
         </div>
       )}
+
+      <AccessibilitySettings />
+
+      <section aria-labelledby="home-visual-heading" className="rounded-2xl border border-slate-700 bg-slate-800/60 p-5 shadow-xl sm:p-6">
+        <div className="mb-4 flex items-center gap-3">
+          <Paintbrush aria-hidden="true" className="h-6 w-6 text-cyan-300" />
+          <div>
+            <h3 id="home-visual-heading" className="text-lg font-bold text-white">Home screen visual</h3>
+            <p className="text-xs text-slate-400">Choose the scene shown on Home. Your choice stays on this device.</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {HOME_VISUALS.map((profile) => {
+            const selected = homeVisual === profile.id;
+            const swatch = {
+              'centipede-art': 'from-slate-950 via-blue-900 to-orange-500',
+              'custom-media': 'from-slate-900 via-slate-600 to-slate-400',
+              'centipede-world': 'from-blue-950 via-cyan-900 to-orange-500',
+              'neon-dragon': 'from-fuchsia-950 via-purple-800 to-pink-400',
+              'space-nebula': 'from-indigo-950 via-violet-700 to-cyan-400',
+              'abstract-orb': 'from-slate-950 via-blue-700 to-sky-300',
+            }[profile.id];
+            return (
+              <button
+                key={profile.id}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => onHomeVisualChange(profile.id)}
+                className={`group overflow-hidden rounded-xl border text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 ${selected ? 'border-cyan-300 bg-cyan-950/40 ring-1 ring-cyan-300/30' : 'border-slate-700 bg-slate-900/70 hover:border-slate-500'}`}
+              >
+                <span aria-hidden="true" className={`relative block h-20 bg-gradient-to-br ${swatch}`}>
+                  <span className="absolute left-1/2 top-1/2 h-11 w-11 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/50 bg-white/10 shadow-[0_0_28px_rgba(103,232,249,.45)]" />
+                  <span className="absolute left-1/2 top-1/2 h-5 w-16 -translate-x-1/2 -translate-y-1/2 rotate-[-20deg] rounded-[50%] border border-white/70" />
+                  {selected && <span className="absolute right-2 top-2 rounded-full bg-slate-950/70 px-2 py-0.5 text-[10px] font-medium text-cyan-100">Selected</span>}
+                </span>
+                <span className="block p-3">
+                  <span className="block text-xs font-semibold text-white">{profile.name}</span>
+                  <span className="mt-1 block text-[11px] leading-4 text-slate-400">{profile.description}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <HomeMediaPicker onSelected={() => onHomeVisualChange('custom-media')} onReset={() => onHomeVisualChange('centipede-art')} />
+        <p className="mt-3 text-[11px] text-slate-500">Animation pauses when the scene is off screen, the app is hidden, or reduced motion is enabled.</p>
+      </section>
 
       {/* Centipede OS Profile Selector & Hardware Auto-Detector */}
       <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 space-y-4 shadow-xl">
@@ -76,17 +118,17 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter }) => {
           </div>
           <span className="px-3 py-1 bg-purple-950/80 border border-purple-500/40 text-purple-300 font-mono text-xs font-semibold rounded-full flex items-center space-x-1.5">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Recommended: {profileRec.recommendedProfile}</span>
+            <span>{profileRec ? `Suggestion: ${profileRec.recommendedProfile}` : 'Suggestion unavailable'}</span>
           </span>
         </div>
 
         {/* Hardware Suitability Explanation Banner */}
         <div className="bg-slate-900 border border-slate-700/80 p-3.5 rounded-xl text-xs space-y-1">
           <div className="text-slate-300 font-bold flex items-center justify-between">
-            <span>Hardware Assessment: {profileRec.hardwareSummary}</span>
-            <span className="text-emerald-400 font-mono font-semibold">Score: {profileRec.suitabilityScore}/100</span>
+            <span>Reported hardware: {profileRec?.hardwareSummary || 'Not available'}</span>
+            {profileRec && <span className="text-slate-400 font-mono">{profileRec.suitabilityScore === null ? 'Not scored' : `Heuristic: ${profileRec.suitabilityScore}/100`}</span>}
           </div>
-          <p className="text-slate-400">{profileRec.explanation}</p>
+          <p className="text-slate-400">{profileRec?.explanation || 'Hardware information could not be read. Select a profile manually.'}</p>
         </div>
 
         {/* Profile Choice Grid */}
@@ -127,56 +169,17 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter }) => {
           <div className="flex items-center space-x-3">
             <HardDrive className="w-6 h-6 text-blue-400" />
             <div>
-              <h3 className="text-lg font-bold text-white">Storage Layout Preview</h3>
-              <p className="text-xs text-slate-400">Illustrative sample values only; this browser app does not measure or manage host disk storage.</p>
+              <h3 className="text-lg font-bold text-white">Host storage</h3>
+              <p className="text-xs text-slate-400">This browser app cannot inspect disk usage or manage host storage.</p>
             </div>
           </div>
-          <span className="px-3 py-1 bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 font-mono text-xs font-semibold rounded-full flex items-center space-x-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>Pressure: NORMAL</span>
+          <span className="px-3 py-1 bg-slate-900 border border-slate-700 text-slate-300 font-mono text-xs font-semibold rounded-full">
+            Not measured
           </span>
         </div>
-
-        {/* Overall Storage Progress Bar */}
-        <div className="space-y-2">
-          <div className="w-full bg-slate-900 rounded-full h-4 overflow-hidden flex border border-slate-700">
-            <div className="bg-blue-500 h-full" style={{ width: '12%' }} title="System Files (31 GB)"></div>
-            <div className="bg-purple-500 h-full" style={{ width: '20%' }} title="Virtual Machines (52 GB)"></div>
-            <div className="bg-cyan-500 h-full" style={{ width: '11%' }} title="Docker Workloads (28 GB)"></div>
-            <div className="bg-emerald-500 h-full" style={{ width: '8%' }} title="AI Models (21 GB)"></div>
-            <div className="bg-amber-500 h-full" style={{ width: '9%' }} title="User Files (22 GB)"></div>
-            <div className="bg-rose-500 h-full" style={{ width: '5%' }} title="Apps & Skills (19 GB)"></div>
-            <div className="bg-slate-700 h-full" style={{ width: '35%' }} title="Free Space (256 GB)"></div>
-          </div>
-        </div>
-
-        {/* Storage Breakdown List */}
-        <div className="grid grid-cols-2 gap-4 text-xs font-mono">
-          <div className="p-3 bg-slate-900/60 border border-slate-700/60 rounded-xl flex justify-between items-center">
-            <span className="text-slate-300">Protected System (/system)</span>
-            <span className="text-blue-400 font-bold">31 GB</span>
-          </div>
-          <div className="p-3 bg-slate-900/60 border border-slate-700/60 rounded-xl flex justify-between items-center">
-            <span className="text-slate-300">Virtual Machines (/data/vms)</span>
-            <span className="text-purple-400 font-bold">52 GB</span>
-          </div>
-          <div className="p-3 bg-slate-900/60 border border-slate-700/60 rounded-xl flex justify-between items-center">
-            <span className="text-slate-300">Docker Pools (/data/containers)</span>
-            <span className="text-cyan-400 font-bold">28 GB</span>
-          </div>
-          <div className="p-3 bg-slate-900/60 border border-slate-700/60 rounded-xl flex justify-between items-center">
-            <span className="text-slate-300">AI Models (/data/models)</span>
-            <span className="text-emerald-400 font-bold">21 GB</span>
-          </div>
-          <div className="p-3 bg-slate-900/60 border border-slate-700/60 rounded-xl flex justify-between items-center">
-            <span className="text-slate-300">User Files (/home)</span>
-            <span className="text-amber-400 font-bold">22 GB</span>
-          </div>
-          <div className="p-3 bg-slate-900/60 border border-slate-700/60 rounded-xl flex justify-between items-center">
-            <span className="text-slate-300">Kingdom Data (/data/kingdom)</span>
-            <span className="text-slate-200 font-bold">4 GB</span>
-          </div>
-        </div>
+        <p className="rounded-xl border border-slate-700 bg-slate-900/70 p-4 text-sm text-slate-300">
+          Disk totals, free space, and system storage pressure are unavailable here. No storage pressure or free-space claim is being made.
+        </p>
       </div>
 
       <form onSubmit={handleSave} className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 space-y-6 shadow-xl">
@@ -192,7 +195,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter }) => {
             className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-blue-500"
           />
           <p className="text-xs text-slate-400">
-            Specify the backend host and port for Kingdom API server. WebSocket endpoint will be derived as <span className="font-mono text-slate-300">{url.replace(/^http/, 'ws')}/ws</span>.
+            The default is Centipede&apos;s same-origin, read-only proxy. Set <span className="font-mono text-slate-300">KINGDOM_API_URL</span> and <span className="font-mono text-slate-300">KINGDOM_API_TOKEN</span> on the Centipede server; credentials are never stored in this browser. The proxy does not forward actions or privileged commands.
           </p>
         </div>
 

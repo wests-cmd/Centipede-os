@@ -1,0 +1,24 @@
+#!/bin/sh
+set -eu
+
+VERSION=unknown
+if [ -r /etc/centipede/version ]; then
+  VERSION=$(cat /etc/centipede/version)
+fi
+case "$VERSION" in
+  *[!0-9.]*|'') VERSION=unknown ;;
+esac
+
+cat > /etc/os-release <<EOF
+NAME="Centipede OS"
+PRETTY_NAME="Centipede OS ${VERSION}"
+ID=centipede
+ID_LIKE=debian
+VERSION="${VERSION}"
+VERSION_ID="${VERSION}"
+HOME_URL="https://github.com/wests-cmd/Centipede-os"
+SUPPORT_URL="https://github.com/wests-cmd/Centipede-os/issues"
+BUG_REPORT_URL="https://github.com/wests-cmd/Centipede-os/issues"
+EOF
+printf '%s\n' 'Centipede OS \n \l' > /etc/issue
+printf '%s\n' 'centipede' > /etc/hostname

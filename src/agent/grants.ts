@@ -1,4 +1,4 @@
-import { syncSha256 } from '../security/cryptoUtils';
+import { syncSha256, generateSecureRandomHex } from '../security/cryptoUtils';
 
 function canonicalizeObject(obj: any): any {
   if (obj === null || typeof obj !== 'object') {
@@ -15,8 +15,13 @@ function canonicalizeObject(obj: any): any {
   return sortedObj;
 }
 
+const EMPTY_PARAMS_HASH = syncSha256('{}');
+
 export function computeParameterHash(params: Record<string, any> = {}): string {
-  const canonicalJson = JSON.stringify(canonicalizeObject(params || {}));
+  if (!params || Object.keys(params).length === 0) {
+    return EMPTY_PARAMS_HASH;
+  }
+  const canonicalJson = JSON.stringify(canonicalizeObject(params));
   return syncSha256(canonicalJson);
 }
 
@@ -68,6 +73,10 @@ export interface CapabilityGrant {
 
 export function normalizeResourcePath(p: string): string {
   if (!p) return '/';
+  if (p === '/' || p === '*') return p;
+  if (p.charCodeAt(0) === 47 && p.charCodeAt(p.length - 1) !== 47 && !p.includes('\\') && !p.includes('//') && !p.includes('/.') && !p.includes('./')) {
+    return p;
+  }
   // Replace backslashes with forward slashes
   let norm = p.replace(/\\/g, '/');
   // Collapse multiple slashes
@@ -76,7 +85,8 @@ export function normalizeResourcePath(p: string): string {
   const isAbsolute = norm.startsWith('/');
   const parts = norm.split('/');
   const stack: string[] = [];
-  for (const part of parts) {
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
     if (part === '' || part === '.') continue;
     if (part === '..') {
       if (stack.length > 0) stack.pop();
@@ -112,14 +122,17 @@ export function isResourceWithinScope(requestedResource: string, resourceScope: 
 export class CapabilityGrantEngine {
   private grants: Map<string, CapabilityGrant> = new Map();
 
-  private purgeExpiredGrants(): void {
-    if (this.grants.size < 50) return;
+  public purgeExpiredGrants(force = false): number {
+    if (!force && this.grants.size < 50) return 0;
     const now = Date.now();
+    let purgedCount = 0;
     for (const [id, grant] of this.grants.entries()) {
       if (grant.expiresAt <= now || grant.consumed) {
         this.grants.delete(id);
+        purgedCount++;
       }
     }
+    return purgedCount;
   }
 
   public issueJustInTimeGrant(
@@ -132,7 +145,7 @@ export class CapabilityGrantEngine {
     contextOptions: CapabilityGrantOptions = {}
   ): CapabilityGrant {
     this.purgeExpiredGrants();
-    const grantId = `grant_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const grantId = `grant_${Date.now()}_${generateSecureRandomHex(8)}`;
     const grant: CapabilityGrant = {
       grantId,
       agentId,

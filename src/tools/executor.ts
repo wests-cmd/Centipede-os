@@ -1,7 +1,7 @@
 import { KingdomAdapter, kingdomAdapter } from '../api/kingdomAdapter';
 import { capabilityGrantEngine, computeParameterHash, VerificationContext } from '../agent/grants';
 import { approvalTamperGuard } from '../security/approvalTamperGuard';
-import { platformDetector } from '../platform/detector';
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { toolRegistry } from './registry';
 import { ExecutionAuthorizationContext, ToolExecutionResult, ToolInvocationRequest, VerificationState } from './types';
 
@@ -130,7 +130,7 @@ export class ToolExecutor {
 
   public async execute(req: ToolInvocationRequest): Promise<ToolExecutionResult> {
     const startTime = Date.now();
-    const idempotencyKey = req.idempotencyKey || `idemp_${req.toolId}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const idempotencyKey = req.idempotencyKey || `idemp_${req.toolId}_${Date.now()}_${generateSecureRandomHex(4)}`;
     const parameterHash = req.parameterHash || computeParameterHash(req.parameters || {});
 
     // 1. Tool Chain Composition Bounding
@@ -197,25 +197,11 @@ export class ToolExecutor {
 
     const requiresHumanApproval = tool.requiresApproval || tool.riskClass === 'CRITICAL' || tool.riskClass === 'HIGH';
 
-    // 5.1 Emergency Storage Threshold Enforcement (< 5% free disk protection)
-    const platformInfo = await platformDetector.detectRuntimeInfo();
-    const storageMetrics = platformInfo.hardware.storageBreakdown;
-    if (storageMetrics && storageMetrics.storagePressure === 'EMERGENCY' && isMutatingOrPrivileged) {
-      return {
-        invocationId: req.id,
-        toolId: tool.toolId,
-        status: 'BLOCKED',
-        error: 'STORAGE_EMERGENCY: Free disk space critical (<5%). Mutating operations blocked to preserve OS bootability.',
-        executionTimeMs: Date.now() - startTime,
-        idempotencyKey,
-      };
-    }
-
     // Canonical Execution Authorization Context Verification
     if (isMutatingOrPrivileged) {
       if (!req.grantId) {
         if (requiresHumanApproval) {
-          let approvalId = req.approvalId || `appr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+          let approvalId = req.approvalId || `appr_${Date.now()}_${generateSecureRandomHex(4)}`;
           try {
             if (this.adapter.getConnectionState() === 'CONNECTED') {
               const approvalReq = await this.adapter.create_approval(
@@ -410,7 +396,7 @@ export class ToolExecutor {
         idempotencyKey,
       };
 
-      const dlqId = `dlq_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const dlqId = `dlq_${Date.now()}_${generateSecureRandomHex(4)}`;
       this.deadLetterQueue.set(dlqId, {
         deadLetterId: dlqId,
         requestId: req.id,
@@ -503,7 +489,7 @@ export class ToolExecutor {
             nodeFs.mkdirSync(parentDir, { recursive: true });
           }
           const content = params.content || '';
-          const tempPath = `${safePath}.tmp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+          const tempPath = `${safePath}.tmp_${Date.now()}_${generateSecureRandomHex(4)}`;
           nodeFs.writeFileSync(tempPath, content, 'utf8');
           nodeFs.renameSync(tempPath, safePath);
           const bytes = Buffer.byteLength(content, 'utf8');

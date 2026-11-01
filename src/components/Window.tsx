@@ -44,17 +44,17 @@ export const Window: React.FC<WindowProps> = ({
     <div
       onClick={onFocus}
       style={{ zIndex }}
-      className={`fixed transition-all flex flex-col bg-slate-900/95 border border-slate-800 text-slate-100 rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden ${
+        className={`fixed flex min-w-0 flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-900/95 text-slate-100 shadow-2xl backdrop-blur-xl transition-all sm:rounded-2xl ${
         isMaximized
-          ? 'top-14 bottom-16 left-4 right-4'
-          : 'top-20 left-12 right-12 bottom-20 md:left-64 md:right-12'
+          ? 'top-14 bottom-16 left-1 right-1 sm:left-4 sm:right-4'
+          : 'top-16 bottom-[4.5rem] left-1 right-1 sm:top-20 sm:bottom-20 sm:left-6 sm:right-6 md:left-64 md:right-6'
       }`}
     >
       {/* Window Title Bar */}
-      <div className="h-10 bg-slate-950/80 border-b border-slate-800 px-4 flex items-center justify-between select-none cursor-move">
-        <div className="flex items-center space-x-2.5 text-xs font-bold text-slate-200 tracking-wide">
+      <div className="flex h-10 shrink-0 cursor-move select-none items-center justify-between gap-2 border-b border-slate-800 bg-slate-950/80 px-3 sm:px-4">
+        <div className="flex min-w-0 items-center gap-2.5 truncate text-xs font-bold tracking-wide text-slate-200">
           {Icon && <Icon className="w-4 h-4 text-cyan-400" />}
-          <span>{title}</span>
+          <span className="truncate">{title}</span>
         </div>
 
         {/* Window Action Buttons */}
@@ -84,7 +84,7 @@ export const Window: React.FC<WindowProps> = ({
       </div>
 
       {/* Window Content Body */}
-      <div className="flex-1 overflow-auto p-4 bg-slate-950/40">
+      <div className="min-h-0 min-w-0 flex-1 overflow-auto bg-slate-950/40 p-3 sm:p-4">
         {children}
       </div>
     </div>

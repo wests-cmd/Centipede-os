@@ -1,3 +1,4 @@
+import { PerceptionPanel } from './components/PerceptionPanel';
 import React, { useEffect, useState } from 'react';
 import { kingdomAdapter } from './api/kingdomAdapter';
 import { DesktopShell } from './components/DesktopShell';
@@ -15,10 +16,15 @@ import { CentipedeAI } from './components/CentipedeAI';
 import { SettingsPanel } from './components/SettingsPanel';
 import { MemoryApp } from './components/MemoryApp';
 import { SkillsApp } from './components/SkillsApp';
+import { DoctorApp } from './components/DoctorApp';
 import { MapsApp } from './components/MapsApp';
 import { Window } from './components/Window';
+import { applyAccessibilitySettings, DEFAULT_ACCESSIBILITY_SETTINGS, loadAccessibilitySettings } from './platform/accessibility';
 import { FirstRunWizard } from './components/FirstRunWizard';
+import { AppUpdateManager } from './components/AppUpdateManager';
+import { HOME_VISUALS, HomeVisual } from './components/CentipedeWorldVisual';
 import { ApprovalRequest, ConnectionState, RuntimeStatus } from './types';
+import { CENTIPEDE_VERSION } from './version';
 import { Brain, Cpu, Map, Server, Shield, Activity, Folder, Terminal as TermIcon, Sliders, Bot, Search, Smartphone, Grid, ShieldAlert } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -26,6 +32,23 @@ export const App: React.FC = () => {
   const [status, setStatus] = useState<RuntimeStatus | null>(null);
   const [connectionState, setConnectionState] = useState<ConnectionState>('DISCONNECTED');
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
+  const [homeVisual, setHomeVisual] = useState<HomeVisual>(() => {
+    try {
+      const saved = window.localStorage.getItem('centipede_home_visual');
+      return HOME_VISUALS.some((profile) => profile.id === saved) ? (saved as HomeVisual) : 'centipede-art';
+    } catch {
+      return 'centipede-art';
+    }
+  });
+
+  const changeHomeVisual = (visual: HomeVisual) => {
+    setHomeVisual(visual);
+    try {
+      window.localStorage.setItem('centipede_home_visual', visual);
+    } catch {
+      // The visual remains usable for this session when storage is unavailable.
+    }
+  };
   const [isFirstRunCompleted, setIsFirstRunCompleted] = useState<boolean>(() => {
     if (typeof window !== 'undefined' && window.localStorage) {
       return localStorage.getItem('centipede_first_run_completed') === 'true';
@@ -34,6 +57,15 @@ export const App: React.FC = () => {
   });
 
   useEffect(() => {
+    try {
+      const accessibility = typeof window !== 'undefined'
+        ? loadAccessibilitySettings(window.localStorage)
+        : DEFAULT_ACCESSIBILITY_SETTINGS;
+      applyAccessibilitySettings(accessibility, document.documentElement);
+    } catch {
+      applyAccessibilitySettings(DEFAULT_ACCESSIBILITY_SETTINGS, document.documentElement);
+    }
+
     const unsubConn = kingdomAdapter.subscribeConnection(setConnectionState);
     const unsubStatus = kingdomAdapter.subscribeStatus(setStatus);
 
@@ -64,8 +96,11 @@ export const App: React.FC = () => {
             onOpenApp={(id) => setActiveAppId(id)}
             activeAppId={activeAppId}
             pendingApprovalsCount={pendingApprovalsCount}
+            homeVisual={homeVisual}
           />
         );
+      case 'perception':
+        return <Window id="win_perception" title="Camera, screen and microphone" icon={Bot} isOpen={true} onClose={() => setActiveAppId('launcher')}><PerceptionPanel /></Window>;
       case 'agent_control':
         return (
           <Window id="win_agent_control" title="Agent Control Plane & Security" icon={ShieldAlert} isOpen={true} onClose={() => setActiveAppId('launcher')}>
@@ -147,7 +182,13 @@ export const App: React.FC = () => {
       case 'settings':
         return (
           <Window id="win_set" title="System Settings" icon={Sliders} isOpen={true} onClose={() => setActiveAppId('launcher')}>
-            <SettingsPanel adapter={kingdomAdapter} />
+          <SettingsPanel adapter={kingdomAdapter} homeVisual={homeVisual} onHomeVisualChange={changeHomeVisual} />
+          </Window>
+        );
+      case 'doctor':
+        return (
+          <Window id="win_doctor" title="Centipede Doctor & Repair" icon={ShieldAlert} isOpen={true} onClose={() => setActiveAppId('launcher')}>
+            <DoctorApp adapter={kingdomAdapter} connectionState={connectionState} runtimeStatus={status} />
           </Window>
         );
       default:
@@ -156,13 +197,25 @@ export const App: React.FC = () => {
             onOpenApp={(id) => setActiveAppId(id)}
             activeAppId={activeAppId}
             pendingApprovalsCount={pendingApprovalsCount}
+            homeVisual={homeVisual}
           />
         );
     }
   };
 
   if (!isFirstRunCompleted) {
-    return <FirstRunWizard onComplete={() => setIsFirstRunCompleted(true)} />;
+    return (
+      <FirstRunWizard onComplete={() => {
+        setIsFirstRunCompleted(true);
+        try {
+          const showAccessibility = localStorage.getItem('centipede_accessibility_setup_requested') === 'true';
+          localStorage.removeItem('centipede_accessibility_setup_requested');
+          if (showAccessibility) setActiveAppId('settings');
+        } catch {
+          // The optional accessibility setup offer may be skipped when storage is unavailable.
+        }
+      }} />
+    );
   }
 
   return (
@@ -172,6 +225,7 @@ export const App: React.FC = () => {
       setActiveAppId={setActiveAppId}
       pendingApprovalsCount={pendingApprovalsCount}
     >
+      <AppUpdateManager currentVersion={CENTIPEDE_VERSION} />
       {renderActiveView()}
     </DesktopShell>
   );

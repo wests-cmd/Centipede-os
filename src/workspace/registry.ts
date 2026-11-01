@@ -80,11 +80,11 @@ export class IntegrationRegistry {
 
   public getIntegration(integrationId: string): WorkspaceIntegration | undefined {
     const found = this.integrations.get(integrationId);
-    return found ? JSON.parse(JSON.stringify(found)) : undefined;
+    return found ? structuredClone(found) : undefined;
   }
 
   public listIntegrations(): WorkspaceIntegration[] {
-    return Array.from(this.integrations.values()).map((i) => JSON.parse(JSON.stringify(i)));
+    return Array.from(this.integrations.values()).map((i) => structuredClone(i));
   }
 
   public async executeCapability(

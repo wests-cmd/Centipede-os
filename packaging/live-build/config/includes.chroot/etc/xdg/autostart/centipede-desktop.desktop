@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=Centipede
-Comment=Start the Centipede browser desktop
-Exec=/usr/local/bin/centipede-kiosk
+Comment=Start the Centipede desktop
+Exec=/usr/local/bin/centipede-desktop
 Terminal=false
 X-GNOME-Autostart-enabled=true

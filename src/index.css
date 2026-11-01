@@ -3,7 +3,61 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    font-size: var(--centipede-text-scale, 100%);
+  }
+
   body {
     @apply bg-slate-950 text-slate-100 antialiased selection:bg-blue-600 selection:text-white;
+  }
+
+}
+
+:focus-visible {
+  outline: 3px solid #67e8f9 !important;
+  outline-offset: 3px !important;
+}
+
+html.a11y-high-contrast body {
+  background: #000 !important;
+  color: #fff !important;
+}
+
+html.a11y-high-contrast :is(.text-slate-300, .text-slate-400, .text-slate-500, .text-gray-400, .text-gray-500) {
+  color: #f3f4f6 !important;
+}
+
+html.a11y-high-contrast :is([class*="border-slate-"], [class*="border-gray-"]) {
+  border-color: #d1d5db !important;
+}
+
+html.a11y-high-contrast :is(button, a, input, select, textarea, summary) {
+  text-decoration-thickness: 2px;
+}
+
+html.a11y-reduce-motion *,
+html.a11y-reduce-motion *::before,
+html.a11y-reduce-motion *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+html.a11y-reduce-transparency [class*="backdrop-blur"] {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+html.a11y-larger-targets :is(button, [role="button"], input, select, textarea, summary) {
+  min-height: 2.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

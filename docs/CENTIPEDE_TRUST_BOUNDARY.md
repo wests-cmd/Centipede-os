@@ -47,4 +47,4 @@ Centipede OS enforces a strict multi-tier ZeroTrust boundary where authority tra
 | **Memory & Knowledge Store (`src/learning/`)** | `UNTRUSTED` | Stores facts and preferences as `DATA`. Cannot self-authorize or override security policy. |
 | **Skill Manifests & Engine (`src/skills/`)** | `UNTRUSTED / VERIFIED` | Extends capabilities. Imported skills default to `UNTRUSTED`. Artifact changes trigger SHA-256 mismatch block. |
 | **Workflow Engine (`src/workflow/`)** | `UNTRUSTED / VERIFIED` | Generated workflows default to `DRAFT`. Step grants must match workflow/run/step context. |
-| **Mobile Companion Client (`src/components/`)** | `PARTIALLY TRUSTED` | Requires device QR pairing and PIN confirmation. Mobile requests cannot bypass `ToolExecutor` gate. |
+| **Mobile Companion Client (`src/components/`)** | `PARTIALLY TRUSTED` | Browser clients can pair through an expiring one-time PIN over a private HTTP network. Native apps and mobile action workflows are not implemented; Kingdom remains the execution authority. |

@@ -43,11 +43,11 @@ export class WorkflowEngine {
 
   public getWorkflow(workflowId: string): WorkflowDefinition | undefined {
     const wf = this.workflows.get(workflowId) || workflowPersistenceStore.getWorkflow(workflowId);
-    return wf ? JSON.parse(JSON.stringify(wf)) : undefined;
+    return wf ? structuredClone(wf) : undefined;
   }
 
   public listWorkflows(): WorkflowDefinition[] {
-    return Array.from(this.workflows.values()).map((w) => JSON.parse(JSON.stringify(w)));
+    return Array.from(this.workflows.values()).map((w) => structuredClone(w));
   }
 
   public proposeGeneratedWorkflow(
