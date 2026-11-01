@@ -73,6 +73,10 @@ export interface CapabilityGrant {
 
 export function normalizeResourcePath(p: string): string {
   if (!p) return '/';
+  if (p === '/' || p === '*') return p;
+  if (p.charCodeAt(0) === 47 && p.charCodeAt(p.length - 1) !== 47 && !p.includes('\\') && !p.includes('//') && !p.includes('/.') && !p.includes('./')) {
+    return p;
+  }
   // Replace backslashes with forward slashes
   let norm = p.replace(/\\/g, '/');
   // Collapse multiple slashes
@@ -81,7 +85,8 @@ export function normalizeResourcePath(p: string): string {
   const isAbsolute = norm.startsWith('/');
   const parts = norm.split('/');
   const stack: string[] = [];
-  for (const part of parts) {
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
     if (part === '' || part === '.') continue;
     if (part === '..') {
       if (stack.length > 0) stack.pop();
