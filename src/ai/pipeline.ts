@@ -1,3 +1,4 @@
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { actionExecutor } from './actionExecutor';
 import { contextManager } from './contextManager';
 import { conversationManager } from './conversationManager';
@@ -28,7 +29,7 @@ export class CentipedeAIPipeline {
   }
 
   public async process(input: UserInput): Promise<Message> {
-    const msgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const msgId = `msg_${Date.now()}_${generateSecureRandomHex(4)}`;
     const timestamp = Date.now();
 
     let currentMsg: Message = {

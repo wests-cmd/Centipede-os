@@ -1,3 +1,4 @@
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 export interface SecurityIncident {
   incidentId: string;
   severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -20,7 +21,7 @@ export class IncidentManager {
     actionTaken: SecurityIncident['actionTaken'],
     agentId?: string
   ): SecurityIncident {
-    const incidentId = `inc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const incidentId = `inc_${Date.now()}_${generateSecureRandomHex(4)}`;
     const incident: SecurityIncident = {
       incidentId,
       severity,

@@ -1,3 +1,4 @@
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { KingdomAdapter, kingdomAdapter } from '../api/kingdomAdapter';
 import { MemoryEntry, MemoryScope, TrustLevel } from './types';
 
@@ -21,7 +22,7 @@ export class MemoryStore {
   }
 
   public async recordMemory(entry: Omit<MemoryEntry, 'memoryId' | 'version' | 'lifecycle'> & { memoryId?: string }): Promise<MemoryEntry> {
-    const memoryId = entry.memoryId || `mem_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const memoryId = entry.memoryId || `mem_${Date.now()}_${generateSecureRandomHex(4)}`;
     const fullEntry: MemoryEntry = {
       ...entry,
       memoryId,
@@ -83,19 +84,14 @@ export class MemoryStore {
   }
 
   public getMemories(scope?: MemoryScope, projectId?: string): MemoryEntry[] {
-    const active = Array.from(this.localEntries.values()).filter(
-      (e) => e.lifecycle === 'ACTIVE'
-    );
-
-    if (!scope && !projectId) {
-      return active;
+    const result: MemoryEntry[] = [];
+    for (const e of this.localEntries.values()) {
+      if (e.lifecycle !== 'ACTIVE') continue;
+      if (scope && e.scope !== scope) continue;
+      if (projectId && e.projectId !== projectId) continue;
+      result.push(e);
     }
-
-    return active.filter((e) => {
-      if (scope && e.scope !== scope) return false;
-      if (projectId && e.projectId !== projectId) return false;
-      return true;
-    });
+    return result;
   }
 
   public getMemory(memoryId: string): MemoryEntry | undefined {

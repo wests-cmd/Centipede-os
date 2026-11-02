@@ -1,3 +1,4 @@
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { IntegrationCapability, NormalizedIntegrationResult, WorkspaceIntegration } from './types';
 import { toolExecutor, toolRegistry } from '../tools';
 
@@ -144,7 +145,7 @@ export class IntegrationRegistry {
       const targetToolId = toolDef ? toolDef.toolId : capabilityId;
 
       const toolRes = await toolExecutor.execute({
-        id: `call_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        id: `call_${Date.now()}_${generateSecureRandomHex(4)}`,
         toolId: targetToolId,
         capability: capabilityId,
         parameters,

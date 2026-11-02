@@ -337,11 +337,16 @@ export class KingdomAdapter {
 
       // Schema drift validation
       const cleanPath = path.split('?')[0];
+      const reqMethod = options.method || 'GET';
       const matchingSpecKey = Object.keys(KINGDOM_CONTRACT_SPEC.endpoints).find((key) => {
         const spec = KINGDOM_CONTRACT_SPEC.endpoints[key];
         const specMethod = spec.method || 'GET';
-        const reqMethod = options.method || 'GET';
         if (specMethod !== reqMethod) return false;
+
+        // Fast-path: Exact string equality for parameterless static endpoints
+        if (!spec.path.includes('{')) {
+          return spec.path === cleanPath;
+        }
 
         let specPathRegex = this.endpointRegexCache.get(key);
         if (!specPathRegex) {

@@ -1,3 +1,4 @@
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { centipedeAIPipeline } from './pipeline';
 import { ActionResult, Message, RiskLevel, UserInput } from './types';
 
@@ -88,7 +89,7 @@ export class AutonomyEngine {
       throw new Error(`Routine "${routine.name}" is disabled.`);
     }
 
-    const runId = `run_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const runId = `run_${Date.now()}_${generateSecureRandomHex(4)}`;
     this.activeRunId = runId;
     this.startTime = Date.now();
     this.actionsExecuted = 0;

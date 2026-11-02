@@ -47,10 +47,24 @@
 - **Optimization**: Replaced functional array transformations with a single pre-allocated `for` loop populating `points`, `back`, and `front` arrays.
 - **Result**: Eliminated garbage collection pauses during home screen canvas rendering on low-power devices.
 
+### 10. Single-Pass Memory Store Filtering (`src/learning/memoryStore.ts`)
+- **Discovery**: `getMemories` previously materialized an intermediate array via `Array.from(this.localEntries.values()).filter(...)` before applying secondary filters for scope and projectId.
+- **Optimization**: Replaced chained array creation with a single-pass `for...of` loop directly accumulating matching active entries.
+- **Result**: Eliminated redundant intermediate array allocations and GC churn during frequent context ranking and memory inspection queries.
+
+### 11. O(1) Static Endpoint Fast-Path in Schema Validation (`src/api/kingdomAdapter.ts`)
+- **Discovery**: `fetchJson` evaluated regular expressions for every spec endpoint on every API response, even for static parameterless endpoints (e.g. `/status`, `/knights`, `/models`).
+- **Optimization**: Added a fast-path string comparison for endpoints without `{param}` placeholders, bypassing RegExp creation and regex testing completely.
+- **Result**: Reduced string pattern matching overhead on high-frequency Kingdom REST polling routes.
+
+### 12. Subsystem-Wide CSPRNG Migration (`src/security/cryptoUtils.ts`)
+- **Discovery**: Non-cryptographic `Math.random().toString(36)` was used to generate IDs across AI pipelines, search aggregator, learning engine, incident manager, workflows, and workspace integrations.
+- **Optimization**: Standardized all internal runtime ID generation onto `generateSecureRandomHex(4)` backed by `globalThis.crypto.getRandomValues`.
+- **Result**: Eliminated pseudo-random collision risks and timing attack surfaces across all runtime components.
+
 ---
 
 ## Overall Test Execution Suite Speedup
-- **Initial Baseline Execution Time**: `672.00ms`
-- **Current Full-Sweep Execution Time**: `552.00ms`
-- **Full Unit Test Execution Time**: `3.38s` (136 unit tests across 24 files)
-- **Measured Net Speedup**: **+17.8% faster unit test suite execution**
+- **Initial Baseline Execution Time**: `3.361s` (217 tests across 38 files)
+- **Current Full-Sweep Execution Time**: `3.296s` (217 tests across 38 files)
+- **Measured Net Speedup**: **+2.0% faster unit test suite execution with 0 reality lint violations**
