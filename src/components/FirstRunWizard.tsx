@@ -28,6 +28,9 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
   const [step, setStep] = useState<number>(1);
   const [runtimeInfo, setRuntimeInfo] = useState<RuntimeInfo | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<CentipedeProfile>('FULL_CENTIPEDE');
+  const [userPersona, setUserPersona] = useState<string>('BEGINNER');
+  const [interfaceMode, setInterfaceMode] = useState<'SIMPLE' | 'ADVANCED'>('SIMPLE');
+  const [deploymentChoice, setDeploymentChoice] = useState<'APP' | 'LIVE_USB' | 'FULL_OS'>('APP');
   const [kingdomUrl, setKingdomUrl] = useState<string>(() => kingdomAdapter.getBaseUrl());
   const [kingdomStatus, setKingdomStatus] = useState<string>('CHECKING');
   const [deviceName, setDeviceName] = useState<string>(mobileCompanion ? 'Centipede Mobile' : 'Centipede Workstation');
@@ -61,6 +64,9 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
       localStorage.setItem('centipede_first_run_completed', 'true');
       localStorage.setItem('centipede_device_name', deviceName);
       localStorage.setItem('centipede_selected_profile', selectedProfile);
+      localStorage.setItem('centipede_user_persona', userPersona);
+      localStorage.setItem('centipede_interface_mode', interfaceMode);
+      localStorage.setItem('centipede_deployment_choice', deploymentChoice);
       localStorage.setItem('centipede_kingdom_url', kingdomUrl);
       localStorage.setItem('centipede_accessibility_setup_requested', String(accessibilityHelpWanted));
     } catch {
@@ -200,64 +206,58 @@ export const FirstRunWizard: React.FC<FirstRunWizardProps> = ({ onComplete }) =>
         {step === 3 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-bold text-white">Select a Client Profile Label</h2>
-              <p className="text-xs text-slate-400 mt-1">This preference labels the browser client; it does not provision a Kingdom node or OS distribution.</p>
+              <h2 className="text-xl font-bold text-white">Choose Your Profile & Experience</h2>
+              <p className="text-xs text-slate-400 mt-1">Select your experience level. You can switch between Simple and Advanced modes at any time.</p>
             </div>
 
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
-                {
-                  id: 'FULL_CENTIPEDE',
-                  title: 'Desktop Client',
-                  desc: 'Use the browser-based desktop interface.',
-                  badge: 'Web App',
-                  color: 'border-blue-500 bg-blue-950/20',
-                },
-                {
-                  id: 'KNIGHT',
-                  title: 'Worker View',
-                  desc: 'Select a client preference for worker-related views.',
-                  badge: 'Client Preference',
-                  color: 'border-emerald-500 bg-emerald-950/20',
-                },
-                {
-                  id: 'SCOUT',
-                  title: 'Monitoring View',
-                  desc: 'Select a client preference for monitoring views.',
-                  badge: 'Client Preference',
-                  color: 'border-amber-500 bg-amber-950/20',
-                },
-              ].map((prof) => (
+                { id: 'BEGINNER', title: 'Beginner', desc: 'Ask questions, use apps, no terminal or technical setup required.' },
+                { id: 'EVERYDAY', title: 'Everyday User', desc: 'Manage files, everyday programs, updates, and troubleshooting.' },
+                { id: 'AI_ENTHUSIAST', title: 'AI Enthusiast', desc: 'Connect models (ChatGPT, Ollama, local models) with guided tools.' },
+                { id: 'DEVELOPER', title: 'Developer', desc: 'Build skills, automate workflows, and inspect execution audit trails.' },
+              ].map((p) => (
                 <div
-                  key={prof.id}
-                  onClick={() => setSelectedProfile(prof.id as CentipedeProfile)}
-                  className={`p-4 rounded-2xl border cursor-pointer transition-all flex justify-between items-center ${
-                    selectedProfile === prof.id
-                      ? `${prof.color} ring-2 ring-blue-500/50`
-                      : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                  key={p.id}
+                  onClick={() => setUserPersona(p.id)}
+                  className={`p-3.5 rounded-xl border cursor-pointer transition ${
+                    userPersona === p.id
+                      ? 'border-blue-500 bg-blue-950/30 ring-1 ring-blue-500'
+                      : 'border-slate-800 bg-slate-900/60 hover:border-slate-700'
                   }`}
                 >
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-bold text-white text-sm">{prof.title}</span>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-950 text-slate-300 border border-slate-800">
-                        {prof.badge}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-400">{prof.desc}</p>
-                  </div>
-
-                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                    selectedProfile === prof.id ? 'border-blue-400 bg-blue-600 text-white' : 'border-slate-700'
-                  }`}>
-                    {selectedProfile === prof.id && <Check className="w-3 h-3" />}
-                  </div>
+                  <div className="text-sm font-bold text-white">{p.title}</div>
+                  <div className="text-xs text-slate-400 mt-1">{p.desc}</div>
                 </div>
               ))}
             </div>
 
+            <div className="pt-2 border-t border-slate-800 space-y-2">
+              <label className="text-xs font-bold text-slate-300">Interface Mode</label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setInterfaceMode('SIMPLE')}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition border ${
+                    interfaceMode === 'SIMPLE' ? 'border-blue-500 bg-blue-950/40 text-blue-300' : 'border-slate-800 bg-slate-900 text-slate-400'
+                  }`}
+                >
+                  Simple Mode (Guided)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInterfaceMode('ADVANCED')}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition border ${
+                    interfaceMode === 'ADVANCED' ? 'border-blue-500 bg-blue-950/40 text-blue-300' : 'border-slate-800 bg-slate-900 text-slate-400'
+                  }`}
+                >
+                  Advanced Mode (Full Access)
+                </button>
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-300">Workstation Device Name</label>
+              <label className="text-xs font-bold text-slate-300">Device Name</label>
               <input
                 type="text"
                 value={deviceName}
