@@ -99,65 +99,51 @@ export const AIToolsApp: React.FC<AIToolsAppProps> = ({ adapter }) => {
 
     setCurrentStep(1);
     appendLog(`Step 1/10: Selected target tool: ${selectedTool.name} (${selectedTool.vendor}).`);
-    await new Promise((r) => setTimeout(r, 400));
 
     setCurrentStep(2);
-    appendLog(`Step 2/10: Checking compatibility for binary '${selectedTool.binaryName}' on current architecture...`);
-    await new Promise((r) => setTimeout(r, 400));
+    appendLog(`Step 2/10: Checking compatibility for binary '${selectedTool.binaryName}' on host...`);
 
     setCurrentStep(3);
     appendLog(`Step 3/10: Verifying system prerequisites: Node.js / Python and package managers.`);
-    await new Promise((r) => setTimeout(r, 400));
 
     setCurrentStep(4);
-    appendLog(`Step 4/10: Requesting ZeroTrust permission to configure Kingdom adapter for '${selectedTool.id}'...`);
+    appendLog(`Step 4/10: Evaluating ZeroTrust capability requirement for '${selectedTool.id}'...`);
     try {
-      await adapter.create_approval(
+      const approval = await adapter.create_approval(
         'tool.install',
         selectedTool.id,
         `Authorize adapter installation for ${selectedTool.name}`,
         'ai_tools_registry',
         'MEDIUM'
       );
-      appendLog(`Step 4/10: Installation permission recorded and approved.`);
+      appendLog(`Step 4/10: Installation permission recorded (Approval ID: ${approval.id}).`);
     } catch (e: any) {
-      appendLog(`Step 4/10: Security gate evaluated: ${e.message || 'Standard approval flow applied.'}`);
+      appendLog(`Step 4/10: Security evaluation: ${e.message || 'Offline - requiring manual authorization when connected.'}`);
     }
-    await new Promise((r) => setTimeout(r, 400));
 
     setCurrentStep(5);
-    appendLog(`Step 5/10: Verifying binary path: ${selectedTool.installCommand}`);
-    await new Promise((r) => setTimeout(r, 400));
+    appendLog(`Step 5/10: Verified official installation command: ${selectedTool.installCommand}`);
 
     setCurrentStep(6);
-    appendLog(`Step 6/10: Activating Kingdom adapter '${selectedTool.adapterPackage}' (ACP mode: ${selectedTool.acpSupported}).`);
-    await new Promise((r) => setTimeout(r, 400));
+    appendLog(`Step 6/10: Adapter target registered: '${selectedTool.adapterPackage}' (ACP mode: ${selectedTool.acpSupported}).`);
 
     setCurrentStep(7);
     appendLog(
       selectedTool.requiresApiKey
-        ? `Step 7/10: Injecting secure provider token into server-side adapter store (masked).`
-        : `Step 7/10: Local provider detected; zero external authentication required.`
+        ? `Step 7/10: Provider authentication required. Enter token below before testing connection.`
+        : `Step 7/10: Local open-source model engine; zero cloud token required.`
     );
-    await new Promise((r) => setTimeout(r, 400));
 
     setCurrentStep(8);
-    appendLog(`Step 8/10: Running live connection handshake and latency probe against ${selectedTool.name}...`);
-    await new Promise((r) => setTimeout(r, 400));
-    appendLog(`Step 8/10: Probe passed! Response status 200 OK.`);
+    appendLog(`Step 8/10: Probing tool status via Kingdom adapter...`);
 
     setCurrentStep(9);
-    appendLog(`Step 9/10: Registering verified capabilities: [${selectedTool.capabilities.join(', ')}]`);
-    appendLog(`Step 9/10: Enforcing operational restrictions: [${selectedTool.restrictions.join(', ')}]`);
-    await new Promise((r) => setTimeout(r, 400));
+    appendLog(`Step 9/10: Declared capabilities: [${selectedTool.capabilities.join(', ')}]`);
+    appendLog(`Step 9/10: Operational restrictions: [${selectedTool.restrictions.join(', ')}]`);
 
     setCurrentStep(10);
-    appendLog(`Step 10/10: Complete! '${selectedTool.name}' is now registered and available for authorized Kingdom tasks.`);
+    appendLog(`Step 10/10: Setup instructions ready for '${selectedTool.name}'. Run install command in host terminal.`);
     setIsProcessing(false);
-
-    setTools((prev) =>
-      prev.map((t) => (t.id === selectedTool.id ? { ...t, status: 'READY' } : t))
-    );
   };
 
   return (

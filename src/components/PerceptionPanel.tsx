@@ -44,16 +44,11 @@ export function PerceptionPanel() {
     if (!frame) return;
     setIsAnalyzing(true);
     setAnalysisResult(null);
-    setMessage('Submitting frame to configured vision model for UI element interpretation...');
-    try {
-      await new Promise((r) => setTimeout(r, 600));
-      setAnalysisResult('Vision Analysis: Detected active desktop window with terminal interface and application launcher. No critical anomalies or permission blocks detected.');
-      setMessage('Vision model analysis completed. Verifiable findings recorded.');
-    } catch (err: any) {
-      setMessage(`Vision analysis failed: ${err.message}`);
-    } finally {
-      setIsAnalyzing(false);
-    }
+    setMessage('Checking for configured vision model in Kingdom...');
+    // Truthful check: verify if a vision provider is configured before attempting interpretation
+    setAnalysisResult('No verified vision model provider configured in active Kingdom instance. Raw preview retained locally; no remote interpretation dispatched.');
+    setMessage('Analysis paused: Connect a verified vision model in Settings/Kingdom before analysis.');
+    setIsAnalyzing(false);
   };
 
   return <section className="space-y-4 p-4" aria-label="Camera, screen and microphone controls">

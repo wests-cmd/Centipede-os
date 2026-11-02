@@ -1,7 +1,18 @@
-import { KingdomAdapter } from '../api/kingdomAdapter';
+import {
+  evaluateAutonomy,
+  type AutonomyMode,
+  type ActionCategory,
+} from '../agent/autonomyPolicy';
 
 export interface ComputerUseAction {
-  action: 'click' | 'type' | 'key' | 'mouse_move' | 'open_app' | 'inspect_window' | 'wait';
+  action:
+    | 'click'
+    | 'type'
+    | 'key'
+    | 'mouse_move'
+    | 'open_app'
+    | 'inspect_window'
+    | 'wait';
   coordinate?: [number, number];
   text?: string;
   key?: string;
@@ -10,88 +21,99 @@ export interface ComputerUseAction {
   durationMs?: number;
 }
 
-export interface ComputerUseExecutionReceipt {
+export interface ExecutionReceipt {
   success: boolean;
   actionId: string;
-  action: ComputerUseAction;
   timestamp: number;
   screenshotHash?: string;
-  approvalId?: string;
   error?: string;
 }
 
+export interface ExecutionContext {
+  mode: AutonomyMode;
+  authenticated: boolean;
+  trustedDevice: boolean;
+  emergencyStop: boolean;
+  deviceId: string;
+  sessionId: string;
+}
+
+export interface KingdomComputerExecutor {
+  execute(
+    action: ComputerUseAction,
+    context: ExecutionContext
+  ): Promise<ExecutionReceipt>;
+}
+
 export class ComputerUseInterface {
-  private adapter: KingdomAdapter;
-  private isEnabled: boolean = false;
+  constructor(
+    private readonly executor: KingdomComputerExecutor
+  ) {}
 
-  constructor(adapter: KingdomAdapter) {
-    this.adapter = adapter;
-  }
+  async executeAction(
+    action: ComputerUseAction,
+    context: ExecutionContext
+  ): Promise<ExecutionReceipt> {
+    const category: ActionCategory = 'app_control';
 
-  public setEnabled(enabled: boolean): void {
-    this.isEnabled = enabled;
-  }
+    const decision = evaluateAutonomy({
+      mode: context.mode,
+      category,
+      authenticated: context.authenticated,
+      trustedDevice: context.trustedDevice,
+      withinWorkspace: true,
+      recoverable: true,
+      emergencyStop: context.emergencyStop,
+    });
 
-  public isComputerUseEnabled(): boolean {
-    return this.isEnabled;
-  }
-
-  public async executeAction(action: ComputerUseAction): Promise<ComputerUseExecutionReceipt> {
-    const actionId = `cu_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
-
-    if (!this.isEnabled) {
-      return {
-        success: false,
-        actionId,
-        action,
-        timestamp: Date.now(),
-        error: 'Computer-use interface is currently disabled. Explicit user opt-in required.',
-      };
+    if (decision.kind !== 'ALLOW') {
+      throw new Error(
+        `${decision.kind}: ${decision.reason}`
+      );
     }
 
-    if (action.action === 'click' && (!action.coordinate || action.coordinate.length !== 2)) {
-      return {
-        success: false,
-        actionId,
-        action,
-        timestamp: Date.now(),
-        error: 'Invalid coordinates provided for click action.',
-      };
+    if (
+      action.action === 'click' &&
+      (
+        !action.coordinate ||
+        action.coordinate.length !== 2 ||
+        !action.coordinate.every(Number.isFinite)
+      )
+    ) {
+      throw new Error('Valid click coordinates required');
     }
 
-    if (action.action === 'open_app' && !action.appName) {
-      return {
-        success: false,
-        actionId,
-        action,
-        timestamp: Date.now(),
-        error: 'Missing target appName for open_app action.',
-      };
+    if (
+      action.action === 'open_app' &&
+      !action.appName?.trim()
+    ) {
+      throw new Error('Application name required');
     }
 
-    let approvalId: string | undefined;
-    if (action.action === 'open_app' || action.action === 'type') {
-      try {
-        const approval = await this.adapter.create_approval(
-          'computer.interaction',
-          action.appName || action.text || 'ui_action',
-          `Controlled computer use action: ${action.action}`,
-          'computer_use_engine',
-          'HIGH'
-        );
-        approvalId = approval.id;
-      } catch (e: any) {
-        // Fallback for offline or read-only modes
-      }
+    if (
+      action.action === 'type' &&
+      typeof action.text !== 'string'
+    ) {
+      throw new Error('Text required');
     }
 
-    return {
-      success: true,
-      actionId,
+    const receipt = await this.executor.execute(
       action,
-      approvalId,
-      timestamp: Date.now(),
-      screenshotHash: `sha256_${Date.now().toString(16)}`,
-    };
+      context
+    );
+
+    if (
+      !receipt ||
+      typeof receipt.actionId !== 'string' ||
+      !receipt.actionId ||
+      typeof receipt.success !== 'boolean' ||
+      !Number.isFinite(receipt.timestamp)
+    ) {
+      throw new Error(
+        'Invalid execution receipt from Kingdom'
+      );
+    }
+
+    return receipt;
   }
 }
