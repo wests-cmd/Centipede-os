@@ -2,9 +2,12 @@ import { describe, expect, it as test } from 'vitest';
 
 import {
   ComputerUseInterface,
+  KingdomHttpComputerExecutor,
+  categorizeAction,
   type KingdomComputerExecutor,
   type ExecutionContext,
 } from '../../src/tools/computerUse';
+import { KingdomAdapter } from '../../src/api/kingdomAdapter';
 
 const context: ExecutionContext = {
   mode: 'FREE',
@@ -73,5 +76,35 @@ describe('Computer-use execution', () => {
         context
       )
     ).rejects.toThrow('Valid click coordinates required');
+  });
+
+  test('dynamically categorizes sensitive apps as system_change requiring confirmation in Free mode', () => {
+    expect(categorizeAction({ action: 'open_app', appName: 'bash' })).toBe('system_change');
+    expect(categorizeAction({ action: 'open_app', appName: 'TextEditor' })).toBe('app_control');
+    expect(categorizeAction({ action: 'type', text: 'sudo rm -rf /' })).toBe('system_change');
+  });
+
+  test('KingdomHttpComputerExecutor delegates to KingdomAdapter.submit_task', async () => {
+    let submittedPrompt = '';
+    const mockAdapter = {
+      async submit_task(prompt: string, payload: any) {
+        submittedPrompt = prompt;
+        return {
+          id: 'task_kingdom_123',
+          status: 'completed',
+          created_at: new Date().toISOString(),
+        };
+      },
+    } as unknown as KingdomAdapter;
+
+    const httpExecutor = new KingdomHttpComputerExecutor(mockAdapter);
+    const receipt = await httpExecutor.execute(
+      { action: 'open_app', appName: 'Calculator' },
+      context
+    );
+
+    expect(submittedPrompt).toContain('computer_use.open_app: Calculator');
+    expect(receipt.success).toBe(true);
+    expect(receipt.actionId).toBe('task_kingdom_123');
   });
 });
