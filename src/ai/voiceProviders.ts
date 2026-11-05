@@ -68,15 +68,26 @@ export class WebSpeechTTSProvider implements TTSProvider {
 export class LocalAudioSTTProvider implements STTProvider {
   public id = 'local-audio-stt';
   public name = 'Local Audio Buffer Processor';
+  private fallbackTranscript?: string;
+
+  constructor(fallbackTranscript?: string) {
+    this.fallbackTranscript = fallbackTranscript;
+  }
 
   public async transcribe(audioData: Blob | ArrayBuffer): Promise<TranscriptionResult> {
     const size = audioData instanceof Blob ? audioData.size : audioData.byteLength;
     if (size === 0) {
       throw new Error('Empty audio buffer');
     }
-    return {
-      text: 'Segmentor, check system status and running tasks.',
-      confidence: 0.92,
-    };
+    if (this.fallbackTranscript) {
+      return {
+        text: this.fallbackTranscript,
+        confidence: 0.92,
+      };
+    }
+    // Fail-closed when no offline speech model engine is loaded into memory
+    throw new Error(
+      'Local speech-to-text recognition model not loaded. Please configure an offline Whisper/Vosk model or use WebSpeech/Cloud STT.'
+    );
   }
 }

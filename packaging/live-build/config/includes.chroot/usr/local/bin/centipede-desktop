@@ -8,7 +8,7 @@ until python3 -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.
   attempt=$((attempt + 1))
   if [ "$attempt" -ge 60 ]; then
     echo "Centipede web service did not become ready"
-    exit 1
+    exec /usr/local/bin/centipede-recovery
   fi
   sleep 2
 done

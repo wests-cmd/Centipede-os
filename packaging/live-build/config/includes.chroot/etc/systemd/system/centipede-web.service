@@ -1,14 +1,32 @@
 [Unit]
 Description=Centipede local web application
 After=network-online.target
+RequiresMountsFor=/opt/centipede/web
 
 [Service]
 Type=simple
-User=root
+User=centipede-web
+Group=centipede-web
 WorkingDirectory=/opt/centipede/web
 ExecStart=/usr/bin/python3 -m http.server 3000 --bind 127.0.0.1 --directory /opt/centipede/web
 Restart=on-failure
 RestartSec=3
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+UMask=0077
 
 [Install]
 WantedBy=multi-user.target

@@ -1,0 +1,33 @@
+#!/bin/sh
+set -eu
+
+while :; do
+  if ! command -v zenity >/dev/null 2>&1; then
+    echo "Recovery UI unavailable; use the Linux console." >&2
+    exit 1
+  fi
+
+  choice=$(zenity --list \
+    --title="Centipede OS Recovery" \
+    --text="The desktop service is unavailable." \
+    --column="Action" \
+    "Retry desktop" \
+    "View diagnostics" \
+    "Open fallback desktop" \
+    --width=460 --height=300) || exit 1
+
+  case "$choice" in
+    "Retry desktop")
+      exec /usr/local/bin/centipede-desktop
+      ;;
+    "View diagnostics")
+      xfce4-terminal --command="sh -c 'journalctl -b -u centipede-web.service --no-pager -n 80; printf \"\nPress Enter to close\"; read answer'" || true
+      ;;
+    "Open fallback desktop")
+      exit 0
+      ;;
+    *)
+      exit 1
+      ;;
+  esac
+done

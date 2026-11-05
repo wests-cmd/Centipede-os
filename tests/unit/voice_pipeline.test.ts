@@ -3,8 +3,8 @@ import { VoiceProcessor } from '../../src/ai/voiceInterface';
 import { LocalAudioSTTProvider, WebSpeechTTSProvider } from '../../src/ai/voiceProviders';
 
 describe('Voice Assistant Pipeline with Real Providers', () => {
-  it('1. Successfully processes audio buffer using LocalAudioSTTProvider', async () => {
-    const stt = new LocalAudioSTTProvider();
+  it('1. Successfully processes audio buffer using LocalAudioSTTProvider when transcript configured', async () => {
+    const stt = new LocalAudioSTTProvider('Segmentor, check system status and running tasks.');
     const tts = new WebSpeechTTSProvider();
     const processor = new VoiceProcessor(stt, tts);
 
@@ -13,6 +13,12 @@ describe('Voice Assistant Pipeline with Real Providers', () => {
 
     expect(result.text).toBe('Segmentor, check system status and running tasks.');
     expect(result.confidence).toBeGreaterThanOrEqual(0.85);
+  });
+
+  it('1b. Fails closed when no local model engine is loaded into memory', async () => {
+    const stt = new LocalAudioSTTProvider();
+    const dummyAudio = new Uint8Array([1, 2, 3, 4, 5]).buffer;
+    await expect(stt.transcribe(dummyAudio)).rejects.toThrow('Local speech-to-text recognition model not loaded');
   });
 
   it('2. Fails closed with error when empty audio buffer is passed', async () => {

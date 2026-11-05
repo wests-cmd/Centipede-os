@@ -1,0 +1,20 @@
+#!/bin/sh
+set -eu
+
+if ! getent group centipede-web >/dev/null; then
+    addgroup --system centipede-web
+fi
+
+if ! id centipede-web >/dev/null 2>&1; then
+    adduser --system \
+        --ingroup centipede-web \
+        --home /nonexistent \
+        --no-create-home \
+        --disabled-login \
+        centipede-web
+fi
+
+if [ -d /opt/centipede/web ]; then
+    chown -R root:root /opt/centipede/web
+    chmod -R go-w /opt/centipede/web
+fi
