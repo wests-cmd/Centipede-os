@@ -348,6 +348,15 @@ export class KingdomAdapter {
         const specMethod = spec.method || 'GET';
         if (specMethod !== reqMethod) return false;
 
+        // Fast-path: Exact string equality for parameterless static endpoints
+        if (!spec.path.includes('{')) {
+          return spec.path === cleanPath;
+        }
+
+        let specPathRegex = this.endpointRegexCache.get(key);
+        if (!specPathRegex) {
+          specPathRegex = new RegExp('^' + spec.path.replace(/\{[^}]+\}/g, '[^/]+') + '$');
+          this.endpointRegexCache.set(key, specPathRegex);
         // Fast-path: Exact path comparison for static endpoints without dynamic parameters
         if (spec.path === cleanPath) return true;
 
