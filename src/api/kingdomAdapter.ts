@@ -357,19 +357,8 @@ export class KingdomAdapter {
         if (!specPathRegex) {
           specPathRegex = new RegExp('^' + spec.path.replace(/\{[^}]+\}/g, '[^/]+') + '$');
           this.endpointRegexCache.set(key, specPathRegex);
-        // Fast-path: Exact path comparison for static endpoints without dynamic parameters
-        if (spec.path === cleanPath) return true;
-
-        if (spec.path.includes('{')) {
-          let specPathRegex = this.endpointRegexCache.get(key);
-          if (!specPathRegex) {
-            specPathRegex = new RegExp('^' + spec.path.replace(/\{[^}]+\}/g, '[^/]+') + '$');
-            this.endpointRegexCache.set(key, specPathRegex);
-          }
-          return specPathRegex.test(cleanPath);
         }
-
-        return false;
+        return specPathRegex.test(cleanPath);
       });
 
       if (matchingSpecKey && json && typeof json === 'object') {

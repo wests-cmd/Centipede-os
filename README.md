@@ -1,143 +1,96 @@
-# [Centipede OS](https://github.com/wests-cmd/Centipede-os) — The AI Desktop Web Application
+# Centipede OS
 
-**[Centipede OS](https://github.com/wests-cmd/Centipede-os)** provides a browser-based desktop application with an AI assistant (**Segmentor**), platform packaging for Debian live images and native WebView clients, and an integration layer for a separately deployed Kingdom service. Platform build workflows are implemented but need successful CI runs before any stable image claims. Security and Kingdom execution behavior depend on the configured external Kingdom deployment.
+## Overview
 
-Kingdom is a separate project and runtime. This repository contains a client and API contract; it does not bundle the Kingdom service.
+Centipede is a browser desktop application and a separately built Debian live desktop image. The image launches the interface in Chromium under XFCE. It does **not** bundle the [Kingdom runtime](https://github.com/wests-cmd/kingdom), provide a supported internal-disk installer, or grant the browser control of the computer.
 
----
+[Download the published v1.0.0 ISO](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.0/centipede-os-1.0.0-x86_64.iso) · [All v1.0.0 assets](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0) · [Beginner USB guide](docs/INSTALLATION_GUIDE.md)
 
-# Current release status
+Writing an image erases the selected USB. Check its name and capacity before approving a writer. The live session does not install itself on the internal drive; session files may disappear at shutdown.
 
-Centipede `v1.0.0` has a desktop web bundle and platform build workflows for a Debian live ISO/USB image, QEMU VM disk, Android app, iOS app, and Docker image. The OS images launch the web app in a Chromium kiosk session; they do not add host-level Centipede execution or Kingdom. No stable GitHub release has been published. The synchronized tag workflow is designed to publish only verified BUILDABLE targets; Android device distribution and iOS device distribution remain BLOCKED until publisher credentials are configured.
+The published image contains the original desktop. Refreshed desktop and everyday-app configuration on main require a separately tested, tagged release before becoming updated stable downloads.
 
-Android and iOS use native Capacitor projects. Android release APKs require an Android signing key; iOS device builds require Apple distribution signing and provisioning. Branch builds produce only debug APK and simulator validation outputs. ISO, USB, VM, and Docker image jobs run on GitHub-hosted Linux runners. See [the ship reality matrix](docs/SHIP_REALITY_MATRIX.md) and [platform build guide](docs/PLATFORM_BUILD_GUIDE.md) for evidence and release prerequisites.
+Source media controls are reviewed in [capture and capability notes](docs/JARVIS_CAPABILITY_REVIEW.md) and [Windows validation](docs/WINDOWS_AUDIT_VALIDATION.md). The optional Camera, screen & mic panel captures only after you start it; preview is not image understanding. Source changes do not update published download assets.
 
-The desktop bundle requires a separately operated Kingdom service for Kingdom-backed actions. The Compose file does not install or implement Kingdom.
+## Project map
 
-Several desktop panels are prototypes or use browser-local/example data. The application does not provide host file access, remote phone pairing, an OS installer, host storage management, or system rollback. Native mobile packages display the same web UI. Stable Android/iOS distribution remains BLOCKED until the matching signing assets and release gates are configured.
+| Area | Source | Responsibility |
+| --- | --- | --- |
+| Browser app | [App.tsx](src/App.tsx), [main.tsx](src/main.tsx) | Desktop views and browser state |
+| Web/API server | [production.ts](src/server/production.ts), [routes.ts](src/server/routes.ts) | Bun SPA hosting, shared companion API and local-admin read proxy |
+| Kingdom adapter | [adapter](src/api/kingdomAdapter.ts), [proxy](src/server/kingdomReadProxy.ts) | Optional separate service; no embedded Kingdom engine |
+| Debian image | [live-build configuration](packaging/live-build/config), [builder](scripts/build-live-image.sh) | Boot media and image services |
+| Mobile shells | [android](android), [ios](ios), [Capacitor config](capacitor.config.ts) | Native WebView projects and separate signing gates |
+| Release/testing | [targets](release/targets.json), [scripts](scripts), [tests](tests), [workflows](.github/workflows) | Build, validation and publication |
 
-## Quick Navigation
+See [Architecture](docs/ARCHITECTURE.md) for the difference between Bun hosting, the static live-image server and native mobile shells.
 
-- [What is Centipede OS?](#what-is-centipede-os)
-- [Core Concepts Explained](#core-concepts-explained)
-- [Choosing Your Profile](#choosing-your-profile)
-- [How Do I Control Centipede OS From My Phone?](#phone-command-center)
-- [Installation Guide](docs/INSTALLATION_GUIDE.md)
-- [Security & Privacy FAQ](#security-faq)
-- [Troubleshooting & Recovery](#recovery)
-- [Developer & Testing Documentation](#developer-info)
+## Run locally
 
----
+With Bun and Git installed, run from the repository root:
 
-## What is Centipede OS?
-
-Centipede is currently a browser-based desktop application. Its verified live integration is the Kingdom REST API client; other panels may be local prototypes or example data:
-
-- **Segmentor UI**: A local intent and permission-gating interface; it does not provide host file or shell access.
-- **Kingdom API client**: The app can query the separately deployed Kingdom API and submit tasks or approval requests. Kingdom deployment and policy must be verified independently.
-- **Browser storage**: Client preferences are stored in browser local storage. Other memory views are not a promise of durable host storage.
-- **Mobile companion prototype**: The pairing and ingestion screens are local simulations, not remote phone connectivity or native mobile applications.
-
----
-
-## Core Concepts Explained
-
-### What is Kingdom?
-**Kingdom** is a separately deployed service in the `wests-cmd/kingdom` project. This repository contains the Centipede client and compatibility contract. Deploy and verify Kingdom independently; this web application does not implement or include its execution authority.
-
-### What is a Knight?
-A **Knight** is a Kingdom worker node. This Centipede repository does not provision Knight nodes.
-
-### What is a Scout?
-A **Scout** is a Kingdom discovery role. The profile selector in this app only stores a browser client preference; it does not deploy a Scout.
-
-### What is Segmentor (Centipede Assistant)?
-**Segmentor** is the assistant interface in this web app. Protected work requires the external Kingdom API; this app does not execute arbitrary host operations.
-
----
-
-## Choosing a deployment
-
-Platform build jobs are available in GitHub Actions. Stable-tag publishing waits for the desktop, ISO/USB/VM, and Docker release jobs, then fails closed on missing artifacts or checksum mismatches. Signed Android/iOS jobs are disabled until their target status, publisher credentials, and repository enablement are deliberately updated. Review [current target status](docs/SHIP_REALITY_MATRIX.md) and [release prerequisites](docs/PLATFORM_BUILD_GUIDE.md).
-
-## Mobile companion prototype
-
-The pairing screen uses local browser state for demonstration. It does not pair a separate phone or provide mobile monitoring.
-
-The mobile companion panel remains a local UI prototype. Native Android/iOS builds package the desktop web application in a native WebView; they do not add remote phone pairing or monitoring.
-
----
-
-## Installation Guide
-
-For detailed non-technical installation steps, see our [Installation Guide](docs/INSTALLATION_GUIDE.md).
-
-### Option A: Launch the browser application
-```bash
-# Clone repository
+```sh
 git clone https://github.com/wests-cmd/Centipede-os.git
 cd Centipede-os
-
-# Install dependencies and start the local web application
-bun install
+bun install --frozen-lockfile
 bun start
 ```
-Open `http://localhost:3000` in your browser. Kingdom-backed operations require a separately deployed Kingdom service.
 
-### Option B: Build the desktop web application
-```bash
-# Clone repository
-git clone https://github.com/wests-cmd/Centipede-os.git
-cd Centipede-os
+This builds `dist/` and starts the Bun web/API server, default port **3000**. Open `http://localhost:3000` on that computer for local administration. Stop with Ctrl+C.
 
- # Build the web application bundle
-npm install
-npm run build
-```
-Serve the generated `dist/` directory with a static web server. Kingdom-backed features require a separately configured Kingdom endpoint.
+Set `HOST=127.0.0.1` in the process environment for loopback-only use. Without an explicit `HOST`, the production server selects loopback plus a detected network address; it prefers private IPv4 but can fall back to another non-link-local interface. Do not assume that default suits an untrusted network.
 
----
+The two-process Vite setup is in [Development](docs/DEVELOPMENT.md).
 
-## Security FAQ
+## Configuration
 
-### Q: Can this application delete my files or execute system commands?
-This browser application does not have host file or shell access. Kingdom-backed actions are handled by the separately deployed Kingdom service; review that deployment's authorization and policy configuration independently.
+| Variable | Actual consumer |
+| --- | --- |
+| `HOST`, `PORT` | Bun listening hosts and port; default port 3000 |
+| `PUBLIC_URL` | Bun phone-facing advertised address, not administrative authority |
+| `KINGDOM_API_URL`, `KINGDOM_API_TOKEN` | Server-side external Kingdom connection |
+| `CENTIPEDE_API_PORT` | Vite proxy target, default 3001 |
+| `CENTIPEDE_KNOWLEDGE_HOME` | Native selected-source checkpoint directory; sources default empty, no automatic scan |
+| `CENTIPEDE_PUBLIC_URL` | Compose substitution into container `PUBLIC_URL`, not a native server variable |
 
-### Q: Does this release certify prompt-injection or host security protections?
-No. The UI contains security-related demonstrations, but this release does not certify system-wide isolation, prompt-injection resistance, or Kingdom deployment security.
+Keep credentials in the server environment, outside source control. Never paste a Kingdom token into a browser URL. See [configuration details](docs/DEVELOPMENT.md).
 
-### Q: What happens if Kingdom is offline?
-Kingdom-backed features cannot run while the service is unavailable. The client reports connection status; availability and fail-closed behavior for execution must be verified in the deployed Kingdom service.
+The native Bun server also offers [explicitly selected text-source excerpts](docs/implementation/SELECTED_KNOWLEDGE_SOURCES.md) through the existing local-administration boundary. This source-only API has no picker UI, background scan or AI summarization; it does not change published images.
 
-### Q: Can I revoke a stolen phone or node here?
-No. The mobile companion is a local prototype and this release does not pair remote phones or nodes.
+## Verification
 
----
+Documentation navigation: `python scripts/check_docs.py` (Python 3 standard library). CI checks the same local targets and required README sections; it does not check external URLs or prove runtime completion.
 
-## Recovery
-
-This browser application does not manage operating-system updates, host storage, rollback, or emergency process termination. Browser-local preferences and demo data are not a backup. Manage the separately deployed Kingdom service using its own operational procedures.
-
----
-
-## Developer Info
-
-```bash
-# Install dependencies
-bun install
-
-# Run unit and compatibility tests
-bun test
-
-# Run contract verification against live Kingdom server
-bun run test:contract
-
-# Run Playwright E2E browser tests
-bun run test:e2e
+```sh
+bun x tsc --noEmit
+bun run test
+bun run build
 ```
 
-### Kingdom ↔ Centipede Capability Negotiation & Compatibility
-- **Contract Specification**: `src/api/contractSpec.ts`
-- **Capability Negotiator**: `src/api/capabilityNegotiator.ts`
-- **Compatibility**: Kingdom protocol major `1`, minimum contract version `1.4.0`; runtime Kingdom release versions are discovered dynamically. The protocol and contract identifiers are independent of the Centipede product version.
-- **ZeroTrust Boundary**: Capability negotiation classifies version/capability status (`SUPPORTED`, `UNSUPPORTED`, `DEGRADED`, `INCOMPATIBLE`, `UNKNOWN`, `REQUIRES_UPDATE`), but NEVER acts as an authorization authority. Kingdom remains authoritative.
+These cover types, the configured unit suite and the web bundle. They do not certify an ISO, physical hardware, device signing, installed-OS recovery or a live Kingdom task. Other checks are in [Development](docs/DEVELOPMENT.md).
+
+## Operations and updates
+
+[Operations](docs/OPERATIONS.md) covers service entrypoints, health, logs, pairing and release boundaries. Browser asset refresh, Docker replacement and OS-media updates are separate operations. No browser refresh installs or rolls back Kingdom or the OS.
+
+Safe Graphics and QEMU smoke checks are in the image build; physical display, Wi-Fi, Secure Boot and low-memory results need separate evidence. See the [boot checklist](docs/BOOT_RECOVERY_CHECKLIST.md).
+
+## Integrations
+
+- [Kingdom](https://github.com/wests-cmd/kingdom) is independently operated. Centipede's server offers allowlisted **GET** observations to verified local-admin requests; execution, approvals and grants remain Kingdom's responsibility.
+- Companion enrollment requires the Bun API, host-local administration and short-lived pairing on a trusted private network. It does not provide mobile task execution or distributed-worker enrollment.
+- [Community Discord](https://discord.gg/4b8f9YS2Wp) provides help and approved reference notes, not bundled execution authority. Never share credentials or pairing codes there.
+
+See [integration guide](KINGDOM_INTEGRATION.md), [API contract](KINGDOM_CENTIPEDE_API_CONTRACT.md) and [observation scope](docs/operations/KINGDOM_READ_OBSERVATIONS.md).
+
+## Status and roadmap
+
+[Project status](docs/PROJECT_STATUS.md) distinguishes source, published assets and physical/runtime gates. Stable remains **v1.0.0**, verified from the release listing on 2026-10-27. Android/iPhone stable distribution remains blocked in the target manifest pending signing and explicit enablement.
+
+Draft visual, animation, Bluetooth or autonomous-work proposals are not implied by a dashboard screenshot or successful web build.
+
+## Documentation
+
+Start with the [documentation index](docs/README.md): [Architecture](docs/ARCHITECTURE.md) · [Development](docs/DEVELOPMENT.md) · [Operations](docs/OPERATIONS.md) · [Project status](docs/PROJECT_STATUS.md).
+
+Historical reports remain dated evidence, not automatic proof about current source or installed devices. The [license](LICENSE) and Debian/package attribution remain applicable.

@@ -1,8 +1,14 @@
 # Centipede OS — Living Gap Register & Operational Reality Audit
 
+<<<<<<< HEAD
 **Date:** 2026-11-01
 **Role:** Autonomous Engineering Team Leader for Centipede OS
 **Source of Truth Version:** `1.0.0` (`package.json`)
+=======
+**Date:** 2026-11-01
+**Role:** Autonomous Engineering Team Leader for Centipede OS
+**Source of Truth Version:** `1.0.0` (`package.json`)
+>>>>>>> origin/feat/kingdom-universal-autonomous-assistant-11952944265175455362
 **Target Kingdom Protocol:** Protocol Major `1`, Contract Version `1.4.0` (`KINGDOM_CENTIPEDE_API_CONTRACT.md`)
 
 ---

@@ -1,7 +1,6 @@
 import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { centipedeAIPipeline } from './pipeline';
 import { ActionResult, Message, RiskLevel, UserInput } from './types';
-import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { incidentManager } from '../agent/incidentManager';
 
 export type AutonomyLevel = 'LEVEL_0' | 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3' | 'LEVEL_4';
