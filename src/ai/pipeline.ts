@@ -1,3 +1,4 @@
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { actionExecutor } from './actionExecutor';
 import { contextManager } from './contextManager';
 import { conversationManager } from './conversationManager';

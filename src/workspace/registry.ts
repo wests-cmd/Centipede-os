@@ -1,3 +1,4 @@
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { IntegrationCapability, NormalizedIntegrationResult, WorkspaceIntegration } from './types';
 import { toolExecutor, toolRegistry } from '../tools';
 import { generateSecureRandomHex } from '../security/cryptoUtils';

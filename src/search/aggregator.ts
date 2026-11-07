@@ -6,6 +6,7 @@ import {
   SearchResultItem,
   SearchSourceType,
 } from './types';
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { applicationSearchProvider } from './providers/applicationSearchProvider';
 import { fileSearchProvider } from './providers/fileSearchProvider';
 import { kingdomSearchProvider } from './providers/kingdomSearchProvider';

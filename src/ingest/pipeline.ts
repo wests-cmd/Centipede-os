@@ -16,6 +16,8 @@ export interface IngestedContent {
   hasSecurityWarning: boolean;
 }
 
+import { generateSecureRandomHex } from '../security/cryptoUtils';
+
 export class ContentIngestionPipeline {
   public async ingest(
     rawContent: string,

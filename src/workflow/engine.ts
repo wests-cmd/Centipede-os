@@ -1,3 +1,4 @@
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { WorkflowCheckpoint, WorkflowDefinition, WorkflowExecutionRun, WorkflowStep } from './types';
 import { toolExecutor, toolRegistry } from '../tools';
 import { capabilityGrantEngine } from '../agent/grants';

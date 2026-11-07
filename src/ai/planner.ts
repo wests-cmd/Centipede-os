@@ -1,3 +1,4 @@
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { capabilityResolver } from './capabilityResolver';
 import { Intent, Plan, PlanStep } from './types';
 import { generateSecureRandomHex } from '../security/cryptoUtils';

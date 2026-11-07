@@ -1,3 +1,4 @@
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { KingdomAdapter, kingdomAdapter } from '../api/kingdomAdapter';
 import { MemoryEntry, MemoryScope, TrustLevel } from './types';
 import { generateSecureRandomHex } from '../security/cryptoUtils';
@@ -84,6 +85,14 @@ export class MemoryStore {
   }
 
   public getMemories(scope?: MemoryScope, projectId?: string): MemoryEntry[] {
+    const result: MemoryEntry[] = [];
+    for (const e of this.localEntries.values()) {
+      if (e.lifecycle !== 'ACTIVE') continue;
+      if (scope && e.scope !== scope) continue;
+      if (projectId && e.projectId !== projectId) continue;
+      result.push(e);
+    }
+    return result;
     const results: MemoryEntry[] = [];
     for (const entry of this.localEntries.values()) {
       if (entry.lifecycle !== 'ACTIVE') continue;
