@@ -12,3 +12,8 @@
 **Vulnerability:** In `CentipedeServer`, incoming POST/PUT request streams were consumed into memory chunks without size bounding, exposing the process to memory exhaustion (OOM) and DoS from oversized request payloads.
 **Learning:** Even internal or local HTTP companion servers must enforce strict maximum body size limits and fail fast on both `Content-Length` headers and cumulative streaming chunk sizes.
 **Prevention:** Enforce `MAX_REQUEST_BODY_BYTES` (1 MB) with immediate HTTP 413 `PAYLOAD_TOO_LARGE` response and socket abort (`req.destroy()`), alongside `X-Content-Type-Options: nosniff`.
+
+## 2026-11-02 - Pairing PIN Brute-Force and Rate-Limiting Memory Leak
+**Vulnerability:** Unauthenticated mobile pairing confirmation (`/api/v1/mobile/pair/confirm`) lacked rate limiting on the native HTTP companion server, exposing the 6-digit PIN to rapid guessing. Additionally, unbounded in-memory rate tracking maps without TTL pruning created memory exhaustion risks under IP-spoofed floods.
+**Learning:** Rate-limiting maps that index by remote address must periodically prune expired sliding windows; otherwise, adversarial traffic with rotated client addresses permanently leaks memory.
+**Prevention:** Enforce rate limits per remote address on unauthenticated pairing routes (10/min for confirm, 5/min for initiate) returning HTTP 429 with `Retry-After: 60`, and prune stale window entries whenever the in-memory map exceeds size thresholds.

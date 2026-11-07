@@ -17,6 +17,13 @@ const hostnames = process.env.HOST
   : ['127.0.0.1', ...(lanAddress ? [lanAddress] : [])];
 const publicUrl = process.env.PUBLIC_URL || (lanAddress ? `http://${lanAddress}:${port}` : `http://localhost:${port}`);
 const rateWindows = new Map<string, { startsAt: number; count: number }>();
+const pruneRateWindows = (now: number) => {
+  if (rateWindows.size > 200) {
+    for (const [k, v] of rateWindows.entries()) {
+      if (now - v.startsAt >= 60_000) rateWindows.delete(k);
+    }
+  }
+};
 let knowledgeSources: SelectedKnowledgeSources | undefined;
 const selectedSources = () => knowledgeSources ??= new SelectedKnowledgeSources(
   process.env.CENTIPEDE_KNOWLEDGE_HOME || join(root, 'data', 'selected-knowledge'));
@@ -64,6 +71,7 @@ const serverOptions: Omit<Parameters<typeof Bun.serve>[0], 'hostname'> = {
       if (limitedRoute) {
         const key = `${address}:${url.pathname}`;
         const now = Date.now();
+        pruneRateWindows(now);
         const window = rateWindows.get(key);
         const max = url.pathname.endsWith('/confirm') ? 10 : 5;
         if (!window || now - window.startsAt >= 60_000) rateWindows.set(key, { startsAt: now, count: 1 });
