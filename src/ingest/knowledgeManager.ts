@@ -1,5 +1,6 @@
 import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { IngestedContent } from './pipeline';
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 
 export interface StoredKnowledgeItem {
   knowledgeId: string;

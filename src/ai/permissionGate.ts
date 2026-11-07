@@ -1,6 +1,7 @@
 import { KingdomAdapter, kingdomAdapter } from '../api/kingdomAdapter';
 import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { ActionRequest, AuthorizationState, Plan } from './types';
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 
 export class PermissionGate {
   private adapter: KingdomAdapter;
