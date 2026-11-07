@@ -1,3 +1,4 @@
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { LearningSignal, LearningSignalType, RiskLevel, SkillDefinition } from './types';
 
 export interface EvaluationResult {
@@ -14,7 +15,7 @@ export class LearningEngine {
 
   public recordSignal(type: LearningSignalType, intentType: string, capability: string, resultStatus: string, latencyMs = 100): LearningSignal {
     const signal: LearningSignal = {
-      id: `sig_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      id: `sig_${Date.now()}_${generateSecureRandomHex(4)}`,
       type,
       intentType,
       capability,

@@ -15,6 +15,3 @@ coverage
 .cache
 *.log
 .DS_Store
-
-*.pyc
-__pycache__/

@@ -6,6 +6,7 @@ import {
   SearchResultItem,
   SearchSourceType,
 } from './types';
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { applicationSearchProvider } from './providers/applicationSearchProvider';
 import { fileSearchProvider } from './providers/fileSearchProvider';
 import { kingdomSearchProvider } from './providers/kingdomSearchProvider';
@@ -34,7 +35,7 @@ export class SearchAggregator {
     allowedSources?: SearchSourceType[],
     policy: Partial<SearchPolicy> = {}
   ): Promise<SearchContext> {
-    const queryId = `search_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const queryId = `search_${Date.now()}_${generateSecureRandomHex(4)}`;
     const effectivePolicy: SearchPolicy = { ...this.defaultPolicy, ...policy };
     const permissions = allowedSources || effectivePolicy.allowedSources;
 

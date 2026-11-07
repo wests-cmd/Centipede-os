@@ -1,3 +1,4 @@
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { centipedeAIPipeline } from './pipeline';
 import { ActionResult, Message, RiskLevel, UserInput } from './types';
 import { generateSecureRandomHex } from '../security/cryptoUtils';
