@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { centipedeServer } from '../../src/server/server';
 
 describe('Centipede API Server & Transport Test Suite', () => {
@@ -6,6 +6,10 @@ describe('Centipede API Server & Transport Test Suite', () => {
 
   beforeAll(() => {
     centipedeServer.start(TEST_PORT);
+  });
+
+  beforeEach(() => {
+    centipedeServer.resetRateLimits();
   });
 
   afterAll(() => {
@@ -42,6 +46,29 @@ describe('Centipede API Server & Transport Test Suite', () => {
 
     expect(response.status).toBe(403);
     expect((await response.json()).error).toContain('only be created from the Centipede host');
+  });
+
+  it('enforces rate limiting on /api/v1/mobile/pair/confirm with HTTP 429 when threshold exceeded', async () => {
+    // Send 10 rapid confirmation attempts (allowed threshold)
+    for (let i = 0; i < 10; i++) {
+      await fetch(`http://localhost:${TEST_PORT}/api/v1/mobile/pair/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pairingCode: '999999' }),
+      });
+    }
+
+    // 11th request must be rate-limited with HTTP 429 and Retry-After header
+    const limitedRes = await fetch(`http://localhost:${TEST_PORT}/api/v1/mobile/pair/confirm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pairingCode: '999999' }),
+    });
+
+    expect(limitedRes.status).toBe(429);
+    expect(limitedRes.headers.get('retry-after')).toBe('60');
+    const data = await limitedRes.json();
+    expect(data.error).toContain('Too many pairing requests');
   });
 
   it('rejects oversized request bodies exceeding 1MB with HTTP 413 Payload Too Large', async () => {

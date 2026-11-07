@@ -14,10 +14,44 @@ try {
 // Maximum allowed incoming HTTP request body size (1 MB) to prevent denial-of-service memory exhaustion
 export const MAX_REQUEST_BODY_BYTES = 1024 * 1024;
 
+interface RateLimitRecord {
+  startsAt: number;
+  count: number;
+}
+
 export class CentipedeServer {
   private isListening = false;
   private httpServer: any = null;
   private activePort = 3000;
+  private rateWindows: Map<string, RateLimitRecord> = new Map();
+
+  // Bounded rate limit check for sensitive endpoints (/api/v1/mobile/pair/*)
+  private checkRateLimit(remoteAddress: string, pathname: string): boolean {
+    const isLimited = pathname === '/api/v1/mobile/pair/confirm' || pathname === '/api/v1/mobile/pair/initiate';
+    if (!isLimited) return true;
+
+    const now = Date.now();
+    // Prune stale entries when map grows to prevent memory exhaustion DoS
+    if (this.rateWindows.size > 200) {
+      for (const [k, v] of this.rateWindows.entries()) {
+        if (now - v.startsAt >= 60_000) this.rateWindows.delete(k);
+      }
+    }
+
+    const key = `${remoteAddress || 'unknown'}:${pathname}`;
+    const window = this.rateWindows.get(key);
+    const max = pathname.endsWith('/confirm') ? 10 : 5;
+
+    if (!window || now - window.startsAt >= 60_000) {
+      this.rateWindows.set(key, { startsAt: now, count: 1 });
+      return true;
+    }
+    if (window.count >= max) {
+      return false;
+    }
+    window.count += 1;
+    return true;
+  }
 
   public start(port = 3000): void {
     this.activePort = port;
@@ -71,6 +105,18 @@ export class CentipedeServer {
           }
 
           const requestUrl = new URL(req.url || '/', 'http://localhost');
+
+          // Enforce per-IP rate limiting on pairing routes to mitigate brute-force and DoS
+          if (!this.checkRateLimit(req.socket?.remoteAddress, requestUrl.pathname)) {
+            res.writeHead(429, {
+              'Content-Type': 'application/json',
+              'X-Content-Type-Options': 'nosniff',
+              'Retry-After': '60',
+            });
+            res.end(JSON.stringify({ error: 'Too many pairing requests. Wait one minute and try again.' }));
+            return;
+          }
+
           const apiReq: ApiRequest = {
             path: requestUrl.pathname,
             method: req.method,
@@ -110,6 +156,10 @@ export class CentipedeServer {
 
   public async dispatch(req: ApiRequest) {
     return apiRouter.handleRequest(req);
+  }
+
+  public resetRateLimits(): void {
+    this.rateWindows.clear();
   }
 
   public stop(): void {
