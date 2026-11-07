@@ -7,3 +7,8 @@
 **Vulnerability:** `DeviceTrustManager.validateSessionToken` previously searched for devices by `sessionToken` but allowed devices in `PENDING_PAIRING` state to be treated as authenticated if passed `undefined` or an unassigned token match.
 **Learning:** In Map/Array lookups where default parameters or undefined variables can match `device.sessionToken === undefined`, pending unauthenticated devices could bypass session checks.
 **Prevention:** Always validate session input presence/type first, and explicitly enforce `device.trustState === 'PAIRED_ACTIVE'` and `device.sessionToken === sessionToken`.
+
+## 2025-05-22 - Unbounded HTTP Request Body Stream Buffering DoS
+**Vulnerability:** In `CentipedeServer`, incoming POST/PUT request streams were consumed into memory chunks without size bounding, exposing the process to memory exhaustion (OOM) and DoS from oversized request payloads.
+**Learning:** Even internal or local HTTP companion servers must enforce strict maximum body size limits and fail fast on both `Content-Length` headers and cumulative streaming chunk sizes.
+**Prevention:** Enforce `MAX_REQUEST_BODY_BYTES` (1 MB) with immediate HTTP 413 `PAYLOAD_TOO_LARGE` response and socket abort (`req.destroy()`), alongside `X-Content-Type-Options: nosniff`.

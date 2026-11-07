@@ -92,6 +92,14 @@ export class MemoryStore {
       result.push(e);
     }
     return result;
+    const results: MemoryEntry[] = [];
+    for (const entry of this.localEntries.values()) {
+      if (entry.lifecycle !== 'ACTIVE') continue;
+      if (scope && entry.scope !== scope) continue;
+      if (projectId && entry.projectId !== projectId) continue;
+      results.push(entry);
+    }
+    return results;
   }
 
   public getMemory(memoryId: string): MemoryEntry | undefined {

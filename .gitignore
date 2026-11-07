@@ -15,7 +15,3 @@ coverage
 .cache
 *.log
 .DS_Store
-
-# Python bytecode produced while validating live-image hooks
-__pycache__/
-*.py[cod]

@@ -44,6 +44,22 @@ describe('Centipede API Server & Transport Test Suite', () => {
     expect((await response.json()).error).toContain('only be created from the Centipede host');
   });
 
+  it('rejects oversized request bodies exceeding 1MB with HTTP 413 Payload Too Large', async () => {
+    // Generate an oversized payload exceeding 1MB limit (1024 * 1024 bytes)
+    const largeString = 'A'.repeat(1024 * 1024 + 100);
+    const response = await fetch(`http://localhost:${TEST_PORT}/api/v1/mobile/pair/initiate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ deviceName: largeString }),
+    });
+
+    expect(response.status).toBe(413);
+    const data = await response.json();
+    expect(data.error).toContain('PAYLOAD_TOO_LARGE');
+  });
+
   it('2. Responds to GET /api/v1/health over real HTTP socket', async () => {
     const res = await fetch(`http://localhost:${TEST_PORT}/api/v1/health`);
     expect(res.status).toBe(200);

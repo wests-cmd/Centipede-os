@@ -66,7 +66,7 @@ export class ConfigManager {
   }
 
   public getConfig(): CentipedeConfig {
-    return JSON.parse(JSON.stringify(this.config));
+    return structuredClone(this.config);
   }
 
   public validateConfig(): { valid: boolean; errors: string[] } {

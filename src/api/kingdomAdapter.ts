@@ -109,8 +109,13 @@ export class KingdomAdapter {
   public setBaseUrl(url: string): void {
     if (Capacitor.isNativePlatform()) url = validateMobileEndpoint(url);
     this.disconnect();
+    this.endpointRegexCache.clear();
     this.baseUrl = url.replace(/\/$/, '');
     this.wsUrl = this.baseUrl.replace(/^http/, 'ws') + '/ws';
+  }
+
+  public clearEndpointRegexCache(): void {
+    this.endpointRegexCache.clear();
   }
 
   public getBaseUrl(): string {
@@ -335,7 +340,7 @@ export class KingdomAdapter {
       if (trackConnection) this.recordSuccess();
       const json = (await res.json()) as T;
 
-      // Schema drift validation
+      // Schema drift validation with fast-path static route string comparison
       const cleanPath = path.split('?')[0];
       const reqMethod = options.method || 'GET';
       const matchingSpecKey = Object.keys(KINGDOM_CONTRACT_SPEC.endpoints).find((key) => {
@@ -352,8 +357,19 @@ export class KingdomAdapter {
         if (!specPathRegex) {
           specPathRegex = new RegExp('^' + spec.path.replace(/\{[^}]+\}/g, '[^/]+') + '$');
           this.endpointRegexCache.set(key, specPathRegex);
+        // Fast-path: Exact path comparison for static endpoints without dynamic parameters
+        if (spec.path === cleanPath) return true;
+
+        if (spec.path.includes('{')) {
+          let specPathRegex = this.endpointRegexCache.get(key);
+          if (!specPathRegex) {
+            specPathRegex = new RegExp('^' + spec.path.replace(/\{[^}]+\}/g, '[^/]+') + '$');
+            this.endpointRegexCache.set(key, specPathRegex);
+          }
+          return specPathRegex.test(cleanPath);
         }
-        return specPathRegex.test(cleanPath);
+
+        return false;
       });
 
       if (matchingSpecKey && json && typeof json === 'object') {

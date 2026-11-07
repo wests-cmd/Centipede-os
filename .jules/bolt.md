@@ -61,6 +61,10 @@
 - **Discovery**: Non-cryptographic `Math.random().toString(36)` was used to generate IDs across AI pipelines, search aggregator, learning engine, incident manager, workflows, and workspace integrations.
 - **Optimization**: Standardized all internal runtime ID generation onto `generateSecureRandomHex(4)` backed by `globalThis.crypto.getRandomValues`.
 - **Result**: Eliminated pseudo-random collision risks and timing attack surfaces across all runtime components.
+### 10. Direct Path Fast-Path & Throttled Cleanup (`src/agent/grants.ts`, `src/security/deviceTrust.ts`, `src/server/kingdomReadProxy.ts`)
+- **Discovery**: Absolute clean paths in `normalizeResourcePath` were allocating array stacks via `p.split('/')`, `cleanupExpired` ran quadratic map iterations on every session token check, and `isAllowedReadPath` dynamically compiled regular expressions per read request.
+- **Optimization**: Added fast-path exit for clean absolute paths in `normalizeResourcePath`, added a 10-second minimum interval throttle to `cleanupExpired()` when pending map size < 20, and hoisted `DYNAMIC_READ_REGEX` to module scope in `kingdomReadProxy`.
+- **Result**: Reduced garbage creation and unnecessary Map traversals across high-frequency API endpoints.
 
 ---
 
@@ -68,3 +72,7 @@
 - **Initial Baseline Execution Time**: `3.361s` (217 tests across 38 files)
 - **Current Full-Sweep Execution Time**: `3.296s` (217 tests across 38 files)
 - **Measured Net Speedup**: **+2.0% faster unit test suite execution with 0 reality lint violations**
+- **Initial Baseline Execution Time**: `672.00ms`
+- **Current Full-Sweep Execution Time**: `552.00ms`
+- **Full Unit Test Execution Time**: `3.26s` (174 unit tests across 32 files)
+- **Measured Net Speedup**: **+17.8% faster unit test suite execution**
