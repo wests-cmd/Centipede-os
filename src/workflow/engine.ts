@@ -2,6 +2,7 @@ import { WorkflowCheckpoint, WorkflowDefinition, WorkflowExecutionRun, WorkflowS
 import { toolExecutor, toolRegistry } from '../tools';
 import { capabilityGrantEngine } from '../agent/grants';
 import { workflowPersistenceStore } from './persistence';
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 
 export class WorkflowEngine {
   private workflows: Map<string, WorkflowDefinition> = new Map();
@@ -55,7 +56,7 @@ export class WorkflowEngine {
     description: string,
     steps: WorkflowStep[]
   ): WorkflowDefinition {
-    const workflowId = `wf_gen_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const workflowId = `wf_gen_${Date.now()}_${generateSecureRandomHex(4)}`;
     const proposal: WorkflowDefinition = {
       workflowId,
       name,
@@ -84,7 +85,7 @@ export class WorkflowEngine {
       throw new Error(`WORKFLOW_BLOCKED: Workflow "${wf.name}" is in trust state "${wf.trustState}" and cannot execute.`);
     }
 
-    const runId = `run_wf_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const runId = `run_wf_${Date.now()}_${generateSecureRandomHex(4)}`;
     const run: WorkflowExecutionRun = {
       runId,
       workflowId: wf.workflowId,

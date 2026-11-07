@@ -135,11 +135,18 @@ export function syncSha256(input: string | Uint8Array): string {
  * Universal CSPRNG hex string generator.
  * Fails closed if cryptographically secure random number generation is unsupported.
  */
+// Pre-computed static 256-entry byte-to-hex lookup table
+const HEX_LOOKUP_TABLE = Array.from({ length: 256 }, (_, i) => i.toString(16).padStart(2, '0'));
+
 export function generateSecureRandomHex(bytes = 16): string {
   if (typeof globalThis !== 'undefined' && globalThis.crypto && typeof globalThis.crypto.getRandomValues === 'function') {
     const array = new Uint8Array(bytes);
     globalThis.crypto.getRandomValues(array);
-    return Array.from(array, (b) => b.toString(16).padStart(2, '0')).join('');
+    let hex = '';
+    for (let i = 0; i < bytes; i++) {
+      hex += HEX_LOOKUP_TABLE[array[i]];
+    }
+    return hex;
   }
   throw new Error('CSPRNG_UNAVAILABLE: globalThis.crypto.getRandomValues is required for secure random generation.');
 }

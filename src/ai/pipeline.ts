@@ -14,6 +14,7 @@ import {
   Plan,
   UserInput,
 } from './types';
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 
 export class CentipedeAIPipeline {
   private pipelineListeners: Set<(state: Message) => void> = new Set();
@@ -28,7 +29,7 @@ export class CentipedeAIPipeline {
   }
 
   public async process(input: UserInput): Promise<Message> {
-    const msgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const msgId = `msg_${Date.now()}_${generateSecureRandomHex(4)}`;
     const timestamp = Date.now();
 
     let currentMsg: Message = {

@@ -1,4 +1,5 @@
 import { Conversation, Message } from './types';
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 
 export class ConversationManager {
   private activeConversation: Conversation;
@@ -8,7 +9,7 @@ export class ConversationManager {
   }
 
   public createConversation(title = 'New Centipede Session'): Conversation {
-    const id = `conv_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const id = `conv_${Date.now()}_${generateSecureRandomHex(4)}`;
     return {
       id,
       title,

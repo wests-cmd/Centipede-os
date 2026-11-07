@@ -1,4 +1,5 @@
 import { IngestedContent } from './pipeline';
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 
 export interface StoredKnowledgeItem {
   knowledgeId: string;
@@ -24,7 +25,7 @@ export class KnowledgeManager {
     uploaderId = 'desktop_user',
     userConfirmed = true
   ): StoredKnowledgeItem {
-    const knowledgeId = `know_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const knowledgeId = `know_${Date.now()}_${generateSecureRandomHex(4)}`;
 
     const item: StoredKnowledgeItem = {
       knowledgeId,

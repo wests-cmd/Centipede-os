@@ -1,9 +1,10 @@
 import { Intent, IntentType, UserInput } from './types';
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 
 export class IntentParser {
   public parse(input: UserInput): Intent {
     const text = (input?.text || '').trim().toLowerCase();
-    const id = `intent_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const id = `intent_${Date.now()}_${generateSecureRandomHex(4)}`;
     const timestamp = Date.now();
 
     // 1. Privileged Operations (Check first)

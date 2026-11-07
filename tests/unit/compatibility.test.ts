@@ -68,6 +68,17 @@ describe('Kingdom ↔ Centipede Compatibility & Adversarial Security Suite', () 
     });
     expect(validRes.valid).toBe(true);
     expect(validRes.missingFields.length).toBe(0);
+
+    // Validate map contract endpoints
+    expect(KINGDOM_CONTRACT_SPEC.endpoints.get_maps.path).toBe('/maps');
+    expect(KINGDOM_CONTRACT_SPEC.endpoints.get_map.path).toBe('/maps/{name}');
+    expect(KINGDOM_CONTRACT_SPEC.endpoints.save_map.path).toBe('/maps/{name}');
+    expect(KINGDOM_CONTRACT_SPEC.endpoints.save_map.method).toBe('POST');
+    const saveMapValidation = capabilityNegotiator.validateResponseSchema('save_map', { path: '/maps/test.json' });
+    expect(saveMapValidation.valid).toBe(true);
+    const saveMapInvalid = capabilityNegotiator.validateResponseSchema('save_map', {});
+    expect(saveMapInvalid.valid).toBe(false);
+    expect(saveMapInvalid.missingFields).toContain('path');
   });
 
   it('3. Security Adversarial Scenario 1–5: Forged / Malicious Metadata', async () => {

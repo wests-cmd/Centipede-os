@@ -1,5 +1,6 @@
 import { KingdomAdapter, kingdomAdapter } from '../api/kingdomAdapter';
 import { ActionRequest, AuthorizationState, Plan } from './types';
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 
 export class PermissionGate {
   private adapter: KingdomAdapter;
@@ -15,7 +16,7 @@ export class PermissionGate {
    * DEFAULT STATE IS STRICT FAIL-CLOSED (UNAUTHORIZED / DENIED).
    */
   public async evaluate(plan: Plan): Promise<ActionRequest> {
-    const actionId = `action_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const actionId = `action_${Date.now()}_${generateSecureRandomHex(4)}`;
     const mainCapability = plan.requiredCapabilities[0] || 'none';
     const operation = plan.operation || 'execute';
     const parameters = plan.parameters || {};

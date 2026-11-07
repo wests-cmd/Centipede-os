@@ -12,6 +12,7 @@ import { kingdomSearchProvider } from './providers/kingdomSearchProvider';
 import { memorySearchProvider } from './providers/memorySearchProvider';
 import { aiMapSearchProvider } from './providers/aiMapSearchProvider';
 import { webSearchProvider } from './providers/webSearchProvider';
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 
 export class SearchAggregator {
   private providers: SearchProviderInterface[] = [
@@ -34,7 +35,7 @@ export class SearchAggregator {
     allowedSources?: SearchSourceType[],
     policy: Partial<SearchPolicy> = {}
   ): Promise<SearchContext> {
-    const queryId = `search_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const queryId = `search_${Date.now()}_${generateSecureRandomHex(4)}`;
     const effectivePolicy: SearchPolicy = { ...this.defaultPolicy, ...policy };
     const permissions = allowedSources || effectivePolicy.allowedSources;
 

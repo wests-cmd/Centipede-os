@@ -1,3 +1,5 @@
+import { generateSecureRandomHex } from '../security/cryptoUtils';
+
 export interface IngestedContent {
   contentId: string;
   sourceType: 'FILE_UPLOAD' | 'IMAGE_UPLOAD' | 'TEXT_PASTE' | 'MOBILE_SYNC';
@@ -21,7 +23,7 @@ export class ContentIngestionPipeline {
     filename?: string,
     uploaderId = 'desktop_user'
   ): Promise<IngestedContent> {
-    const contentId = `ingest_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const contentId = `ingest_${Date.now()}_${generateSecureRandomHex(4)}`;
     const sizeBytes = new Blob([rawContent]).size;
 
     // Security Directive: Untrusted content check for prompt injection or system commands

@@ -1,5 +1,6 @@
 import { KingdomAdapter, kingdomAdapter } from '../api/kingdomAdapter';
 import { MemoryEntry, MemoryScope, TrustLevel } from './types';
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 
 export class MemoryStore {
   private localEntries: Map<string, MemoryEntry> = new Map();
@@ -21,7 +22,7 @@ export class MemoryStore {
   }
 
   public async recordMemory(entry: Omit<MemoryEntry, 'memoryId' | 'version' | 'lifecycle'> & { memoryId?: string }): Promise<MemoryEntry> {
-    const memoryId = entry.memoryId || `mem_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const memoryId = entry.memoryId || `mem_${Date.now()}_${generateSecureRandomHex(4)}`;
     const fullEntry: MemoryEntry = {
       ...entry,
       memoryId,

@@ -1,9 +1,10 @@
 import { capabilityResolver } from './capabilityResolver';
 import { Intent, Plan, PlanStep } from './types';
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 
 export class Planner {
   public createPlan(intent: Intent): Plan {
-    const planId = `plan_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const planId = `plan_${Date.now()}_${generateSecureRandomHex(4)}`;
     const resolvedCap = capabilityResolver.resolve(intent);
 
     const steps: PlanStep[] = [];

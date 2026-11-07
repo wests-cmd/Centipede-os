@@ -154,6 +154,23 @@ export const KINGDOM_CONTRACT_SPEC: KingdomContractSpec = {
       method: 'GET',
       description: 'Vector query search',
     },
+    get_maps: {
+      path: '/maps',
+      method: 'GET',
+      description: 'List accessible knowledge and workflow maps',
+    },
+    get_map: {
+      path: '/maps/{name}',
+      method: 'GET',
+      description: 'Retrieve map data structure by name',
+    },
+    save_map: {
+      path: '/maps/{name}',
+      method: 'POST',
+      description: 'Persist or update map graph structure',
+      requiredFields: ['graph'],
+      responseRequiredFields: ['path'],
+    },
     get_security_status: {
       path: '/security/status',
       method: 'GET',
