@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 node_modules
 dist
 release/*
@@ -20,6 +21,8 @@ coverage
 *.pyc
 __pycache__/
 =======
+=======
+>>>>>>> origin/feat/kingdom-universal-autonomous-assistant-11952944265175455362
 node_modules
 dist
 release/*
@@ -37,4 +40,28 @@ coverage
 .cache
 *.log
 .DS_Store
+<<<<<<< HEAD
+=======
+
+*.pyc
+__pycache__/
+=======
+node_modules
+dist
+release/*
+!release/targets.json
+build
+android/.gradle
+android/build
+android/app/build
+ios/App/build
+ios/DerivedData
+ios/App/App/public
+test-results
+data
+coverage
+.cache
+*.log
+.DS_Store
+>>>>>>> origin/feat/kingdom-universal-autonomous-assistant-11952944265175455362
 >>>>>>> origin/feat/kingdom-universal-autonomous-assistant-11952944265175455362

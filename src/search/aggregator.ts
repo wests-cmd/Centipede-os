@@ -13,7 +13,6 @@ import { kingdomSearchProvider } from './providers/kingdomSearchProvider';
 import { memorySearchProvider } from './providers/memorySearchProvider';
 import { aiMapSearchProvider } from './providers/aiMapSearchProvider';
 import { webSearchProvider } from './providers/webSearchProvider';
-import { generateSecureRandomHex } from '../security/cryptoUtils';
 
 export class SearchAggregator {
   private providers: SearchProviderInterface[] = [

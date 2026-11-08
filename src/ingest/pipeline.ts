@@ -1,5 +1,3 @@
-import { generateSecureRandomHex } from '../security/cryptoUtils';
-
 export interface IngestedContent {
   contentId: string;
   sourceType: 'FILE_UPLOAD' | 'IMAGE_UPLOAD' | 'TEXT_PASTE' | 'MOBILE_SYNC';
