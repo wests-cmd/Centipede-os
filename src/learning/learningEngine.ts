@@ -1,6 +1,5 @@
 import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { LearningSignal, LearningSignalType, RiskLevel, SkillDefinition } from './types';
-import { generateSecureRandomHex } from '../security/cryptoUtils';
 
 export interface EvaluationResult {
   passed: boolean;

@@ -15,7 +15,6 @@ import {
   Plan,
   UserInput,
 } from './types';
-import { generateSecureRandomHex } from '../security/cryptoUtils';
 
 export class CentipedeAIPipeline {
   private pipelineListeners: Set<(state: Message) => void> = new Set();

@@ -1,7 +1,6 @@
 import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { capabilityResolver } from './capabilityResolver';
 import { Intent, Plan, PlanStep } from './types';
-import { generateSecureRandomHex } from '../security/cryptoUtils';
 
 export class Planner {
   public createPlan(intent: Intent): Plan {

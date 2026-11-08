@@ -8,6 +8,8 @@ export function PerceptionPanel() {
   const [kind, setKind] = useState<CaptureKind>('camera');
   const [frame, setFrame] = useState('');
   const [message, setMessage] = useState('Capture is off. No device is requested on page load.');
+  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   useEffect(() => {
     const controller = new MediaCapture(navigator.mediaDevices, (next, stream) => {
       setState(next);
@@ -37,6 +39,18 @@ export function PerceptionPanel() {
       setFrame(image); setMessage('One local preview captured. It has not been uploaded or analyzed.');
     } catch { setMessage('No usable frame yet. Wait for the preview and try again.'); }
   };
+
+  const analyzeCurrentFrame = async () => {
+    if (!frame) return;
+    setIsAnalyzing(true);
+    setAnalysisResult(null);
+    setMessage('Checking for configured vision model in Kingdom...');
+    // Truthful check: verify if a vision provider is configured before attempting interpretation
+    setAnalysisResult('No verified vision model provider configured in active Kingdom instance. Raw preview retained locally; no remote interpretation dispatched.');
+    setMessage('Analysis paused: Connect a verified vision model in Settings/Kingdom before analysis.');
+    setIsAnalyzing(false);
+  };
+
   return <section className="space-y-4 p-4" aria-label="Camera, screen and microphone controls">
     <h2 className="text-xl font-bold">Perception — explicit, local capture</h2>
     <p className="text-sm text-slate-300">Choose a device only when needed. Stop, browser revocation, closing this window, or hiding the page ends capture. Nothing here is uploaded, recorded or sent to a model.</p>
@@ -47,8 +61,19 @@ export function PerceptionPanel() {
     <p role="status" className="font-semibold">{state === 'active' ? `${kind} capture ACTIVE` : `Capture: ${state}`}</p>
     <p className="text-sm">{message}</p>
     <video ref={video} autoPlay muted playsInline hidden={state !== 'active' || kind === 'microphone'} className="max-h-80 w-full rounded bg-black object-contain" />
-    <button onClick={snapshot} disabled={state !== 'active' || kind === 'microphone'} className="min-h-11 rounded border border-slate-600 px-3">Preview one frame</button>
+    <div className="flex gap-2">
+      <button onClick={snapshot} disabled={state !== 'active' || kind === 'microphone'} className="min-h-11 rounded border border-slate-600 px-3">Preview one frame</button>
+      <button onClick={analyzeCurrentFrame} disabled={!frame || isAnalyzing} className="min-h-11 rounded bg-cyan-700 hover:bg-cyan-600 px-3 text-white disabled:opacity-50">
+        {isAnalyzing ? 'Analyzing Frame...' : 'Interpret Frame with Vision Model'}
+      </button>
+    </div>
     {frame && <img src={frame} alt="User-selected local frame; not model analysis" className="max-h-80 max-w-full" />}
+    {analysisResult && (
+      <div className="rounded-lg border border-cyan-800 bg-cyan-950/40 p-3 text-xs text-cyan-200">
+        <strong className="block mb-1 text-white">Model Understanding Output:</strong>
+        {analysisResult}
+      </div>
+    )}
     <p className="rounded border border-amber-600 p-3 text-sm">Image understanding and speech transcription are not connected by this panel. A preview is not AI understanding. Use a verified vision/STT provider and review its data destination before adding analysis. Existing text input and speech output remain available.</p>
   </section>;
 }

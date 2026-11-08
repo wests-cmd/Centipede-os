@@ -18,6 +18,7 @@ import {
   Map,
   Cpu,
   Video,
+  GitBranch,
 } from 'lucide-react';
 import { CentipedeWorldVisual, HomeVisual } from './CentipedeWorldVisual';
 
@@ -71,6 +72,9 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
     { id: 'tasks', name: 'Tasks', icon: Activity, description: 'See work sent to the connected Kingdom service.' },
     { id: 'workspace', name: 'Workspace', icon: Grid, description: 'View connected services and saved routines.' },
     { id: 'ai', name: 'Centipede assistant', icon: Bot, description: 'Ask for help. Actions may need your approval.' },
+    { id: 'swarm', name: 'Swarm Console', icon: Server, description: 'Multi-device orchestration, node health, and DT1 / Laptop 2 task delegation.' },
+    { id: 'aitools', name: 'AI Tools & Adapters', icon: Cpu, description: '10-step installation and Kingdom adapter registry for external AI apps.' },
+    { id: 'self_improvement', name: 'Autonomous Timeline', icon: GitBranch, description: 'Inspect Kingdom engineering cycles, problem repairs, and retained lessons.' },
     { id: 'agent_control', name: 'Agent controls', icon: Shield, description: 'Review connected agents and their access.' },
     { id: 'mobile', name: 'Mobile Companion', icon: Smartphone, description: 'Pair a phone browser with Centipede over a trusted local network.' },
     { id: 'security', name: 'Security & approvals', icon: Shield, description: 'Review requests before protected actions run.', badge: pendingApprovalsCount || undefined },
