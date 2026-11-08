@@ -100,10 +100,40 @@ export class KingdomAdapter {
   private lastKnownKingdomVersion: string | null = null;
   private discoveredCapabilities: Record<string, boolean> = {};
   private endpointRegexCache: Map<string, RegExp> = new Map();
+  private staticEndpointsIndex: Map<string, string> = new Map();
+  private dynamicEndpointsList: Array<{ key: string; method: string; pattern: string }> = [];
+  private cachedUsesReadProxy: boolean = false;
 
   constructor(baseUrl: string = getDefaultKingdomApiUrl()) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
     this.wsUrl = this.baseUrl.replace(/^http/, 'ws') + '/ws';
+    this.updateCachedReadProxy();
+    this.initEndpointIndices();
+  }
+
+  private initEndpointIndices(): void {
+    this.staticEndpointsIndex.clear();
+    this.dynamicEndpointsList = [];
+    for (const [key, spec] of Object.entries(KINGDOM_CONTRACT_SPEC.endpoints)) {
+      const method = spec.method || 'GET';
+      if (spec.path.includes('{')) {
+        this.dynamicEndpointsList.push({
+          key,
+          method,
+          pattern: spec.path,
+        });
+      } else {
+        this.staticEndpointsIndex.set(`${method}:${spec.path}`, key);
+      }
+    }
+  }
+
+  private updateCachedReadProxy(): void {
+    try {
+      this.cachedUsesReadProxy = new URL(this.baseUrl).pathname.replace(/\/$/, '') === '/api/v1/kingdom';
+    } catch {
+      this.cachedUsesReadProxy = false;
+    }
   }
 
   public setBaseUrl(url: string): void {
@@ -112,6 +142,7 @@ export class KingdomAdapter {
     this.endpointRegexCache.clear();
     this.baseUrl = url.replace(/\/$/, '');
     this.wsUrl = this.baseUrl.replace(/^http/, 'ws') + '/ws';
+    this.updateCachedReadProxy();
   }
 
   public clearEndpointRegexCache(): void {
@@ -127,11 +158,7 @@ export class KingdomAdapter {
   }
 
   private usesCentipedeReadProxy(): boolean {
-    try {
-      return new URL(this.baseUrl).pathname.replace(/\/$/, '') === '/api/v1/kingdom';
-    } catch {
-      return false;
-    }
+    return this.cachedUsesReadProxy;
   }
 
   public getConnectionState(): ConnectionState {
@@ -340,13 +367,10 @@ export class KingdomAdapter {
       if (trackConnection) this.recordSuccess();
       const json = (await res.json()) as T;
 
-      // Schema drift validation with fast-path static route string comparison
+      // Schema drift validation with fast-path static route index and cached regexes
       const cleanPath = path.split('?')[0];
       const reqMethod = options.method || 'GET';
-      const matchingSpecKey = Object.keys(KINGDOM_CONTRACT_SPEC.endpoints).find((key) => {
-        const spec = KINGDOM_CONTRACT_SPEC.endpoints[key];
-        const specMethod = spec.method || 'GET';
-        if (specMethod !== reqMethod) return false;
+      let matchingSpecKey = this.staticEndpointsIndex.get(`${reqMethod}:${cleanPath}`);
 
         // Fast-path: Exact string equality for parameterless static endpoints
         if (!spec.path.includes('{')) {
@@ -357,9 +381,21 @@ export class KingdomAdapter {
         if (!specPathRegex) {
           specPathRegex = new RegExp('^' + spec.path.replace(/\{[^}]+\}/g, '[^/]+') + '$');
           this.endpointRegexCache.set(key, specPathRegex);
+        // Fast-path: Exact path comparison for static endpoints without dynamic parameters
+        if (spec.path === cleanPath) return true;
+
+        if (spec.path.includes('{')) {
+          let specPathRegex = this.endpointRegexCache.get(key);
+          if (!specPathRegex) {
+            specPathRegex = new RegExp('^' + item.pattern.replace(/\{[^}]+\}/g, '[^/]+') + '$');
+            this.endpointRegexCache.set(item.key, specPathRegex);
+          }
+          if (specPathRegex.test(cleanPath)) {
+            matchingSpecKey = item.key;
+            break;
+          }
         }
-        return specPathRegex.test(cleanPath);
-      });
+      }
 
       if (matchingSpecKey && json && typeof json === 'object') {
         const validation = capabilityNegotiator.validateResponseSchema(matchingSpecKey, json as Record<string, any>);

@@ -1,6 +1,7 @@
 import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { KingdomAdapter, kingdomAdapter } from '../api/kingdomAdapter';
 import { MemoryEntry, MemoryScope, TrustLevel } from './types';
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 
 export class MemoryStore {
   private localEntries: Map<string, MemoryEntry> = new Map();

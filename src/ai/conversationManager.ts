@@ -1,5 +1,6 @@
 import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { Conversation, Message } from './types';
+import { generateSecureRandomHex } from '../security/cryptoUtils';
 
 export class ConversationManager {
   private activeConversation: Conversation;
