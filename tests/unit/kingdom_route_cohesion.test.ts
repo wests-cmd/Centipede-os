@@ -34,4 +34,30 @@ describe('Kingdom route matching and read-only boundary', () => {
     expect((await gate.evaluate(planner.createPlan(intentParser.parse(input('create task audit system'))))).authorizationState).toBe('DENIED');
     expect((await gate.evaluate(planner.createPlan(intentParser.parse(input('delete file /tmp/demo'))))).authorizationState).toBe('APPROVAL_REQUIRED');
   });
+it('keeps the HTTP connection online when only the optional WebSocket closes', () => {
+    const adapter = new KingdomAdapter('http://127.0.0.1:8000');
+    const originalWebSocket = globalThis.WebSocket;
+    class FakeSocket {
+      static OPEN = 1;
+      static CONNECTING = 0;
+      readyState = 0;
+      onclose: null | (() => void) = null;
+      onmessage: null | ((event: any) => void) = null;
+      onerror: null | (() => void) = null;
+      constructor(_url: string) {}
+      close() {}
+    }
+    try {
+      (globalThis as any).WebSocket = FakeSocket;
+      (adapter as any).connectionState = 'CONNECTED';
+      (adapter as any).initWebSocket();
+      const socket = (adapter as any).ws as FakeSocket;
+      socket.onclose?.();
+      expect(adapter.getConnectionState()).toBe('CONNECTED');
+    } finally {
+      (globalThis as any).WebSocket = originalWebSocket;
+      adapter.disconnect();
+    }
+  });
+
 });

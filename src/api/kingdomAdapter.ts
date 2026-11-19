@@ -577,9 +577,10 @@ export class KingdomAdapter {
 
       this.ws.onclose = () => {
         this.ws = null;
-        if (this.connectionState === 'CONNECTED') {
-          this.notifyConnection('DISCONNECTED');
-        }
+        // Events are optional; an unavailable WebSocket must not invalidate a
+        // healthy authenticated HTTP control/status connection. The heartbeat
+        // owns transport liveness and will mark the connection offline after
+        // confirmed HTTP failures.
       };
     } catch (e) {
       // WS unavailable

@@ -15,8 +15,9 @@ export const ActivityTaskView: React.FC<ActivityTaskViewProps> = ({ adapter }) =
   const [message, setMessage] = useState('');
   const [events, setEvents] = useState<SystemEvent[]>([]);
 
+  const [connectionState, setConnectionState] = useState(adapter.getConnectionState());
   const readOnly = adapter.isReadOnlyConnection();
-  const canSubmit = !readOnly && adapter.getConnectionState() === 'CONNECTED';
+  const canSubmit = !readOnly && connectionState === 'CONNECTED';
 
   const fetchTasks = async () => {
     try {
@@ -28,6 +29,7 @@ export const ActivityTaskView: React.FC<ActivityTaskViewProps> = ({ adapter }) =
   };
 
   useEffect(() => {
+    const unsubscribeConnection = adapter.subscribeConnection(setConnectionState);
     fetchTasks();
     const interval = setInterval(fetchTasks, 2500);
 
@@ -41,6 +43,7 @@ export const ActivityTaskView: React.FC<ActivityTaskViewProps> = ({ adapter }) =
     return () => {
       clearInterval(interval);
       unsubEvents();
+      unsubscribeConnection();
     };
   }, [filter]);
 
