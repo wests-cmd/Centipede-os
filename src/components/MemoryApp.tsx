@@ -1,9 +1,37 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { KingdomAdapter, kingdomAdapter } from '../api/kingdomAdapter';
+import type { ConnectionState, MemoryEntry as KingdomMemoryEntry } from '../types';
 import { memoryStore } from '../learning/memoryStore';
 import { MemoryEntry, TrustLevel } from '../learning/types';
 import { Brain, Database, Trash2, Edit3, ShieldAlert, CheckCircle, Search, Filter } from 'lucide-react';
 
-export const MemoryApp: React.FC = () => {
+export const MemoryApp: React.FC<{adapter?: KingdomAdapter}> = ({adapter = kingdomAdapter}) => {
+  const [connection, setConnection] = useState<ConnectionState>(adapter.getConnectionState());
+  const [kingdomEntries, setKingdomEntries] = useState<KingdomMemoryEntry[]>([]);
+  const [kingdomState, setKingdomState] = useState<'OFFLINE' | 'LOADING' | 'READY' | 'ERROR'>('OFFLINE');
+  const [kingdomError, setKingdomError] = useState('');
+  useEffect(() => adapter.subscribeConnection(setConnection), [adapter]);
+  useEffect(() => {
+    let mounted = true;
+    if (connection !== 'CONNECTED') {
+      setKingdomEntries([]);
+      setKingdomState('OFFLINE');
+      return () => { mounted = false; };
+    }
+    setKingdomState('LOADING');
+    adapter.get_memory(100).then(items => {
+      if (!mounted) return;
+      if (!Array.isArray(items)) throw Error('Kingdom returned an invalid memory response.');
+      setKingdomEntries(items);
+      setKingdomState('READY');
+    }).catch((err: unknown) => {
+      if (!mounted) return;
+      setKingdomEntries([]);
+      setKingdomError(err instanceof Error ? err.message : 'Kingdom memory read failed.');
+      setKingdomState('ERROR');
+    });
+    return () => { mounted = false; };
+  }, [adapter, connection]);
   const [memories, setMemories] = useState<MemoryEntry[]>(memoryStore.getMemories());
   const [filterScope, setFilterScope] = useState<string>('ALL');
   const [newContent, setNewContent] = useState<string>('');
@@ -59,8 +87,8 @@ export const MemoryApp: React.FC = () => {
             <Brain className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white">Centipede Memory Explorer</h2>
-            <p className="text-xs text-slate-400">Scope-Based Knowledge & Trust Hierarchy Inspection</p>
+            <h2 className="text-xl font-bold text-white">Centipede Memory Explorer — Separate Sources</h2>
+            <p className="text-xs text-slate-400">Kingdom server records and local browser notes are separate</p>
           </div>
         </div>
 
