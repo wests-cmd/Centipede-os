@@ -11,6 +11,7 @@ import {
   KnightsResponse,
   KingdomErrorCode,
   KingdomRuntimeInfo,
+  KingdomSkillItem,
   MemoryEntry,
   ModelHealth,
   ProtocolVersion,
@@ -670,6 +671,12 @@ export class KingdomAdapter {
       method: 'POST',
       body: JSON.stringify({ prompt, model, provider }),
     });
+  }
+
+  public async get_skills(): Promise<KingdomSkillItem[]> {
+    const response = await this.fetchJson<unknown>('/skills');
+    if (!Array.isArray(response)) throw new KingdomApiError('SERVER_ERROR', 'Kingdom returned a malformed skill list.');
+    return response as KingdomSkillItem[];
   }
 
   public async get_memory(limit = 100): Promise<MemoryEntry[]> {

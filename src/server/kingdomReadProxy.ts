@@ -4,7 +4,7 @@ import { OBSERVATION_READ_PATHS, summarizeObservation } from '../api/kingdomObse
 const PREFIX = '/api/v1/kingdom';
 const MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
 const STATIC_READS = new Set([
-  '/status', '/mode', '/knights', '/models', '/events', '/tasks', '/memory', '/maps',
+  '/status', '/mode', '/knights', '/models', '/events', '/tasks', '/memory', '/maps', '/skills',
   '/security/status', '/security/policies', '/security/permissions',
   '/security/approvals', '/security/audit',
   ...OBSERVATION_READ_PATHS,

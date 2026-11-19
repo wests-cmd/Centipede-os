@@ -134,13 +134,13 @@ export const App: React.FC = () => {
       case 'memory':
         return (
           <Window id="win_memory" title="Memory Explorer" icon={Brain} isOpen={true} onClose={() => setActiveAppId('launcher')}>
-            <MemoryApp />
+            <MemoryApp adapter={kingdomAdapter} />
           </Window>
         );
       case 'skills':
         return (
           <Window id="win_skills" title="Skill Manager" icon={Cpu} isOpen={true} onClose={() => setActiveAppId('launcher')}>
-            <SkillsApp />
+            <SkillsApp adapter={kingdomAdapter} />
           </Window>
         );
       case 'maps':

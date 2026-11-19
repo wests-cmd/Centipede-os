@@ -81,9 +81,30 @@ export const MemoryApp: React.FC = () => {
         </div>
       </div>
 
+      <section className="p-4 bg-slate-900 border border-blue-900 rounded-xl space-y-3" aria-label="Kingdom memory">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h3 className="text-white font-bold">Kingdom memory — live read-only</h3>
+            <p className="text-xs text-slate-400">Read from Kingdom, not from this browser's local memory store.</p>
+          </div>
+          <span className="text-xs text-blue-300">{kingdomState}</span>
+        </div>
+        {kingdomState === 'OFFLINE' && <p className="text-xs text-slate-400">Connect Kingdom to inspect its stored memory.</p>}
+        {kingdomState === 'LOADING' && <p className="text-xs text-slate-400">Reading Kingdom memory...</p>}
+        {kingdomState === 'ERROR' && <p role="alert" className="text-xs text-red-300">{kingdomError}</p>}
+        {kingdomState === 'READY' && (kingdomEntries.length === 0
+          ? <p className="text-xs text-slate-400">No memory records returned by Kingdom.</p>
+          : <ul className="space-y-2">{kingdomEntries.map(e => (
+              <li key={e.id} className="rounded-lg bg-slate-950 border border-slate-800 p-3">
+                <span className="text-xs text-blue-300">Kingdom · {e.id}</span>
+                <p className="mt-1 text-sm text-white whitespace-pre-wrap break-words">{e.content}</p>
+              </li>
+            ))}</ul>)}
+      </section>
+      <p className="text-xs text-slate-400">Local notes below are retained in this browser's process and are not a durable backup. Local deletion does not delete a Kingdom memory record. An optional Kingdom write attempt is not proof of synchronization.</p>
       {/* Record Memory Form */}
       <form onSubmit={handleAddMemory} className="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl space-y-3">
-        <div className="text-xs font-bold text-slate-300 uppercase tracking-wider">Record Knowledge Fact</div>
+        <div className="text-xs font-bold text-slate-300 uppercase tracking-wider">Record local session note</div>
         <div className="flex gap-3">
           <input
             type="text"
@@ -105,7 +126,7 @@ export const MemoryApp: React.FC = () => {
             type="submit"
             className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition-colors shadow-lg shadow-cyan-600/30"
           >
-            Record Fact
+            Record local note
           </button>
         </div>
       </form>
