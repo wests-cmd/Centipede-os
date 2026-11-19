@@ -161,6 +161,11 @@ export class KingdomAdapter {
     return this.cachedUsesReadProxy;
   }
 
+  /** Transport capability only: read-only does not imply Kingdom authorization. */
+  public isReadOnlyConnection(): boolean {
+    return this.usesCentipedeReadProxy();
+  }
+
   public getConnectionState(): ConnectionState {
     return this.connectionState;
   }
@@ -315,6 +320,11 @@ export class KingdomAdapter {
   }
 
   private async fetchJson<T>(path: string, options: RequestInit = {}, trackConnection = true): Promise<T> {
+    // The local-admin read proxy is never an execution or approval channel.
+    if (this.isReadOnlyConnection() && (options.method || 'GET').toUpperCase() !== 'GET') {
+      throw new KingdomApiError('AUTHORIZATION_DENIED',
+        'This Centipede connection is read-only. Kingdom actions require a separate authenticated, owner-authorized action channel.');
+    }
     const url = `${this.baseUrl}${path}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -370,27 +380,18 @@ export class KingdomAdapter {
       // Schema drift validation with fast-path static route index and cached regexes
       const cleanPath = path.split('?')[0];
       const reqMethod = options.method || 'GET';
-      let matchingSpecKey = this.staticEndpointsIndex.get(`${reqMethod}:${cleanPath}`);
-
-        // Fast-path: Exact string equality for parameterless static endpoints
-        if (!spec.path.includes('{')) {
-          return spec.path === cleanPath;
-        }
-
-        let specPathRegex = this.endpointRegexCache.get(key);
-        if (!specPathRegex) {
-          specPathRegex = new RegExp('^' + spec.path.replace(/\{[^}]+\}/g, '[^/]+') + '$');
-          this.endpointRegexCache.set(key, specPathRegex);
-        // Fast-path: Exact path comparison for static endpoints without dynamic parameters
-        if (spec.path === cleanPath) return true;
-
-        if (spec.path.includes('{')) {
-          let specPathRegex = this.endpointRegexCache.get(key);
-          if (!specPathRegex) {
-            specPathRegex = new RegExp('^' + item.pattern.replace(/\{[^}]+\}/g, '[^/]+') + '$');
-            this.endpointRegexCache.set(item.key, specPathRegex);
+      // Match both method and route. Static paths are indexed; dynamic
+      // patterns are cached from the declared contract specification.
+      let matchingSpecKey = this.staticEndpointsIndex.get(`${reqMethod.toUpperCase()}:${cleanPath}`);
+      if (!matchingSpecKey) {
+        for (const item of this.dynamicEndpointsList) {
+          if (item.method !== reqMethod.toUpperCase()) continue;
+          let routeRegex = this.endpointRegexCache.get(item.key);
+          if (!routeRegex) {
+            routeRegex = new RegExp('^' + item.pattern.replace(/\{[^}]+\}/g, '[^/]+') + '$');
+            this.endpointRegexCache.set(item.key, routeRegex);
           }
-          if (specPathRegex.test(cleanPath)) {
+          if (routeRegex.test(cleanPath)) {
             matchingSpecKey = item.key;
             break;
           }

@@ -15,6 +15,9 @@ export const ActivityTaskView: React.FC<ActivityTaskViewProps> = ({ adapter }) =
   const [message, setMessage] = useState('');
   const [events, setEvents] = useState<SystemEvent[]>([]);
 
+  const readOnly = adapter.isReadOnlyConnection();
+  const canSubmit = !readOnly && adapter.getConnectionState() === 'CONNECTED';
+
   const fetchTasks = async () => {
     try {
       const list = await adapter.list_tasks(filter === 'all' ? undefined : filter);
@@ -43,7 +46,7 @@ export const ActivityTaskView: React.FC<ActivityTaskViewProps> = ({ adapter }) =
 
   const handleSubmitTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!prompt.trim()) return;
+    if (!prompt.trim() || !canSubmit) return;
     setIsSubmitting(true);
     try {
       const created = await adapter.submit_task(prompt, { client: 'centipede_os_activity_view' });
@@ -59,6 +62,7 @@ export const ActivityTaskView: React.FC<ActivityTaskViewProps> = ({ adapter }) =
   };
 
   const handleCancelTask = async (taskId: string) => {
+    if (!canSubmit) return;
     try {
       await adapter.cancel_task(taskId);
       setMessage(`Task ${taskId} cancelled.`);
@@ -96,6 +100,12 @@ export const ActivityTaskView: React.FC<ActivityTaskViewProps> = ({ adapter }) =
         </div>
       )}
 
+      {readOnly && (
+        <div role="status" className="bg-slate-800/60 border border-blue-700 rounded-xl p-3 text-sm text-slate-200">
+          Kingdom is connected through the local read-only proxy. You can inspect tasks,
+          but creating or cancelling tasks needs an authenticated Kingdom action connection.
+        </div>
+      )}
       {/* Task Creation Form */}
       <form onSubmit={handleSubmitTask} className="bg-slate-800/60 border border-slate-700 rounded-2xl p-5 flex flex-col md:flex-row items-center gap-3 shadow-xl">
         <input
@@ -107,7 +117,7 @@ export const ActivityTaskView: React.FC<ActivityTaskViewProps> = ({ adapter }) =
         />
         <button
           type="submit"
-          disabled={isSubmitting || !prompt.trim()}
+          disabled={isSubmitting || !prompt.trim() || !canSubmit}
           className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors flex items-center justify-center space-x-2 disabled:opacity-50"
         >
           <Plus className="w-4 h-4" />
@@ -172,6 +182,7 @@ export const ActivityTaskView: React.FC<ActivityTaskViewProps> = ({ adapter }) =
                   {(t.status === 'queued' || t.status === 'running') && (
                     <button
                       onClick={() => handleCancelTask(t.id)}
+                      disabled={!canSubmit}
                       className="flex items-center space-x-1 text-red-400 hover:text-red-300 bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors flex-shrink-0"
                     >
                       <XCircle className="w-4 h-4" />

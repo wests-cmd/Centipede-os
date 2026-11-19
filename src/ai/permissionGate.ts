@@ -1,7 +1,6 @@
 import { KingdomAdapter, kingdomAdapter } from '../api/kingdomAdapter';
 import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { ActionRequest, AuthorizationState, Plan } from './types';
-import { generateSecureRandomHex } from '../security/cryptoUtils';
 
 export class PermissionGate {
   private adapter: KingdomAdapter;
@@ -28,6 +27,16 @@ export class PermissionGate {
     // Critical or human-approval-required operations automatically require human approval
     if (plan.requiresApproval || plan.riskLevel === 'CRITICAL' || plan.riskLevel === 'HIGH') {
       authorizationState = 'APPROVAL_REQUIRED';
+    } else if (this.adapter.isReadOnlyConnection() && this.adapter.getConnectionState() === 'CONNECTED') {
+      // Only a fixed low-risk read allowlist may pass to the local-admin GET
+      // proxy, which independently enforces loopback identity and credentials.
+      const localReadCapabilities = new Set([
+        'runtime.status', 'runtime.mode.read', 'tasks.read', 'knights.read',
+        'models.read', 'memory.read', 'ai_map.read', 'security.status.read',
+        'security.permissions.read', 'security.approvals.read',
+      ]);
+      authorizationState = plan.riskLevel === 'LOW' && localReadCapabilities.has(mainCapability)
+        ? 'AUTHORIZED' : 'DENIED';
     } else if (this.adapter.getConnectionState() === 'CONNECTED') {
       try {
         const authRes = await this.adapter.authorize_capability(

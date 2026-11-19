@@ -1,6 +1,5 @@
 import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { Intent, IntentType, UserInput } from './types';
-import { generateSecureRandomHex } from '../security/cryptoUtils';
 
 export class IntentParser {
   public parse(input: UserInput): Intent {
