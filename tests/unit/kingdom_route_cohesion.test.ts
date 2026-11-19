@@ -60,4 +60,23 @@ it('keeps the HTTP connection online when only the optional WebSocket closes', (
     }
   });
 
+  it('reads genuine Kingdom skill registry records through the client contract', async () => {
+    const adapter = new KingdomAdapter('http://127.0.0.1:8000');
+    const upstream = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => new Response(JSON.stringify([
+      { id: 'trusted', name: 'Verified Skill', version: '1.0.0', state: 'INSTALLED', trust_level: 'VERIFIED' },
+    ]), { status: 200 }));
+    globalThis.fetch = upstream as typeof fetch;
+    const skills = await adapter.get_skills();
+    expect(skills).toHaveLength(1);
+    expect(skills[0].state).toBe('INSTALLED');
+    expect(upstream).toHaveBeenCalled();
+    expect(String(upstream.mock.calls[0][0])).toBe('http://127.0.0.1:8000/skills');
+  });
+
+  it('rejects malformed Kingdom skill registry responses rather than showing fake skills', async () => {
+    const adapter = new KingdomAdapter('http://127.0.0.1:8000');
+    globalThis.fetch = (async () => new Response('{"skills":"not-a-list"}', { status: 200 })) as typeof fetch;
+    await expect(adapter.get_skills()).rejects.toMatchObject({ code: 'SERVER_ERROR' });
+  });
+
 });
