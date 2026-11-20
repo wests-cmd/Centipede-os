@@ -1,0 +1,25 @@
+#!/bin/sh
+# Graphical, non-destructive fallback when the local web service cannot start.
+set -eu
+if ! command -v zenity >/dev/null 2>&1 || [ -z "${DISPLAY:-}" ]; then
+  echo "Centipede app service unavailable; keeping the regular XFCE session." >&2
+  exit 0
+fi
+while :; do
+  action=$(zenity --list --title="Centipede OS Recovery" \
+    --text="Centipede could not open its local desktop app. The normal XFCE desktop is available." \
+    --column="Action" "Retry Centipede" "View service diagnostics" "Use regular desktop" \
+    --width=480 --height=320) || exit 0
+  case "$action" in
+    "Retry Centipede") exec /usr/local/bin/centipede-desktop ;;
+    "View service diagnostics")
+      if command -v xfce4-terminal >/dev/null 2>&1; then
+        xfce4-terminal --command="sh -c 'journalctl -b -u centipede-web.service --no-pager -n 60; printf \"\\nPress Enter to close...\"; read ignored'" || true
+      else
+        zenity --info --text="Open XFCE Settings and check the Centipede web service." || true
+      fi
+      ;;
+    "Use regular desktop") exit 0 ;;
+    *) exit 0 ;;
+  esac
+done
