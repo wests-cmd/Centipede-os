@@ -85,7 +85,7 @@ describe('CSPRNG Token & Grant ID Security Invariants', () => {
     expect(revokedAuth.error).toBeDefined();
   });
 
-  it('agentIdentityManager and ToolExecutor use CSPRNG for IDs and approval keys', async () => {
+  it('agentIdentityManager and ToolExecutor use CSPRNG for IDs and never invent approval keys', async () => {
     initializeVerifiedTools();
     const identity = agentIdentityManager.createIdentity('TestAgent');
     expect(identity.agentId).toMatch(/^agent_\d+_[0-9a-f]{8}$/);
@@ -99,8 +99,9 @@ describe('CSPRNG Token & Grant ID Security Invariants', () => {
       chainDepth: 1,
     });
 
-    expect(execResult.status).toBe('PENDING');
-    expect(execResult.data?.approvalId).toMatch(/^appr_\d+_[0-9a-f]{8}$/);
+    expect(execResult.status).toBe('BLOCKED');
+    expect(execResult.data?.approvalId).toBeUndefined();
+    expect(execResult.error).toContain('NOT created');
     expect(execResult.idempotencyKey).toMatch(/^idemp_filesystem\.delete_restricted_\d+_[0-9a-f]{8}$/);
   });
 

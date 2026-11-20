@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { KingdomAdapter } from '../api/kingdomAdapter';
+import { kingdomActions } from '../api/kingdomActions';
+import { KingdomActionUnlock } from './KingdomActionUnlock';
 import { SystemEvent, TaskItem } from '../types';
 import { Activity, Plus, XCircle, RefreshCw, Radio, Terminal, AlertCircle } from 'lucide-react';
 
@@ -16,20 +18,24 @@ export const ActivityTaskView: React.FC<ActivityTaskViewProps> = ({ adapter }) =
   const [events, setEvents] = useState<SystemEvent[]>([]);
 
   const [connectionState, setConnectionState] = useState(adapter.getConnectionState());
-  const readOnly = adapter.isReadOnlyConnection();
-  const canSubmit = !readOnly && connectionState === 'CONNECTED';
+  const [unlocked, setUnlocked] = useState(kingdomActions.isUnlocked());
+  const [loadError, setLoadError] = useState('');
+  const canSubmit = unlocked && connectionState === 'CONNECTED';
 
   const fetchTasks = async () => {
     try {
       const list = await adapter.list_tasks(filter === 'all' ? undefined : filter);
+      if (!Array.isArray(list)) throw new Error('Kingdom returned an invalid task list.');
       setTasks(list);
+      setLoadError('');
     } catch (err: any) {
-      // Handled cleanly
+      setLoadError('Kingdom task list unavailable: ' + (err instanceof Error ? err.message : 'unknown error'));
     }
   };
 
   useEffect(() => {
     const unsubscribeConnection = adapter.subscribeConnection(setConnectionState);
+    const unsubscribeActions = kingdomActions.subscribe(setUnlocked);
     fetchTasks();
     const interval = setInterval(fetchTasks, 2500);
 
@@ -44,15 +50,16 @@ export const ActivityTaskView: React.FC<ActivityTaskViewProps> = ({ adapter }) =
       clearInterval(interval);
       unsubEvents();
       unsubscribeConnection();
+      unsubscribeActions();
     };
-  }, [filter]);
+  }, [filter, adapter]);
 
   const handleSubmitTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prompt.trim() || !canSubmit) return;
     setIsSubmitting(true);
     try {
-      const created = await adapter.submit_task(prompt, { client: 'centipede_os_activity_view' });
+      const created = await kingdomActions.submitTask(prompt);
       setPrompt('');
       setMessage(`Task created successfully! ID: ${created.id}`);
       fetchTasks();
@@ -67,7 +74,7 @@ export const ActivityTaskView: React.FC<ActivityTaskViewProps> = ({ adapter }) =
   const handleCancelTask = async (taskId: string) => {
     if (!canSubmit) return;
     try {
-      await adapter.cancel_task(taskId);
+      await kingdomActions.cancelTask(taskId);
       setMessage(`Task ${taskId} cancelled.`);
       fetchTasks();
       setTimeout(() => setMessage(''), 3000);
@@ -103,12 +110,9 @@ export const ActivityTaskView: React.FC<ActivityTaskViewProps> = ({ adapter }) =
         </div>
       )}
 
-      {readOnly && (
-        <div role="status" className="bg-slate-800/60 border border-blue-700 rounded-xl p-3 text-sm text-slate-200">
-          Kingdom is connected through the local read-only proxy. You can inspect tasks,
-          but creating or cancelling tasks needs an authenticated Kingdom action connection.
-        </div>
-      )}
+      <KingdomActionUnlock />
+      {loadError && <div role="alert" className="bg-slate-900 border border-red-800 rounded-xl p-3 text-sm text-red-300">{loadError}. Existing task records may be stale.</div>}
+      {!unlocked && <p role="status" className="text-sm text-slate-400">Read-only task inspection is available when Kingdom is connected. Task changes require an explicitly unlocked owner session.</p>}
       {/* Task Creation Form */}
       <form onSubmit={handleSubmitTask} className="bg-slate-800/60 border border-slate-700 rounded-2xl p-5 flex flex-col md:flex-row items-center gap-3 shadow-xl">
         <input

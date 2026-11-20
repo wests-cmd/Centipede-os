@@ -3,6 +3,7 @@ import { platformDetector } from '../platform/detector';
 import { configManager } from '../config';
 import { CENTIPEDE_VERSION } from '../version';
 import { proxyKingdomRead } from './kingdomReadProxy';
+import { handleKingdomAction } from './kingdomAction';
 
 export interface ApiRequest {
   path: string;
@@ -43,6 +44,9 @@ export class ApiRouter {
       const runtimeInfo = await platformDetector.detectRuntimeInfo();
       return { status: 200, data: runtimeInfo };
     }
+
+    const kingdomAction = await handleKingdomAction(req);
+    if (kingdomAction) return kingdomAction;
 
     const kingdomRead = await proxyKingdomRead(req);
     if (kingdomRead) return kingdomRead;

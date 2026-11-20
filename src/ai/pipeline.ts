@@ -99,7 +99,7 @@ export class CentipedeAIPipeline {
         ...currentMsg,
         text: explanation,
         actionResult,
-        status: 'APPROVAL_REQUIRED',
+        status: actionResult.status === 'PENDING' ? 'APPROVAL_REQUIRED' : 'DENIED',
       };
       conversationManager.addMessage(currentMsg);
       this.notify(currentMsg);

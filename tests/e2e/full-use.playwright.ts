@@ -19,7 +19,7 @@ test('opens every Centipede desktop app surface and records a screenshot', async
   await completeClientSetup(page);
 
   const apps = [
-    ['Centipede AI', 'Centipede AI Pipeline', '01_ai'],
+    ['Segmentor', 'Segmentor — Kingdom Tasks', '01_ai'],
     ['Agent Control Plane', 'Agent Control Plane & Security', '02_agent_control'],
     ['Digital Workspace', 'Universal Digital Workspace & Workflows', '03_workspace'],
     ['Mobile Companion', 'Mobile Companion', '04_mobile'],

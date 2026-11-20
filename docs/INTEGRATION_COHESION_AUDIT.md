@@ -35,3 +35,7 @@ Required CI typecheck, tests, build, and real fresh-install/Kingdom integration 
 ## Second-phase read-only integration
 
 The separate `feat/kingdom-live-data-cohesion-20261119` branch reads real Kingdom memory and skill lifecycle state. It labels the browser's local memory and demonstration skill state separately, and does not grant any privileged skill, memory write, or task authority.
+
+## Third-phase local owner task channel
+
+The local desktop now has a separate, explicit owner-unlocked task submit/cancel channel with a bounded request surface and real upstream confirmation. Segmentor and Tasks use that channel; read-only views remain GET-only. This is not a general execution proxy, cross-machine test proof, installer completion, or remote phone capability. See [owner task design](KINGDOM_OWNER_TASK_CHANNEL.md).

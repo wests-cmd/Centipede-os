@@ -252,8 +252,9 @@ describe('Master Security Invariants 1–14 Test Suite', () => {
     const result = await actionExecutor.execute(maliciousAction, intent);
 
     // ActionExecutor MUST NOT trust authorizationState: 'AUTHORIZED' and MUST evaluate through execution gate
-    expect(result.status).toBe('PENDING');
-    expect(result.data?.message).toContain('Approval request created');
+    expect(result.status).toBe('BLOCKED');
+    expect(result.error).toContain('NOT created');
+    expect(result.data?.approvalId).toBeUndefined();
   });
 
   it('Adversarial Test — Path Traversal & Prefix Resource Scope Boundary Attacks Blocked', () => {
@@ -614,8 +615,9 @@ describe('Master Security Invariants 1–14 Test Suite', () => {
       grantId: undefined,
     });
 
-    expect(pendingResult.status).toBe('PENDING');
-    expect(pendingResult.data?.message).toContain('Approval request created');
+    expect(pendingResult.status).toBe('BLOCKED');
+    expect(pendingResult.error).toContain('NOT created');
+    expect(pendingResult.data?.approvalId).toBeUndefined();
 
     // 4b. Attempt dispatching action with FORGED grant -> BLOCKED at grant verification boundary
     const result = await toolExecutor.execute({

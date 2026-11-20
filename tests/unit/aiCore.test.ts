@@ -159,8 +159,11 @@ test('9. Full End-to-End CentipedeAIPipeline Execution with Awaited PermissionGa
   };
 
   const msg = await centipedeAIPipeline.process(input);
-  expect(msg.status).toBe('APPROVAL_REQUIRED');
-  expect(msg.actionResult?.status === 'PENDING' || msg.actionResult?.status === 'BLOCKED').toBe(true);
+  // Offline requests may require approval by policy, but no pending Kingdom
+  // approval exists until Kingdom actually confirms creation.
+  expect(msg.status).toBe('DENIED');
+  expect(msg.actionResult?.status).toBe('BLOCKED');
+  expect(msg.actionResult?.error).toContain('NOT created');
 });
 
 test('10. Conversation Manager Message Tracking', () => {

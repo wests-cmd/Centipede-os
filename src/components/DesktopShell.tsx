@@ -106,7 +106,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
 
   const sidebarApps = [
     { id: 'launcher', name: 'Home', icon: Home },
-    { id: 'ai', name: 'Centipede AI', icon: Bot },
+    { id: 'ai', name: 'Segmentor', icon: Bot },
     { id: 'perception', name: 'Camera, screen & mic', icon: Video },
     { id: 'agent_control', name: 'Agent Control Plane', icon: ShieldAlert },
     { id: 'workspace', name: 'Digital Workspace', icon: Grid },
