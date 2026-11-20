@@ -138,6 +138,7 @@ export const KINGDOM_CONTRACT_SPEC: KingdomContractSpec = {
       description: 'Execute model inference',
       requiredFields: ['prompt'],
     },
+    get_skills: { path: '/skills', method: 'GET', description: 'Read actual Kingdom skill lifecycle states' },
     get_memory: {
       path: '/memory',
       method: 'GET',

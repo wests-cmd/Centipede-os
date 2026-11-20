@@ -1,9 +1,37 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { KingdomAdapter, kingdomAdapter } from '../api/kingdomAdapter';
+import type { ConnectionState, MemoryEntry as KingdomMemoryEntry } from '../types';
 import { memoryStore } from '../learning/memoryStore';
 import { MemoryEntry, TrustLevel } from '../learning/types';
 import { Brain, Database, Trash2, Edit3, ShieldAlert, CheckCircle, Search, Filter } from 'lucide-react';
 
-export const MemoryApp: React.FC = () => {
+export const MemoryApp: React.FC<{adapter?: KingdomAdapter}> = ({adapter = kingdomAdapter}) => {
+  const [connection, setConnection] = useState<ConnectionState>(adapter.getConnectionState());
+  const [kingdomEntries, setKingdomEntries] = useState<KingdomMemoryEntry[]>([]);
+  const [kingdomState, setKingdomState] = useState<'OFFLINE' | 'LOADING' | 'READY' | 'ERROR'>('OFFLINE');
+  const [kingdomError, setKingdomError] = useState('');
+  useEffect(() => adapter.subscribeConnection(setConnection), [adapter]);
+  useEffect(() => {
+    let mounted = true;
+    if (connection !== 'CONNECTED') {
+      setKingdomEntries([]);
+      setKingdomState('OFFLINE');
+      return () => { mounted = false; };
+    }
+    setKingdomState('LOADING');
+    adapter.get_memory(100).then(items => {
+      if (!mounted) return;
+      if (!Array.isArray(items)) throw Error('Kingdom returned an invalid memory response.');
+      setKingdomEntries(items);
+      setKingdomState('READY');
+    }).catch((err: unknown) => {
+      if (!mounted) return;
+      setKingdomEntries([]);
+      setKingdomError(err instanceof Error ? err.message : 'Kingdom memory read failed.');
+      setKingdomState('ERROR');
+    });
+    return () => { mounted = false; };
+  }, [adapter, connection]);
   const [memories, setMemories] = useState<MemoryEntry[]>(memoryStore.getMemories());
   const [filterScope, setFilterScope] = useState<string>('ALL');
   const [newContent, setNewContent] = useState<string>('');
@@ -59,8 +87,8 @@ export const MemoryApp: React.FC = () => {
             <Brain className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white">Centipede Memory Explorer</h2>
-            <p className="text-xs text-slate-400">Scope-Based Knowledge & Trust Hierarchy Inspection</p>
+            <h2 className="text-xl font-bold text-white">Centipede Memory Explorer — Separate Sources</h2>
+            <p className="text-xs text-slate-400">Kingdom server records and local browser notes are separate</p>
           </div>
         </div>
 
@@ -81,9 +109,30 @@ export const MemoryApp: React.FC = () => {
         </div>
       </div>
 
+      <section className="p-4 bg-slate-900 border border-blue-900 rounded-xl space-y-3" aria-label="Kingdom memory">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h3 className="text-white font-bold">Kingdom memory — live read-only</h3>
+            <p className="text-xs text-slate-400">Read from Kingdom, not from this browser's local memory store.</p>
+          </div>
+          <span className="text-xs text-blue-300">{kingdomState}</span>
+        </div>
+        {kingdomState === 'OFFLINE' && <p className="text-xs text-slate-400">Connect Kingdom to inspect its stored memory.</p>}
+        {kingdomState === 'LOADING' && <p className="text-xs text-slate-400">Reading Kingdom memory...</p>}
+        {kingdomState === 'ERROR' && <p role="alert" className="text-xs text-red-300">{kingdomError}</p>}
+        {kingdomState === 'READY' && (kingdomEntries.length === 0
+          ? <p className="text-xs text-slate-400">No memory records returned by Kingdom.</p>
+          : <ul className="space-y-2">{kingdomEntries.map(e => (
+              <li key={e.id} className="rounded-lg bg-slate-950 border border-slate-800 p-3">
+                <span className="text-xs text-blue-300">Kingdom · {e.id}</span>
+                <p className="mt-1 text-sm text-white whitespace-pre-wrap break-words">{e.content}</p>
+              </li>
+            ))}</ul>)}
+      </section>
+      <p className="text-xs text-slate-400">Local notes below are retained in this browser's process and are not a durable backup. Local deletion does not delete a Kingdom memory record. An optional Kingdom write attempt is not proof of synchronization.</p>
       {/* Record Memory Form */}
       <form onSubmit={handleAddMemory} className="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl space-y-3">
-        <div className="text-xs font-bold text-slate-300 uppercase tracking-wider">Record Knowledge Fact</div>
+        <div className="text-xs font-bold text-slate-300 uppercase tracking-wider">Record local session note</div>
         <div className="flex gap-3">
           <input
             type="text"
@@ -105,7 +154,7 @@ export const MemoryApp: React.FC = () => {
             type="submit"
             className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition-colors shadow-lg shadow-cyan-600/30"
           >
-            Record Fact
+            Record local note
           </button>
         </div>
       </form>

@@ -35,6 +35,23 @@ describe('Centipede read-only Kingdom proxy', () => {
     expect(options?.redirect).toBe('error');
   });
 
+  it('exposes only authorized local reads of real Kingdom skills', async () => {
+    process.env.KINGDOM_API_URL = 'http://kingdom.internal:8000';
+    process.env.KINGDOM_API_TOKEN = 'test-owner-token';
+    const calls: string[] = [];
+    globalThis.fetch = (async input => {
+      calls.push(String(input));
+      return new Response(JSON.stringify([{id: 's1', name: 'Example', version: '1.0.0', state: 'INSTALLED', trust_level: 'VERIFIED'}]));
+    }) as typeof fetch;
+    const result = await apiRouter.handleRequest({path: '/api/v1/kingdom/skills', method: 'GET', isLocalAdmin: true});
+    expect(result.status).toBe(200);
+    expect(result.data?.[0].state).toBe('INSTALLED');
+    expect(calls).toEqual(['http://kingdom.internal:8000/skills']);
+    expect((await apiRouter.handleRequest({path: '/api/v1/kingdom/skills', method: 'POST', isLocalAdmin: true})).status).toBe(405);
+    expect((await apiRouter.handleRequest({path: '/api/v1/kingdom/skills', method: 'GET', isLocalAdmin: false})).status).toBe(403);
+    expect(calls).toHaveLength(1);
+  });
+
   it('denies remote requests, write methods, and paths outside the read-only contract', async () => {
     process.env.KINGDOM_API_URL = 'http://kingdom.internal:8000';
     process.env.KINGDOM_API_TOKEN = 'test-owner-token';

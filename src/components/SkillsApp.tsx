@@ -1,9 +1,36 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { KingdomAdapter, kingdomAdapter } from '../api/kingdomAdapter';
+import type { ConnectionState, KingdomSkillItem } from '../types';
 import { skillManager } from '../learning/skillManager';
 import { SkillDefinition } from '../learning/types';
 import { Cpu, ShieldCheck, AlertOctagon, RotateCcw, GitBranch, Play } from 'lucide-react';
 
-export const SkillsApp: React.FC = () => {
+export const SkillsApp: React.FC<{adapter?: KingdomAdapter}> = ({adapter = kingdomAdapter}) => {
+  const [connection, setConnection] = useState<ConnectionState>(adapter.getConnectionState());
+  const [kingdomSkills, setKingdomSkills] = useState<KingdomSkillItem[]>([]);
+  const [kingdomState, setKingdomState] = useState<'OFFLINE' | 'LOADING' | 'READY' | 'ERROR'>('OFFLINE');
+  const [kingdomError, setKingdomError] = useState('');
+  useEffect(() => adapter.subscribeConnection(setConnection), [adapter]);
+  useEffect(() => {
+    let mounted = true;
+    if (connection !== 'CONNECTED') {
+      setKingdomSkills([]);
+      setKingdomState('OFFLINE');
+      return () => { mounted = false; };
+    }
+    setKingdomState('LOADING');
+    adapter.get_skills().then(items => {
+      if (!mounted) return;
+      setKingdomSkills(items);
+      setKingdomState('READY');
+    }).catch((err: unknown) => {
+      if (!mounted) return;
+      setKingdomSkills([]);
+      setKingdomError(err instanceof Error ? err.message : 'Kingdom skill read failed.');
+      setKingdomState('ERROR');
+    });
+    return () => { mounted = false; };
+  }, [adapter, connection]);
   const [baseSkill, setBaseSkill] = useState<SkillDefinition | undefined>(skillManager.getActiveSkill('web-scraper'));
   const [candidate, setCandidate] = useState<SkillDefinition | null>(null);
   const [message, setMessage] = useState<string>('');
@@ -16,7 +43,7 @@ export const SkillsApp: React.FC = () => {
         ['http.get', 'filesystem.write']
       );
       setCandidate(proposed);
-      setMessage(`Candidate skill version v${proposed.version} created for review.`);
+      setMessage(`Local-only skill candidate v${proposed.version} created for review.`);
     } catch (err: any) {
       setMessage(`Failed: ${err.message}`);
     }
@@ -28,7 +55,7 @@ export const SkillsApp: React.FC = () => {
       const res = skillManager.promoteCandidate(candidate.skillId, candidate.version);
       setBaseSkill(res.skill);
       setCandidate(null);
-      setMessage(`Promoted skill v${res.skill.version} to ACTIVE! Capability expansion: ${res.diff.isExpansion ? 'YES' : 'NO'}`);
+      setMessage(`Promoted local demo skill v${res.skill.version} (not installed in Kingdom). Capability expansion: ${res.diff.isExpansion ? 'YES' : 'NO'}`);
     } catch (err: any) {
       setMessage(`Promotion Failed: ${err.message}`);
     }
@@ -38,7 +65,7 @@ export const SkillsApp: React.FC = () => {
     try {
       const restored = skillManager.rollbackSkill('web-scraper');
       setBaseSkill(restored);
-      setMessage(`Skill rolled back to restored ACTIVE version v${restored.version}.`);
+      setMessage(`Rolled back the local demo to v${restored.version}; Kingdom was not changed.`);
     } catch (err: any) {
       setMessage(`Rollback Failed: ${err.message}`);
     }
@@ -52,8 +79,8 @@ export const SkillsApp: React.FC = () => {
             <Cpu className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white">Skill Version & Capability Engine</h2>
-            <p className="text-xs text-slate-400">Immutable Skill Definition, Capability Expansion Diff & Rollback Manager</p>
+            <h2 className="text-xl font-bold text-white">Kingdom Skills and Local Experiments</h2>
+            <p className="text-xs text-slate-400">Kingdom is the authoritative skill registry; local experiments below do not change it.</p>
           </div>
         </div>
 
@@ -62,7 +89,7 @@ export const SkillsApp: React.FC = () => {
           className="flex items-center space-x-2 bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800 font-semibold px-4 py-2 rounded-xl text-xs transition-colors"
         >
           <RotateCcw className="w-4 h-4" />
-          <span>Rollback Skill</span>
+          <span>Rollback local demo</span>
         </button>
       </div>
 
@@ -72,15 +99,39 @@ export const SkillsApp: React.FC = () => {
         </div>
       )}
 
+      <section className="p-4 bg-slate-900 border border-blue-900 rounded-xl space-y-3" aria-label="Kingdom skills">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h3 className="text-white font-bold">Kingdom registered skills — live read-only</h3>
+            <p className="text-xs text-slate-400">Installed/active state and trust come from Kingdom, not a local demonstration.</p>
+          </div>
+          <span className="text-xs text-blue-300">{kingdomState}</span>
+        </div>
+        {kingdomState === 'OFFLINE' && <p className="text-xs text-slate-400">Connect Kingdom to see registered skills.</p>}
+        {kingdomState === 'LOADING' && <p className="text-xs text-slate-400">Reading Kingdom skills...</p>}
+        {kingdomState === 'ERROR' && <p role="alert" className="text-xs text-red-300">{kingdomError}</p>}
+        {kingdomState === 'READY' && (kingdomSkills.length === 0
+          ? <p className="text-xs text-slate-400">Kingdom returned no registered skills.</p>
+          : <ul className="space-y-2">{kingdomSkills.map(skill => (
+              <li key={skill.id} className="rounded-lg bg-slate-950 border border-slate-800 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                  <span className="font-semibold text-white">{skill.name} · v{skill.version}</span>
+                  <span className="text-blue-300">{skill.state} · {skill.trust_level}</span>
+                </div>
+                <p className="mt-1 text-xs text-slate-400">{skill.description || 'No description supplied.'}</p>
+              </li>
+            ))}</ul>)}
+      </section>
+      <p className="text-xs text-slate-400">The local sample below never installs, activates or rolls back a Kingdom skill. Real capability expansion requires Kingdom approval.</p>
       {/* Active Skill Definition */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
         <div className="flex justify-between items-center">
           <div>
-            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Active Verified Skill</span>
+            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Local demonstration skill</span>
             <h3 className="text-lg font-bold text-white">{baseSkill?.name || 'Web Scraper Engine'}</h3>
           </div>
           <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-full text-xs font-bold font-mono">
-            v{baseSkill?.version || '1.0.0'} • ACTIVE
+            v{baseSkill?.version || '1.0.0'} • LOCAL DEMO
           </span>
         </div>
 
@@ -115,14 +166,14 @@ export const SkillsApp: React.FC = () => {
               onClick={handleProposeCandidate}
               className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition-colors shadow-lg shadow-amber-600/30"
             >
-              Propose Candidate v1.1.0
+              Propose local candidate
             </button>
           ) : (
             <button
               onClick={handlePromoteCandidate}
               className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition-colors shadow-lg shadow-emerald-600/30"
             >
-              Promote to ACTIVE
+              Promote local demo
             </button>
           )}
         </div>

@@ -31,3 +31,7 @@ Reviewed Centipede `main` `57dad1be427c7a7ee9efee197405e9c988a3bf0d` (2026-11-07
 ## Acceptance
 
 Required CI typecheck, tests, build, and real fresh-install/Kingdom integration evidence. This PR is code reviewed, **not** a proof that the complete Centipede OS is ship-ready.
+
+## Second-phase read-only integration
+
+The separate `feat/kingdom-live-data-cohesion-20261119` branch reads real Kingdom memory and skill lifecycle state. It labels the browser's local memory and demonstration skill state separately, and does not grant any privileged skill, memory write, or task authority.

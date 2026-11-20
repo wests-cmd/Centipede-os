@@ -75,7 +75,7 @@ Platform build jobs are available in GitHub Actions. Stable-tag publishing waits
 
 ## Integrations
 
-Kingdom is a separate deployment. For initial local setup, only allowlisted read requests are proxied through Centipede; action transport is not enabled through that proxy. Local integrations and browser prototypes must not be described as executed Kingdom work. See the [integration audit](docs/INTEGRATION_COHESION_AUDIT.md).
+Kingdom is a separate deployment. For initial local setup, only allowlisted read requests are proxied through Centipede; action transport is not enabled through that proxy. The Memory screen also shows live Kingdom memory records, and the Skills screen shows Kingdom's registered skills and lifecycle states when connected. These are distinct from browser-local notes and skill demonstrations; both Kingdom views are read-only. Local integrations and browser prototypes must not be described as executed Kingdom work. See the [integration audit](docs/INTEGRATION_COHESION_AUDIT.md).
 
 ## Mobile companion prototype
 

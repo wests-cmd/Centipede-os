@@ -133,6 +133,18 @@ export interface ModelHealth {
   [key: string]: any;
 }
 
+/** The signed-in Kingdom's registered skill record, not a local demo skill. */
+export interface KingdomSkillItem {
+  id: string;
+  name: string;
+  version: string;
+  description?: string;
+  state: 'SAVED' | 'INSTALLED' | 'ACTIVE' | 'DISABLED' | 'INCOMPATIBLE' | 'QUARANTINED';
+  trust_level: 'UNTRUSTED' | 'COMMUNITY' | 'VERIFIED' | 'CORE';
+  security_status?: string;
+  capability?: string;
+}
+
 export interface MemoryEntry {
   id: string;
   content: string;
