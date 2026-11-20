@@ -11,13 +11,30 @@ for tool in lb qemu-img; do
   command -v "$tool" >/dev/null || { echo "Missing required build tool: $tool" >&2; exit 2; }
 done
 
+# Passing the build runner's Bun path explicitly avoids sudo secure_path
+# dropping a valid Bun installation. The resulting ISO embeds a standalone
+# local API executable; it does not require runtime access to npm or Bun.
+BUN_PATH="${CENTIPEDE_BUN_BIN:-$(command -v bun || true)}"
+test -n "$BUN_PATH" && test -x "$BUN_PATH" || {
+  echo "Bun is required to compile the Centipede live-image API runtime." >&2
+  exit 2
+}
+
 npm --prefix "$ROOT" run build
 rm -rf "$BUILD"
-mkdir -p "$BUILD/config/includes.chroot/opt/centipede/web" "$OUT/iso" "$OUT/live-usb" "$OUT/vm"
+mkdir -p "$BUILD/config/includes.chroot/opt/centipede/web/dist" \
+  "$BUILD/config/includes.chroot/usr/local/bin" "$OUT/iso" "$OUT/live-usb" "$OUT/vm"
 cp -a "$CONFIG/." "$BUILD/config/"
 find "$BUILD/config" -type d -name __pycache__ -prune -exec rm -rf {} +
 find "$BUILD/config" -type f -name '*.py[co]' -delete
-cp -a "$ROOT/dist/." "$BUILD/config/includes.chroot/opt/centipede/web/"
+cp -a "$ROOT/dist/." "$BUILD/config/includes.chroot/opt/centipede/web/dist/"
+# Compile the *same* production router used in the Docker image, including
+# the owner-authorized tasks API, the local Files broker and pairing routes.
+# Keep a baseline CPU target; the target CPU still needs SSE4.2 support.
+"$BUN_PATH" build "$ROOT/src/server/production.ts" --compile \
+  --target=bun-linux-x64 --outfile "$BUILD/config/includes.chroot/usr/local/bin/centipede-server"
+test -s "$BUILD/config/includes.chroot/usr/local/bin/centipede-server"
+chmod 0755 "$BUILD/config/includes.chroot/usr/local/bin/centipede-server"
 mkdir -p "$BUILD/config/includes.binary/boot/grub"
 cp "$ROOT/public/branding/centipede-boot-emblem.png" "$BUILD/config/includes.binary/boot/grub/centipede-boot-emblem.png"
 mkdir -p "$BUILD/config/includes.chroot/etc/centipede"

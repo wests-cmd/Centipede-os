@@ -1,0 +1,11 @@
+# Packaged localhost API runtime (release candidate)
+
+The earlier Debian live image used a Python static-only HTTP server, so the latest source features such as Kingdom owner task actions, secure pairing and local Files were inaccessible inside the OS image. This change embeds a **Bun-compiled standalone executable** built from `src/server/production.ts` plus the frontend `dist/` tree, then starts it on **127.0.0.1:3000** as the dedicated `centipede-web` user.
+
+A real `GET /api/v1/health` response from that binary is now required by the QEMU/desktop readiness marker. The image still uses Chromium internally but starts it in an application-style window without browser tabs/address bar.
+
+**Security boundaries:** `StateDirectory=centipede` confines API data to `/var/lib/centipede` (mode 0700) under the service identity. systemd retains `ProtectSystem=strict`, `NoNewPrivileges`, `PrivateDevices`, and empty capabilities. No Kingdom owner token is embedded in the public image. To enable real Kingdom operations, an administrator must separately set `KINGDOM_API_URL` and `KINGDOM_API_TOKEN` in an **owner-controlled, 0600** `/etc/centipede/kingdom.env`. For remote Kingdom addresses use HTTPS, not unsecured HTTP. Without that configuration, protected actions fail closed.
+
+**Limitations:** A live ISO normally has ephemeral user data. A full persistent installer, OS upgrades/rollback, phone scope, accessibility certification, safe GUI fallback after X server failure, and actual DT1/Laptop 2 Kingdom worker proof remain unimplemented. Since Bun currently needs SSE4.2 on x86-64, compatibility must be measured on older AMD/Intel devices; a CPU without SSE4.2 needs a different runtime. No GA release or hardware certification is claimed. <5 GB and 4 GB RAM targets require measured artifact/runtime evidence.
+
+**Acceptance:** platform-builds.yml now compiles the actual service, boots the candidate ISO with QEMU, and requires the HTTP API readiness signal as well as the GUI. A compiled-service request with wrong/missing owner access must return 401/403/503, not success. CI must validate BIOS/UEFI Safe Graphics and compare the exact built ISO and Live USB bytes. Physical tests still required.

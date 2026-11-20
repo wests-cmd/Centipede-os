@@ -231,7 +231,7 @@ jobs:
           bun-version: latest
       - run: bun install --frozen-lockfile
       - name: Build bootable images
-        run: sudo -E bash scripts/build-live-image.sh
+        run: sudo -E env CENTIPEDE_BUN_BIN="$(command -v bun)" bash scripts/build-live-image.sh
       - name: Restore artifact ownership for QEMU and upload
         run: sudo chown -R "$(id -u):$(id -g)" release/iso release/live-usb release/vm
       - name: Validate image outputs

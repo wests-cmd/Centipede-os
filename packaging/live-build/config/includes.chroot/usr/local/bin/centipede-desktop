@@ -12,5 +12,7 @@ until python3 -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.
   fi
   sleep 2
 done
-echo "Starting Centipede desktop in a maximized browser window"
-exec chromium --no-first-run --disable-infobars --disable-gpu --start-maximized http://127.0.0.1:3000
+echo "Starting Centipede desktop in its own Chromium application window"
+# Chromium app mode opens its own desktop window without browser tabs/address bar.
+# This is still a Chromium-backed GUI rather than a kernel-native shell.
+exec chromium --no-first-run --disable-infobars --disable-gpu --start-maximized --app=http://127.0.0.1:3000
