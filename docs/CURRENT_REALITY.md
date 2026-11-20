@@ -1,11 +1,11 @@
-# Centipede OS v1.0.0 release candidate reality
+# Centipede OS v1.0.0 historical release and current branch reality
 
 **Core version source:** `package.json` (`1.0.0`)
 **Target release gate:** `release/targets.json`
 **Kingdom compatibility:** protocol major `1`; contract version `1.4.0`; Kingdom remains an external service.
-**Release state:** candidate only. No stable GitHub Release has been published.
+**Release state:** `v1.0.0` published September 30, 2026 with ISO/USB/VM/Docker/desktop assets. It is an older browser-kiosk live/prototype release, **not** a verified OS installer or a release of current `main`.
 
-## Verified on the prior branch head
+## Historical build evidence (not current main)
 
 The GitHub-hosted workflow run [36601824289](https://github.com/wests-cmd/Centipede-os/actions/runs/36601824289) completed the platform matrix at commit `127f0e1e40bc8c3c39e99926c293a4d0cf06d5dd`. It built and checked the Debian live ISO, byte-identical Live USB image, qcow2 VM media, Docker image, Android debug APK, and iOS Simulator app. QEMU reached the Centipede kiosk and local web app readiness marker. The main CI and CodeQL workflows also passed on that commit. These results predate the current synchronization/fixes and must be rerun before release.
 
@@ -22,7 +22,7 @@ The GitHub-hosted workflow run [36601824289](https://github.com/wests-cmd/Centip
 | iOS device IPA | BLOCKED | Simulator app was built for CI only. Device distribution requires Apple signing/provisioning and explicit enablement. |
 | Kingdom service | EXTERNAL | No live Kingdom deployment was available in the build verification. The Compose stack no longer impersonates it. |
 
-The release manifest and `SHA256SUMS` are produced by the aggregate release validator only. It consumes artifacts from the same workflow run and checks build-job checksums against the downloaded files before packaging. Blocked targets are omitted. A stable release can contain only configured BUILDABLE targets after the synchronized branch passes all release gates.
+The published [v1.0.0 release](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0) includes a release manifest and `SHA256SUMS`; future releases use the aggregate release validator. It consumes artifacts from the same workflow run and checks build-job checksums against the downloaded files before packaging. Blocked targets are omitted. A stable release can contain only configured BUILDABLE targets after the synchronized branch passes all release gates.
 
 ## Known limitations
 

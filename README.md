@@ -8,13 +8,28 @@ Kingdom is a separate project and runtime. This repository contains a client and
 
 ## Status and roadmap
 
-Centipede `v1.0.0` has a desktop web bundle and platform build workflows for a Debian live ISO/USB image, QEMU VM disk, Android app, iOS app, and Docker image. The OS images launch the web app in a Chromium kiosk session; they do not add host-level Centipede execution or Kingdom. No stable GitHub release has been published. The synchronized tag workflow is designed to publish only verified BUILDABLE targets; Android device distribution and iOS device distribution remain BLOCKED until publisher credentials are configured.
+Centipede `v1.0.0` has a desktop web bundle and platform build workflows for a Debian live ISO/USB image, QEMU VM disk, Android app, iOS app, and Docker image. The OS images launch the web app in a Chromium kiosk session; they do not add host-level Centipede execution or Kingdom. An older stable-labelled GitHub Release `v1.0.0` was published on September 30, 2026, but it is a live/browser-kiosk prototype; it does **not** contain the current `main` branch and is not a completed daily-driver installer. The synchronized tag workflow is designed to publish only verified BUILDABLE targets; Android device distribution and iOS device distribution remain BLOCKED until publisher credentials are configured.
 
 Android and iOS use native Capacitor projects. Android release APKs require an Android signing key; iOS device builds require Apple distribution signing and provisioning. Branch builds produce only debug APK and simulator validation outputs. ISO, USB, VM, and Docker image jobs run on GitHub-hosted Linux runners. See [the ship reality matrix](docs/SHIP_REALITY_MATRIX.md) and [platform build guide](docs/PLATFORM_BUILD_GUIDE.md) for evidence and release prerequisites.
 
 The desktop bundle requires a separately operated Kingdom service for Kingdom-backed actions. The Compose file does not install or implement Kingdom.
 
 Several desktop panels are prototypes or use browser-local/example data. An owner-unlocked, local-only Centipede Files workspace now supports reading/listing and creating files/folders under a dedicated directory; it is not full host file access. Remote phone tasks, a complete OS installer, general host storage management and system rollback are not yet provided. Native mobile packages display the same web UI. Stable Android/iOS distribution remains BLOCKED until the matching signing assets and release gates are configured.
+
+## Download a published Centipede image
+
+The following are **verified assets from the older [v1.0.0 GitHub Release](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0), published September 30, 2026**. They do **not** include the more recent Kingdom task, Workspace, or Files fixes on `main`. This is a live/prototype release—not a certified permanent OS installer.
+
+| Download | What you get |
+|---|---|
+| [Bootable USB image (.iso)](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.0/centipede-os-1.0.0-live-usb-x86_64.iso) | Flash to USB; runs Debian live desktop with Centipede kiosk. |
+| [ISO for live boot or VM (.iso)](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.0/centipede-os-1.0.0-x86_64.iso) | Bootable live image; **not** a permanent disk installer. |
+| [VM image (.qcow2)](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.0/centipede-os-1.0.0-x86_64.qcow2) | Prebuilt QEMU VM media. |
+| [Docker image (.tar)](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.0/centipede-docker-image-1.0.0.tar) | Web application server image; Kingdom not included. |
+| [Desktop web bundle (.tar.gz)](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.0/centipede-os-1.0.0-desktop-web-bundle.tar.gz) | Browser application bundle for developers. |
+| [Checksums (SHA256SUMS)](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.0/SHA256SUMS) | Validate downloaded files before use. |
+
+Android debug builds and iOS Simulator outputs are **not** publicly supported signed phone releases. See [beginner USB setup](docs/INSTALLATION_GUIDE.md) and [actual shipping scope](docs/SHIP_REALITY_MATRIX.md).
 
 ## Overview
 
@@ -41,7 +56,7 @@ Centipede is currently a browser-based desktop application. Its verified live in
 - **Kingdom API client**: The app can query the separately deployed Kingdom API and submit tasks or approval requests. Kingdom deployment and policy must be verified independently.
 - **Browser storage**: Client preferences are stored in browser local storage. Other memory views are not a promise of durable host storage.
 - **Local Files**: Owner-unlocked real files in a private service-owned directory, no overwrite/delete or arbitrary system file access. See [Files limitations](docs/LOCAL_FILES_WORKSPACE.md).
-- **Mobile companion prototype**: The pairing and ingestion screens are local simulations, not remote phone connectivity or native mobile applications.
+- **Mobile companion prototype**: Capacitor Android/iOS project shells exist, but signed production devices, complete remote workflows, and store distribution remain blocked.
 
 ---
 
@@ -127,7 +142,7 @@ Configure Kingdom in the first-run wizard. The default local server's `/api/v1/k
 ## Security FAQ
 
 ### Q: Can this application delete my files or execute system commands?
-This browser application does not have host file or shell access. Kingdom-backed actions are handled by the separately deployed Kingdom service; review that deployment's authorization and policy configuration independently.
+The browser UI has no unrestricted host file or shell access. The newly merged local-only Files broker supports limited operations in a dedicated folder after owner unlock; the older published v1.0.0 image does not contain that feature. Kingdom-backed actions are handled by the separately deployed Kingdom service; review that deployment's authorization and policy configuration independently.
 
 ### Q: Does this release certify prompt-injection or host security protections?
 No. The UI contains security-related demonstrations, but this release does not certify system-wide isolation, prompt-injection resistance, or Kingdom deployment security.
