@@ -14,7 +14,7 @@ Android and iOS use native Capacitor projects. Android release APKs require an A
 
 The desktop bundle requires a separately operated Kingdom service for Kingdom-backed actions. The Compose file does not install or implement Kingdom.
 
-Several desktop panels are prototypes or use browser-local/example data. The application does not provide host file access, remote phone pairing, an OS installer, host storage management, or system rollback. Native mobile packages display the same web UI. Stable Android/iOS distribution remains BLOCKED until the matching signing assets and release gates are configured.
+Several desktop panels are prototypes or use browser-local/example data. An owner-unlocked, local-only Centipede Files workspace now supports reading/listing and creating files/folders under a dedicated directory; it is not full host file access. Remote phone tasks, a complete OS installer, general host storage management and system rollback are not yet provided. Native mobile packages display the same web UI. Stable Android/iOS distribution remains BLOCKED until the matching signing assets and release gates are configured.
 
 ## Overview
 
@@ -40,6 +40,7 @@ Centipede is currently a browser-based desktop application. Its verified live in
 - **Segmentor UI**: A local intent and permission-gating interface; it does not provide host file or shell access.
 - **Kingdom API client**: The app can query the separately deployed Kingdom API and submit tasks or approval requests. Kingdom deployment and policy must be verified independently.
 - **Browser storage**: Client preferences are stored in browser local storage. Other memory views are not a promise of durable host storage.
+- **Local Files**: Owner-unlocked real files in a private service-owned directory, no overwrite/delete or arbitrary system file access. See [Files limitations](docs/LOCAL_FILES_WORKSPACE.md).
 - **Mobile companion prototype**: The pairing and ingestion screens are local simulations, not remote phone connectivity or native mobile applications.
 
 ---

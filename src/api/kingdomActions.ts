@@ -1,6 +1,9 @@
 import type { TaskItem } from '../types';
 
 type Listener = (unlocked: boolean) => void;
+export interface HostFileItem { name: string; kind: 'file' | 'directory'; size: number; }
+export interface HostFileList { directory: string; entries: HostFileItem[]; truncated: boolean; }
+export interface HostFileRead { path: string; content: string; size: number; }
 
 /** Owner code is sent once to localhost and never retained in web storage or this class. */
 export class KingdomActions {
@@ -19,8 +22,9 @@ export class KingdomActions {
   private notify(): void {
     for (const fn of this.listeners) fn(this.isUnlocked());
   }
-  private async request(path: string, payload: object): Promise<any> {
-    const response = await fetch(`/api/v1/kingdom/actions/${path}`, {
+  private async request(path: string, payload: object, scope: 'kingdom' | 'files' = 'kingdom'): Promise<any> {
+    const base = scope === 'files' ? '/api/v1/host-files' : '/api/v1/kingdom/actions';
+    const response = await fetch(`${base}/${path}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -73,6 +77,22 @@ export class KingdomActions {
       throw new Error('Kingdom did not return a confirmed task ID. Inspect Tasks before retrying.');
     }
     return task as TaskItem;
+  }
+  public async listHostFiles(directory: string): Promise<HostFileList> {
+    if (!this.isUnlocked()) throw new Error('Unlock owner actions to browse local Files.');
+    return this.request('list', { directory }, 'files');
+  }
+  public async readHostFile(path: string): Promise<HostFileRead> {
+    if (!this.isUnlocked()) throw new Error('Unlock owner actions to preview local Files.');
+    return this.request('read', { path }, 'files');
+  }
+  public async createHostFile(directory: string, name: string, content: string): Promise<void> {
+    if (!this.isUnlocked()) throw new Error('Unlock owner actions to create local Files.');
+    await this.request('create', { directory, name, content }, 'files');
+  }
+  public async createHostDirectory(directory: string, name: string): Promise<void> {
+    if (!this.isUnlocked()) throw new Error('Unlock owner actions to create local folders.');
+    await this.request('mkdir', { directory, name }, 'files');
   }
   public async cancelTask(id: string): Promise<TaskItem> {
     if (!this.isUnlocked()) throw new Error('Unlock the Kingdom owner session to cancel a task.');

@@ -171,3 +171,11 @@ export function resetOwnerActionSessionsForTests(): void {
   failedUnlocks = 0;
   failureWindowStart = 0;
 }
+
+/** The same short-lived local owner session protects the separate Files broker. */
+export function isLocalOwnerActionAuthorized(req: ApiRequest): boolean {
+  const explicit = Object.entries(req.headers || {}).find(([k]) => k.toLowerCase() === 'x-centipede-owner-intent')?.[1];
+  if (!req.isLocalAdmin || explicit !== '1') return false;
+  const token = Object.entries(req.headers || {}).find(([k]) => k.toLowerCase() === 'x-centipede-action-session')?.[1];
+  return typeof token === 'string' && validSession(req, token);
+}
