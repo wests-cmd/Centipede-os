@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
 const file = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 
 describe('Debian live-image static web hardening and fallback', () => {
@@ -19,6 +20,18 @@ describe('Debian live-image static web hardening and fallback', () => {
     expect(hook).toContain('adduser --system');
     expect(hook).toContain('chown -R root:root /opt/centipede/web');
     expect(build).toContain('0150-centipede-security.hook.chroot');
+  });
+  it('keeps all installation and recovery shell scripts syntactically valid', () => {
+    for (const path of [
+      'packaging/live-build/config/hooks/normal/0150-centipede-security.hook.chroot',
+      'packaging/live-build/config/includes.chroot/usr/local/bin/centipede-recovery',
+      'packaging/live-build/config/includes.chroot/usr/local/bin/centipede-desktop',
+    ]) {
+      const result = spawnSync('sh', ['-n', join(process.cwd(), path)]);
+      expect(result.status, String(result.stderr)).toBe(0);
+    }
+    const build = spawnSync('bash', ['-n', join(process.cwd(), 'scripts/build-live-image.sh')]);
+    expect(build.status, String(build.stderr)).toBe(0);
   });
   it('provides a graphical service-failure fallback without destructive recovery steps', () => {
     const entry = file('packaging/live-build/config/includes.chroot/usr/local/bin/centipede-desktop');
