@@ -5,14 +5,14 @@ import { spawnSync } from 'node:child_process';
 const file = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 
 describe('Debian live-image static web hardening and fallback', () => {
-  it('does not run the local static server as root and confines it to loopback', () => {
+  it('runs the bundled local API server unprivileged and confines it to loopback', () => {
     const unit = file('packaging/live-build/config/includes.chroot/etc/systemd/system/centipede-web.service');
     expect(unit).toContain('User=centipede-web');
     expect(unit).toContain('Group=centipede-web');
     expect(unit).not.toContain('User=root');
     for (const flag of ['NoNewPrivileges=yes', 'PrivateDevices=yes', 'ProtectSystem=strict', 'ProtectHome=yes','CapabilityBoundingSet='])
       expect(unit).toContain(flag);
-    expect(unit).toContain('--bind 127.0.0.1');
+    expect(unit).toContain('Environment=HOST=127.0.0.1');
   });
   it('creates the service account in live-build and sets application content owner', () => {
     const hook = file('packaging/live-build/config/hooks/normal/0150-centipede-security.hook.chroot');
