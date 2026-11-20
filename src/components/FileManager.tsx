@@ -1,86 +1,110 @@
-import React, { useState } from 'react';
-import { FileText, Folder, HardDrive, ChevronRight, FileCode, File } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { kingdomActions, type HostFileItem } from '../api/kingdomActions';
+import { KingdomActionUnlock } from './KingdomActionUnlock';
+import { Folder, FileText, ArrowUp, RefreshCw, FolderPlus, FilePlus } from 'lucide-react';
 
+/** A real private on-disk workspace, not a full-disk or browser-simulated file manager. */
 export const FileManager: React.FC = () => {
-  const [selectedFile, setSelectedFile] = useState<string | null>('KINGDOM_INTEGRATION.md');
+  const [unlocked, setUnlocked] = useState(kingdomActions.isUnlocked());
+  const [directory, setDirectory] = useState('');
+  const [items, setItems] = useState<HostFileItem[]>([]);
+  const [selected, setSelected] = useState('');
+  const [text, setText] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newText, setNewText] = useState('');
+  const [newFolder, setNewFolder] = useState('');
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [truncated, setTruncated] = useState(false);
+  useEffect(() => kingdomActions.subscribe(setUnlocked), []);
 
-  const files = [
-    { name: 'KINGDOM_INTEGRATION.md', type: 'doc', size: '4.2 KB', desc: 'Kingdom integration specification' },
-    { name: 'configs/runtime.yaml', type: 'config', size: '1.1 KB', desc: 'Runtime configuration file' },
-    { name: 'logs/audit.log', type: 'log', size: '12.4 KB', desc: 'ZeroTrust Security audit log' },
-    { name: 'memory/snapshots/latest.json', type: 'data', size: '28.1 KB', desc: 'Memory graph snapshot' },
-    { name: 'maps/intelligence_map.json', type: 'map', size: '15.0 KB', desc: 'Swarm intelligence graph' },
-  ];
+  const refresh = async (path = directory) => {
+    try {
+      const data = await kingdomActions.listHostFiles(path);
+      setItems(data.entries);
+      setTruncated(data.truncated);
+      setError('');
+    } catch (err) {
+      setItems([]);
+      setError(err instanceof Error ? err.message : 'Files service unavailable.');
+    }
+  };
+  useEffect(() => {
+    setItems([]);
+    setSelected('');
+    setText('');
+    if (unlocked) void refresh(directory);
+  }, [unlocked, directory]);
 
-  const fileContents: Record<string, string> = {
-    'KINGDOM_INTEGRATION.md': '# Kingdom Integration Guide\n\nCentipede OS connects to Kingdom via REST API & WebSockets.\nProtocol & Capability Discovery: Dynamic Negotiation\nSecurity: ZeroTrust Enabled.',
-    'configs/runtime.yaml': 'mode: adaptive\nscheduler: enabled\nsecurity: zero_trust\nauto_connect: true',
-    'logs/audit.log': '[2026-03-06T17:00:00Z] decision=ALLOWED actor=admin cap=model.inference\n[2026-03-06T17:01:00Z] decision=REQUIRES_APPROVAL actor=centipede cap=filesystem.delete',
-    'memory/snapshots/latest.json': '{\n  "version": "1.0",\n  "entries_count": 42,\n  "graph": { "nodes": [], "edges": [] }\n}',
-    'maps/intelligence_map.json': '{\n  "name": "primary_swarm",\n  "nodes": ["planner", "coder", "researcher", "security"]\n}',
+  const openItem = async (item: HostFileItem) => {
+    const path = [directory, item.name].filter(Boolean).join('/');
+    if (item.kind === 'directory') { setDirectory(path); return; }
+    setSelected(path); setText(''); setBusy(true); setError('');
+    try { const file = await kingdomActions.readHostFile(path); setText(file.content); }
+    catch (err) { setError(err instanceof Error ? err.message : 'File preview unavailable.'); }
+    finally { setBusy(false); }
+  };
+  const createFile = async (event: React.FormEvent) => {
+    event.preventDefault(); setBusy(true); setError(''); setMessage('');
+    try {
+      await kingdomActions.createHostFile(directory, newName, newText);
+      setNewName(''); setNewText(''); setMessage('New text file saved to the local workspace.');
+      await refresh();
+    } catch (err) { setError(err instanceof Error ? err.message : 'File creation failed.'); }
+    finally { setBusy(false); }
+  };
+  const createFolder = async (event: React.FormEvent) => {
+    event.preventDefault(); setBusy(true); setError(''); setMessage('');
+    try {
+      await kingdomActions.createHostDirectory(directory, newFolder);
+      setNewFolder(''); setMessage('Folder created.'); await refresh();
+    } catch (err) { setError(err instanceof Error ? err.message : 'Folder creation failed.'); }
+    finally { setBusy(false); }
   };
 
-  return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center space-x-3 mb-2">
-        <Folder className="w-7 h-7 text-cyan-400" />
-        <div>
-          <h2 className="text-2xl font-bold text-white">Sample File Viewer</h2>
-          <p className="text-slate-400 text-sm">Built-in demonstration content only. This view does not read files from your device.</p>
+  return <div className="p-6 max-w-5xl mx-auto space-y-5">
+    <header className="p-5 rounded-2xl bg-slate-900 border border-slate-700">
+      <h2 className="text-xl font-semibold text-white flex gap-2 items-center"><Folder className="text-blue-400"/>Centipede Files — Local Workspace</h2>
+      <p className="text-slate-300 text-sm mt-2">Real folders and text files on this computer in one restricted Centipede directory. This is not a full-system file manager: deleting, editing, copying, external disks and binary previews are not enabled.</p>
+    </header>
+    <KingdomActionUnlock/>
+    {!unlocked && <p role="status" className="p-3 bg-slate-900 border border-blue-800 rounded-xl text-slate-200 text-sm">Files are locked. Unlock on this computer to browse or create real files; no sample files are shown as real data.</p>}
+    {error && <p role="alert" className="p-3 bg-slate-950 border border-red-800 rounded-xl text-red-300 text-sm">{error}</p>}
+    {message && <p role="status" className="p-3 bg-slate-950 border border-blue-800 rounded-xl text-blue-300 text-sm">{message}</p>}
+    <div className="grid md:grid-cols-3 gap-4">
+      <section className="rounded-2xl border border-slate-700 bg-slate-900 p-4 space-y-3">
+        <div className="flex gap-2 items-center justify-between">
+          <h3 className="text-slate-200 text-sm font-semibold break-all">/{directory || 'Centipede Files'}</h3>
+          <button aria-label="Parent folder" type="button" disabled={!unlocked || !directory} onClick={() => setDirectory(directory.split('/').slice(0,-1).join('/'))} className="text-blue-300 disabled:opacity-40"><ArrowUp className="w-4 h-4"/></button>
+          <button aria-label="Refresh files" type="button" disabled={!unlocked || busy} onClick={() => void refresh()} className="text-blue-300 disabled:opacity-40"><RefreshCw className="w-4 h-4"/></button>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Directory Navigator */}
-        <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-4 space-y-2">
-          <div className="flex items-center space-x-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-2">
-            <HardDrive className="w-4 h-4 text-cyan-400" />
-            <span>Example File List</span>
-          </div>
-
-          {files.map((file) => (
-            <button
-              key={file.name}
-              onClick={() => setSelectedFile(file.name)}
-              className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-colors ${
-                selectedFile === file.name
-                  ? 'bg-cyan-950/40 border-cyan-500 text-cyan-300'
-                  : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:bg-slate-800/60'
-              }`}
-            >
-              <div className="flex items-center space-x-2 min-w-0">
-                <FileCode className="w-4 h-4 text-cyan-400 flex-shrink-0" />
-                <span className="text-sm font-medium truncate">{file.name}</span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-slate-500 flex-shrink-0" />
-            </button>
-          ))}
+        {!items.length && unlocked && <p className="text-sm text-slate-400">No files found in this folder.</p>}
+        {items.map(item => <button type="button" key={item.name} disabled={!unlocked || busy} onClick={() => void openItem(item)}
+          className="w-full flex items-center gap-2 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg p-2 text-slate-200 text-sm text-left disabled:opacity-40">
+          {item.kind === 'directory' ? <Folder className="w-4 h-4 text-blue-400"/> : <FileText className="w-4 h-4 text-slate-400"/>}
+          <span className="truncate">{item.name}</span></button>)}
+        {truncated && <p className="text-xs text-slate-400">First 200 entries shown; directory listing is truncated.</p>}
+      </section>
+      <section className="md:col-span-2 rounded-2xl border border-slate-700 bg-slate-900 p-4 space-y-4">
+        <div><h3 className="text-slate-200 font-semibold">{selected || 'Text preview'}</h3>
+          <pre className="mt-2 bg-slate-950 border border-slate-800 p-3 min-h-32 rounded-xl text-xs text-slate-200 whitespace-pre-wrap break-all overflow-auto">{selected ? (text || '(Empty text or preview unavailable)') : 'Choose a text file to inspect.'}</pre>
         </div>
-
-        {/* File Viewer Panel */}
-        <div className="md:col-span-2 bg-slate-800/60 border border-slate-700 rounded-2xl p-5 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-700 mb-4">
-              <div className="flex items-center space-x-2">
-                <FileText className="w-5 h-5 text-cyan-400" />
-                <span className="font-semibold text-white">{selectedFile}</span>
-              </div>
-              <span className="text-xs text-slate-400 font-mono">
-                {files.find((f) => f.name === selectedFile)?.size || '0 KB'}
-              </span>
-            </div>
-
-            <pre className="bg-slate-950 border border-slate-800 text-slate-200 text-xs font-mono p-4 rounded-xl overflow-x-auto min-h-[220px] whitespace-pre-wrap">
-              {selectedFile ? fileContents[selectedFile] || 'Empty file content' : 'Select a file to inspect'}
-            </pre>
+        <form onSubmit={createFile} className="border-t border-slate-800 pt-3 space-y-2">
+          <label htmlFor="new-text-file" className="text-slate-200 text-sm flex items-center gap-2"><FilePlus className="w-4 h-4 text-blue-400"/>New text file</label>
+          <input id="new-text-file" placeholder="notes.txt" value={newName} onChange={e => setNewName(e.target.value)} disabled={!unlocked} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"/>
+          <textarea aria-label="New file contents" placeholder="New file contents" rows={3} value={newText} onChange={e => setNewText(e.target.value)} disabled={!unlocked} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"/>
+          <button type="submit" disabled={!unlocked || busy || !newName.trim()} className="px-3 py-2 rounded-lg bg-blue-700 text-white text-sm disabled:opacity-40">Create file (no overwrite)</button>
+        </form>
+        <form onSubmit={createFolder} className="space-y-2">
+          <label htmlFor="new-workspace-folder" className="text-slate-200 text-sm flex gap-2 items-center"><FolderPlus className="w-4 h-4 text-blue-400"/>New folder</label>
+          <div className="flex flex-wrap gap-2">
+            <input id="new-workspace-folder" placeholder="Projects" value={newFolder} onChange={e => setNewFolder(e.target.value)} disabled={!unlocked} className="flex-1 bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"/>
+            <button type="submit" disabled={!unlocked || busy || !newFolder.trim()} className="px-3 py-2 rounded-lg border border-blue-800 text-blue-300 text-sm disabled:opacity-40">Create folder</button>
           </div>
-
-          <div className="mt-4 pt-3 border-t border-slate-700/60 text-xs text-slate-400 flex justify-between">
-            <span>Built-in demonstration content</span>
-            <span className="text-slate-400 font-mono">No host file access</span>
-          </div>
-        </div>
-      </div>
+        </form>
+      </section>
     </div>
-  );
+    <p className="text-xs text-slate-400">Local-only owner session; the backend rejects path traversal, symbolic links, unsupported file types and overwrites. Full native file management remains a release requirement.</p>
+  </div>;
 };
