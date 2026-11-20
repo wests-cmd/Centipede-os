@@ -14,7 +14,7 @@ This guide is for trying Centipede OS from a USB drive. It uses buttons and menu
 
 Click the [direct Centipede OS v1.0.0 ISO download](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.0/centipede-os-1.0.0-x86_64.iso) and save the file. If your browser asks, choose **Save**. It will usually go into your **Downloads** folder.
 
-The current public v1.0.0 download has the original desktop layout. The redesigned desktop with free Chromium, LibreOffice, Thunderbird, and VLC is in the next build on `main`, but has not been published as a new stable download yet.
+The public `v1.0.0` release was published on September 30, 2026. It is the older live/browser-kiosk layout and **does not include** the later merged Kingdom owner task actions, Workspace task handoff, or on-disk Files workspace. Check the [release page](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0) and [SHA256SUMS](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.0/SHA256SUMS) to verify your file. A newly verified installer for permanent use has not been released.
 
 ## 2. Write the download to the USB
 
