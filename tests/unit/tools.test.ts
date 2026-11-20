@@ -53,8 +53,8 @@ test('Attack 3 — Model Cannot Lower Authoritative Tool Risk Class', async () =
 
   const res = await toolExecutor.execute(req);
   // Authoritative CRITICAL risk class and requiresApproval remain enforced!
-  expect(res.status).toBe('PENDING');
-  expect(res.data?.message).toContain('Approval request created');
+  expect(res.status).toBe('BLOCKED');
+  expect(res.error).toContain('NOT created');
 });
 
 test('Attack 4 — Missing Required Parameters Block Execution', async () => {

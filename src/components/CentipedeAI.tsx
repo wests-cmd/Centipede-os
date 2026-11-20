@@ -1,219 +1,89 @@
 import React, { useEffect, useState } from 'react';
 import { KingdomAdapter } from '../api/kingdomAdapter';
-import { centipedeAIPipeline, conversationManager } from '../ai';
-import { Message, UserInput } from '../ai/types';
-import { Bot, CheckCircle2, ShieldAlert, ArrowRight, Play, Lock, Cpu, Sparkles } from 'lucide-react';
-import { SpeechOutput } from './SpeechOutput';
+import { kingdomActions } from '../api/kingdomActions';
+import type { TaskItem } from '../types';
+import { KingdomActionUnlock } from './KingdomActionUnlock';
+import { Bot, RefreshCw, ShieldAlert, Play } from 'lucide-react';
 
 interface CentipedeAIProps {
   adapter: KingdomAdapter;
   onNavigateSecurity: () => void;
 }
 
+/** Segmentor is a Kingdom task client, not a second executor or fake chat completion engine. */
 export const CentipedeAI: React.FC<CentipedeAIProps> = ({ adapter, onNavigateSecurity }) => {
-  const [promptInput, setPromptInput] = useState('');
-  const [activeMessage, setActiveMessage] = useState<Message | null>(null);
-  const [messagesHistory, setMessagesHistory] = useState<Message[]>([]);
+  const [prompt, setPrompt] = useState('');
+  const [connection, setConnection] = useState(adapter.getConnectionState());
+  const [unlocked, setUnlocked] = useState(kingdomActions.isUnlocked());
+  const [task, setTask] = useState<TaskItem | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  useEffect(() => adapter.subscribeConnection(setConnection), [adapter]);
+  useEffect(() => kingdomActions.subscribe(setUnlocked), []);
 
+  const refresh = async (id: string) => {
+    try {
+      const latest = await adapter.get_task(id);
+      setTask(latest);
+      if (latest.status === 'unknown') setError('Kingdom task state unknown due to connection loss. No success is assumed.');
+      else setError('');
+    } catch (e) {
+      setError(`Could not verify Kingdom task state: ${e instanceof Error ? e.message : 'unavailable'}`);
+    }
+  };
   useEffect(() => {
-    const unsub = centipedeAIPipeline.subscribePipeline((msg) => {
-      setActiveMessage(msg);
-      setMessagesHistory([...conversationManager.getActiveConversation().messages]);
-    });
-    return () => unsub();
-  }, []);
+    if (!task?.id || connection !== 'CONNECTED') return;
+    if (['completed', 'failed', 'cancelled'].includes(task.status.toLowerCase())) return;
+    const timer = setInterval(() => { void refresh(task.id); }, 3000);
+    return () => clearInterval(timer);
+  }, [adapter, task?.id, task?.status, connection]);
 
-  const handleRunPipeline = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const prompt = promptInput.trim();
-    if (!prompt) return;
-
-    setPromptInput('');
-
-    const input: UserInput = {
-      id: `input_${Date.now()}`,
-      text: prompt,
-      timestamp: Date.now(),
-      conversationId: conversationManager.getActiveConversation().id,
-    };
-
-    await centipedeAIPipeline.process(input);
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!prompt.trim() || busy || !unlocked) return;
+    setBusy(true); setError('');
+    try {
+      const actual = await kingdomActions.submitTask(prompt.trim());
+      setTask(actual);
+      setPrompt('');
+      await refresh(actual.id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Kingdom task submission failed.');
+    } finally { setBusy(false); }
   };
 
-  const isProcessing =
-    activeMessage !== null &&
-    (activeMessage.status === 'UNDERSTANDING' ||
-      activeMessage.status === 'INTENT_IDENTIFIED' ||
-      activeMessage.status === 'PLANNING' ||
-      activeMessage.status === 'PERMISSION_CHECK' ||
-      activeMessage.status === 'EXECUTING');
-
-  return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center space-x-4">
-          <div className="p-4 rounded-xl bg-purple-500/20 text-purple-400">
-            <Bot className="w-8 h-8" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-white flex items-center space-x-2">
-              <span>Centipede AI Core Foundation</span>
-              <Sparkles className="w-5 h-5 text-amber-400" />
-            </h2>
-            <p className="text-slate-400 text-sm mt-0.5">
-              Governed Pipeline Architecture • Zero Unrestricted Shell Access
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-2 bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs text-slate-300">
-          <Lock className="w-4 h-4 text-emerald-400" />
-          <span>ZeroTrust Execution Gate Active</span>
-        </div>
+  return <div className="p-6 max-w-4xl mx-auto space-y-5">
+    <header className="bg-slate-900 border border-slate-700 rounded-2xl p-5">
+      <h2 className="text-xl font-bold text-white flex items-center gap-2"><Bot className="text-blue-400"/>Segmentor — Kingdom Tasks</h2>
+      <p className="text-sm text-slate-300 mt-2">Give Segmentor work and follow its real Kingdom task. Execution, model selection, worker placement and security are controlled by Kingdom. This screen does not simulate task completion.</p>
+    </header>
+    <KingdomActionUnlock />
+    {connection !== 'CONNECTED' && <p role="status" className="bg-slate-900 border border-red-700 rounded-xl p-3 text-red-300">
+      Kingdom read connection: {connection}. Existing work cannot be verified until connected.
+    </p>}
+    <form onSubmit={submit} className="bg-slate-900 border border-slate-700 rounded-2xl p-5 space-y-3">
+      <label htmlFor="segmentor-prompt" className="block text-sm text-slate-200 font-semibold">What should Kingdom work on?</label>
+      <textarea id="segmentor-prompt" rows={3} value={prompt} onChange={e => setPrompt(e.target.value)}
+        placeholder="Describe a specific task for Kingdom to perform..." className="w-full bg-slate-950 border border-slate-600 text-white p-3 rounded-xl" />
+      <button type="submit" disabled={busy || !unlocked || connection !== 'CONNECTED' || !prompt.trim()}
+        className="bg-blue-700 hover:bg-blue-600 text-white rounded-xl px-4 py-2 flex items-center gap-2 disabled:opacity-50">
+        <Play className="w-4 h-4"/>{busy ? 'Submitting to Kingdom…' : 'Submit real Kingdom task'}
+      </button>
+      {!unlocked && <p className="text-sm text-slate-400">Unlock owner actions above to submit. Read-only connection alone cannot run work.</p>}
+    </form>
+    {error && <div role="alert" className="p-3 border border-red-700 bg-slate-950 rounded-xl text-red-300">{error}</div>}
+    {task && <section className="bg-slate-900 border border-slate-700 rounded-2xl p-5 space-y-3">
+      <div className="flex flex-wrap justify-between gap-3">
+        <h3 className="text-white font-semibold">Kingdom task ID: <code className="text-blue-300">{task.id}</code></h3>
+        <button type="button" onClick={() => void refresh(task.id)} className="text-blue-300 flex items-center gap-1 text-sm"><RefreshCw className="w-4 h-4"/>Refresh status</button>
       </div>
-
-      {/* Pipeline Diagram */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5">
-        <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
-          Governed AI Pipeline Execution Lifecycle
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-7 gap-2 text-center text-xs">
-          {[
-            { label: '1. User Input', color: 'bg-slate-800 text-slate-200' },
-            { label: '2. Intent', color: 'bg-blue-950 text-blue-300 border-blue-800' },
-            { label: '3. Context', color: 'bg-cyan-950 text-cyan-300 border-cyan-800' },
-            { label: '4. Planner', color: 'bg-indigo-950 text-indigo-300 border-indigo-800' },
-            { label: '5. Permission Gate', color: 'bg-amber-950 text-amber-300 border-amber-800' },
-            { label: '6. Kingdom Adapter', color: 'bg-purple-950 text-purple-300 border-purple-800' },
-            { label: '7. Result', color: 'bg-emerald-950 text-emerald-300 border-emerald-800' },
-          ].map((step) => (
-            <div key={step.label} className={`p-2.5 rounded-xl border font-semibold ${step.color}`}>
-              {step.label}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Prompt Submission Form */}
-      <form onSubmit={handleRunPipeline} className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 space-y-4 shadow-xl">
-        <div className="space-y-2">
-          <label className="block text-sm font-semibold text-slate-200">
-            Submit Prompt Instruction to Centipede AI
-          </label>
-          <textarea
-            value={promptInput}
-            onChange={(e) => setPromptInput(e.target.value)}
-            rows={2}
-            placeholder="e.g. Get Kingdom runtime status, or delete file /tmp/restricted..."
-            className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-100 text-sm focus:outline-none focus:border-purple-500"
-          />
-        </div>
-
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={!promptInput.trim() || isProcessing}
-            className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors shadow-lg shadow-purple-600/30 disabled:opacity-50"
-          >
-            <Play className="w-4 h-4" />
-            <span>{isProcessing ? 'Processing Pipeline...' : 'Process Prompt Pipeline'}</span>
-          </button>
-        </div>
-      </form>
-
-      {/* Active Pipeline Execution Visualizer */}
-      {activeMessage && (
-        <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-700">
-            <h3 className="text-lg font-bold text-white flex items-center space-x-2">
-              <Cpu className="w-5 h-5 text-purple-400" />
-              <span>Pipeline Execution Tracker</span>
-            </h3>
-            <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
-              activeMessage.status === 'COMPLETED'
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                : activeMessage.status === 'APPROVAL_REQUIRED'
-                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40 animate-pulse'
-                : activeMessage.status === 'DENIED' || activeMessage.status === 'FAILED'
-                ? 'bg-red-500/20 text-red-400 border border-red-500/40'
-                : 'bg-blue-500/20 text-blue-400 border border-blue-500/40 animate-pulse'
-            }`}>
-              Pipeline Phase: {activeMessage.status}
-            </span>
-          </div>
-
-          {activeMessage.intent && (
-            <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-1 text-xs">
-              <div className="text-slate-400 font-semibold">Parsed Intent & Confidence:</div>
-              <div className="flex items-center space-x-3 text-white">
-                <span className="font-mono text-purple-300 font-bold">{activeMessage.intent.type}</span>
-                <span className="text-slate-500">|</span>
-                <span className="text-slate-400">Confidence: {(activeMessage.intent.confidence * 100).toFixed(0)}%</span>
-              </div>
-              <div className="text-slate-400">{activeMessage.intent.explanation}</div>
-            </div>
-          )}
-
-          {activeMessage.plan && (
-            <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-2 text-xs">
-              <div className="text-slate-400 font-semibold">Generated Plan Steps & Required Capabilities:</div>
-              <ul className="space-y-1 pl-4 list-disc text-slate-300">
-                {activeMessage.plan.steps.map((s) => (
-                  <li key={s.stepNumber}>{s.description}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {activeMessage.status === 'APPROVAL_REQUIRED' && (
-            <div className="p-4 bg-amber-950/60 border border-amber-500/50 rounded-xl space-y-3">
-              <div className="flex items-start space-x-3 text-amber-300 text-xs">
-                <ShieldAlert className="w-5 h-5 flex-shrink-0 text-amber-400" />
-                <div>
-                  <div className="font-bold text-sm text-white">Action Blocked by Kingdom Security</div>
-                  <div className="mt-1">{activeMessage.text}</div>
-                </div>
-              </div>
-
-              <button
-                onClick={onNavigateSecurity}
-                className="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors flex items-center space-x-1 shadow-md shadow-amber-600/20"
-              >
-                <span>Open Permissions & Approvals View</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-              <SpeechOutput text={activeMessage.text} />
-            </div>
-          )}
-
-          {(activeMessage.status === 'COMPLETED' || activeMessage.status === 'FAILED' || activeMessage.status === 'DENIED') && (
-            <div className={`p-4 rounded-xl text-xs space-y-2 ${
-              activeMessage.status === 'COMPLETED'
-                ? 'bg-emerald-950/60 border border-emerald-500/50'
-                : 'bg-red-950/60 border border-red-500/50'
-            }`}>
-              <div className="flex items-center space-x-2 font-bold text-sm">
-                {activeMessage.status === 'COMPLETED' ? (
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                ) : (
-                  <ShieldAlert className="w-5 h-5 text-red-400" />
-                )}
-                <span className={activeMessage.status === 'COMPLETED' ? 'text-emerald-400' : 'text-red-400'}>
-                  {activeMessage.status === 'COMPLETED' ? 'Result Formatted for User' : 'Pipeline Execution Halted'}
-                </span>
-              </div>
-              <div className="text-white text-sm font-medium">{activeMessage.text}</div>
-              {activeMessage.actionResult?.data && (
-                <pre className="bg-slate-950 p-3 rounded-lg text-slate-300 font-mono text-xs overflow-x-auto">
-                  {JSON.stringify(activeMessage.actionResult.data, null, 2)}
-                </pre>
-              )}
-              <SpeechOutput text={activeMessage.text} />
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
+      <p className="text-sm text-slate-200">Kingdom reported status: <strong>{task.status}</strong></p>
+      {task.error && <p className="text-red-300 text-sm">{task.error}</p>}
+      {task.result !== undefined && <pre className="bg-slate-950 text-slate-200 text-xs p-3 rounded-lg overflow-auto">{JSON.stringify(task.result, null, 2)}</pre>}
+      <p className="text-xs text-slate-400">A Kingdom task receipt is not proof of completed, verified work. Review the task result and worker evidence.</p>
+    </section>}
+    <button type="button" onClick={onNavigateSecurity} className="text-blue-300 flex items-center gap-2 text-sm">
+      <ShieldAlert className="w-4 h-4" /> Review Kingdom security and approvals
+    </button>
+  </div>;
 };

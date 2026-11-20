@@ -201,35 +201,40 @@ export class ToolExecutor {
     if (isMutatingOrPrivileged) {
       if (!req.grantId) {
         if (requiresHumanApproval) {
-          let approvalId = req.approvalId || `appr_${Date.now()}_${generateSecureRandomHex(4)}`;
-          try {
-            if (this.adapter.getConnectionState() === 'CONNECTED') {
-              const approvalReq = await this.adapter.create_approval(
-                tool.capabilities[0] || 'none',
-                tool.toolId,
-                `Tool execution requires approval (${tool.name}): ${JSON.stringify(req.parameters)}`,
-                req.agentId || 'centipede_ai_tools',
-                tool.riskClass,
-                req.parameters
-              );
-              approvalId = approvalReq.id;
-            }
-          } catch (err: any) {
-            // Fallback: local approval pending tracking
+          // Only a confirmed Kingdom approval may be shown as pending. Never
+          // invent an ID or treat a failed/missing mutation channel as success.
+          if (this.adapter.isReadOnlyConnection() || this.adapter.getConnectionState() !== 'CONNECTED') {
+            return {
+              invocationId: req.id, toolId: tool.toolId, status: 'BLOCKED',
+              error: 'Kingdom approval was NOT created: an authenticated action connection is unavailable.',
+              executionTimeMs: Date.now() - startTime, idempotencyKey,
+            };
           }
-
-          return {
-            invocationId: req.id,
-            toolId: tool.toolId,
-            status: 'PENDING',
-            data: {
-              approvalId,
-              toolId: tool.toolId,
-              message: `Approval request created: ${approvalId}. Action pending human approval in Kingdom.`,
-            },
-            executionTimeMs: Date.now() - startTime,
-            idempotencyKey,
-          };
+          try {
+            const approvalReq = await this.adapter.create_approval(
+              tool.capabilities[0] || 'none',
+              tool.toolId,
+              `Tool execution requires approval (${tool.name}): ${JSON.stringify(req.parameters)}`,
+              'owner',
+              tool.riskClass,
+              req.parameters
+            );
+            if (!approvalReq || !/^[A-Za-z0-9_-]{1,128}$/.test(approvalReq.id || '')) {
+              throw new Error('Kingdom did not return a valid approval ID.');
+            }
+            return {
+              invocationId: req.id, toolId: tool.toolId, status: 'PENDING',
+              data: { approvalId: approvalReq.id, toolId: tool.toolId,
+                message: `Kingdom confirmed approval request ${approvalReq.id}; waiting for owner decision.` },
+              executionTimeMs: Date.now() - startTime, idempotencyKey,
+            };
+          } catch {
+            return {
+              invocationId: req.id, toolId: tool.toolId, status: 'BLOCKED',
+              error: 'Kingdom approval could not be confirmed. Check Kingdom approvals before retrying.',
+              executionTimeMs: Date.now() - startTime, idempotencyKey,
+            };
+          }
         } else {
           return {
             invocationId: req.id,
