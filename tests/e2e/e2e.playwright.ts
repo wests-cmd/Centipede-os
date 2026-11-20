@@ -69,14 +69,14 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
     }
   });
 
-  test('boots offline and labels the file view as demonstration content', async ({ page }) => {
+  test('boots offline and keeps real Files owner-locked', async ({ page }) => {
     await page.goto('/');
     await completeClientSetup(page);
 
     await page.getByRole('button', { name: 'File Explorer' }).click();
-    await expect(page.getByRole('heading', { name: 'Sample File Viewer' })).toBeVisible();
-    await expect(page.getByText('This view does not read files from your device.')).toBeVisible();
-    await expect(page.getByText('# Kingdom Integration Guide')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Centipede Files — Local Workspace' })).toBeVisible();
+    await expect(page.getByText(/Files are locked/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Create file (no overwrite)' })).toBeDisabled();
     await page.screenshot({ path: 'test-results/01_offline_boot.png' });
   });
 

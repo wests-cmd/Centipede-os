@@ -4,6 +4,7 @@ import { configManager } from '../config';
 import { CENTIPEDE_VERSION } from '../version';
 import { proxyKingdomRead } from './kingdomReadProxy';
 import { handleKingdomAction } from './kingdomAction';
+import { handleHostFiles } from './hostFiles';
 
 export interface ApiRequest {
   path: string;
@@ -44,6 +45,9 @@ export class ApiRouter {
       const runtimeInfo = await platformDetector.detectRuntimeInfo();
       return { status: 200, data: runtimeInfo };
     }
+
+    const localFiles = await handleHostFiles(req);
+    if (localFiles) return localFiles;
 
     const kingdomAction = await handleKingdomAction(req);
     if (kingdomAction) return kingdomAction;
