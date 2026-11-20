@@ -22,7 +22,8 @@ mkdir -p "$BUILD/config/includes.binary/boot/grub"
 cp "$ROOT/public/branding/centipede-boot-emblem.png" "$BUILD/config/includes.binary/boot/grub/centipede-boot-emblem.png"
 mkdir -p "$BUILD/config/includes.chroot/etc/centipede"
 printf '%s\n' "$VERSION" > "$BUILD/config/includes.chroot/etc/centipede/version"
-chmod +x "$BUILD/config/hooks/normal/0100-centipede-systemd.hook.chroot" "$BUILD/config/hooks/normal/0200-centipede-identity.hook.chroot" "$BUILD/config/hooks/normal/0300-centipede-boot-menu.hook.binary"
+chmod +x "$BUILD/config/hooks/normal/0100-centipede-systemd.hook.chroot" "$BUILD/config/hooks/normal/0150-centipede-security.hook.chroot" "$BUILD/config/hooks/normal/0200-centipede-identity.hook.chroot" "$BUILD/config/hooks/normal/0300-centipede-boot-menu.hook.binary"
+chmod +x "$BUILD/config/includes.chroot/usr/local/bin/centipede-recovery" "$BUILD/config/includes.chroot/usr/local/bin/centipede-desktop"
 
 cd "$BUILD"
 lb config \

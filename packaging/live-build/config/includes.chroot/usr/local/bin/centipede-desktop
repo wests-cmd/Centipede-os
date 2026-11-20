@@ -6,9 +6,9 @@ echo "Waiting for local Centipede web service"
 attempt=0
 until python3 -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:3000/", timeout=2).close()'; do
   attempt=$((attempt + 1))
-  if [ "$attempt" -ge 60 ]; then
-    echo "Centipede web service did not become ready"
-    exit 1
+  if [ "$attempt" -ge 20 ]; then
+    echo "Centipede web service did not become ready; opening recovery UI"
+    exec /usr/local/bin/centipede-recovery
   fi
   sleep 2
 done

@@ -15,6 +15,12 @@ This checklist tracks the boot-failure report from a physical USB boot. The exac
 
 The build and QEMU checks above passed on PR commit `7d4f09ad36e868f280854fb0301b96b167f4b518`. The last public image remains the previously published v1.0.0 artifact; these CI artifacts have not been published as a new stable release.
 
+## Current local web-service hardening (source change; not yet physical release proof)
+
+- The local *static* Centipede web service is configured for a dedicated `centipede-web` identity, root-owned read-only application assets and systemd process isolation. A live-build hook creates that identity.
+- When the local web service does not start, the launcher now opens a graphical recovery choice (Retry, diagnostics, regular XFCE desktop). This requires LightDM/XFCE and a working display, and is **not** recovery from graphics-server failure or a signed system rollback.
+- The existing published `v1.0.0` ISO predates these changes. Rebuild, boot in QEMU BIOS/UEFI, and test physically before checking these hardening behaviors as completed on installed devices.
+
 ## Required work before making broad hardware claims
 
 - [ ] Rebuild and inspect the generated GRUB and ISOLINUX menus, ISO label, `/etc/os-release`, and all installed-system branding locations. This live image does not currently provide a disk installer, so there is no installed-system boot menu to validate yet.
