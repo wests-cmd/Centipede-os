@@ -5,7 +5,7 @@ const PREFIX = '/api/v1/kingdom/actions';
 const SESSION_MS = 15 * 60_000;
 const WINDOW_MS = 60_000;
 const MAX_RESPONSE_BYTES = 256 * 1024;
-const sessions = new Map<string, { expiresAt: number; credentialFingerprint: string }>();
+const sessions = new Map<string, { expiresAt: number; ownerCredential: string }>();
 let failureWindowStart = 0;
 let failedUnlocks = 0;
 
@@ -47,7 +47,7 @@ function validSession(req: ApiRequest, token: string): boolean {
   const hash = digest(token);
   const session = sessions.get(hash);
   if (!session) return false;
-  if (session.expiresAt <= Date.now() || session.credentialFingerprint !== digest(process.env.KINGDOM_API_TOKEN || '')) {
+  if (session.expiresAt <= Date.now() || !equalSecrets(session.ownerCredential, process.env.KINGDOM_API_TOKEN || '')) {
     sessions.delete(hash);
     return false;
   }
@@ -142,7 +142,10 @@ export async function handleKingdomAction(req: ApiRequest): Promise<ApiResponse 
     for (const [hash, state] of sessions) if (state.expiresAt <= now) sessions.delete(hash);
     if (sessions.size >= 32) return { status: 429, error: 'Too many active owner sessions. Lock a session before retrying.' };
     const expiresAt = now + SESSION_MS;
-    sessions.set(digest(newSession), { expiresAt, credentialFingerprint: digest(config.token) });
+    // The configured credential is already in this server process environment.
+    // Keep this session-bound snapshot in memory only, so rotation revokes the
+    // session without applying a fast password hash to the owner's access code.
+    sessions.set(digest(newSession), { expiresAt, ownerCredential: config.token });
     return { status: 200, data: { sessionToken: newSession, expiresAt } };
   }
   if (!validSession(req, token)) return { status: 401, error: 'Owner session missing or expired. Unlock again on this computer.' };
