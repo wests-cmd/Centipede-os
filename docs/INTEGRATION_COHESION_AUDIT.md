@@ -39,3 +39,7 @@ The separate `feat/kingdom-live-data-cohesion-20261119` branch reads real Kingdo
 ## Third-phase local owner task channel
 
 The local desktop now has a separate, explicit owner-unlocked task submit/cancel channel with a bounded request surface and real upstream confirmation. Segmentor and Tasks use that channel; read-only views remain GET-only. This is not a general execution proxy, cross-machine test proof, installer completion, or remote phone capability. See [owner task design](KINGDOM_OWNER_TASK_CHANNEL.md).
+
+## Workspace task handoff
+
+The Workspace UI now uses the same authenticated owner task action channel as Segmentor and Tasks, and displays genuine Kingdom task list state. The local WorkflowEngine and integration catalog remain examples rather than authoritative runtime state. Full workflow-run execution, verified worker output, mobile handoff and durable reconciliation remain blocked pending real Kingdom testing.
