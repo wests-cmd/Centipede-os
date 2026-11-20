@@ -42,6 +42,9 @@ jobs:
       - name: Static Type Check
         run: bun x tsc --noEmit
 
+      - name: Verify release reality gate on every change
+        run: bun run lint:reality
+
       - name: Run Unit & Security Test Suite
         run: bun test
 
