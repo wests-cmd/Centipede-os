@@ -25,6 +25,11 @@ function upstreamConfig(): { base: URL; token: string } | null {
     const base = new URL(url);
     if (!['http:', 'https:'].includes(base.protocol) ||
       base.username || base.password || base.search || base.hash) return null;
+    // A server-side bearer credential must never traverse an unencrypted LAN/WAN.
+    // Local loopback HTTP is acceptable; remote Kingdom needs HTTPS even on a
+    // private LAN. The read proxy's separate policy is unchanged.
+    const hostname = base.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+    if (base.protocol === 'http:' && !['localhost', '127.0.0.1', '::1'].includes(hostname)) return null;
     return { base, token };
   } catch {
     return null;

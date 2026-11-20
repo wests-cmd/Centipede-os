@@ -13,7 +13,7 @@ const request = (path: string, body: object = {}, headers: Record<string,string>
 const unlock = () => request('unlock', { ownerCode: secret });
 beforeEach(() => {
   resetOwnerActionSessionsForTests();
-  process.env.KINGDOM_API_URL = 'http://kingdom.internal:8000';
+  process.env.KINGDOM_API_URL = 'https://kingdom.internal:8000';
   process.env.KINGDOM_API_TOKEN = secret;
 });
 afterEach(() => {
@@ -23,6 +23,16 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 describe('owner-verified local Kingdom task channel', () => {
+  it('rejects unencrypted remote Kingdom credentials even for the correct owner', async () => {
+    process.env.KINGDOM_API_URL = 'http://kingdom.internal:8000';
+    const network = vi.fn();
+    globalThis.fetch = network as typeof fetch;
+    const result = await unlock();
+    expect(result.status).toBe(503);
+    expect(network).not.toHaveBeenCalled();
+    process.env.KINGDOM_API_URL = 'http://127.0.0.1:8000';
+    expect((await unlock()).status).toBe(200);
+  });
   it('blocks LAN clients, missing intent, wrong owner code and unauthenticated writes without forwarding', async () => {
     const upstream = vi.fn();
     globalThis.fetch = upstream as typeof fetch;
@@ -45,7 +55,7 @@ describe('owner-verified local Kingdom task channel', () => {
     expect(result.status).toBe(200);
     expect(result.data.id).toBe('task_verified_1');
     const [url, options] = upstream.mock.calls[0];
-    expect(String(url)).toBe('http://kingdom.internal:8000/tasks');
+    expect(String(url)).toBe('https://kingdom.internal:8000/tasks');
     expect(options?.headers).toMatchObject({ Authorization: `Bearer ${secret}` });
     expect(JSON.parse(String(options?.body))).toEqual({ prompt: 'audit', metadata: { client: 'centipede_os_owner_ui' } });
     const locked = await request('lock', {}, { 'x-centipede-action-session': login.data.sessionToken });

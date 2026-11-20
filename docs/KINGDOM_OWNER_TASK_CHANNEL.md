@@ -22,3 +22,5 @@ Centipede OS is **not** a finished daily-driver operating system. This change ma
 ## Tests added
 
 See `tests/unit/kingdom_owner_actions.test.ts` for local-only enforcement, unlock rejection, credential secrecy, task confirmation, unauthorized mutation rejection, and unknown-outcome handling. No live DT1/Laptop 2 validation is claimed.
+
+**Transport requirement:** Forward owner credentials to Kingdom only via HTTPS for remote hosts. Plain HTTP is accepted solely for localhost/127.0.0.1/::1. Verify trusted TLS certificates during first-run setup.

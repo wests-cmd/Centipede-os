@@ -97,7 +97,7 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
     await expect(page.getByText(/Task changes require an explicitly unlocked owner session/)).toBeVisible();
     await page.screenshot({ path: 'test-results/03_task_owner_locked.png' });
 
-    await page.getByRole('button', { name: 'Segmentor', exact: true }).click();
+    await page.getByRole('complementary').getByRole('button', { name: 'Segmentor', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Segmentor — Kingdom Tasks' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Submit real Kingdom task' })).toBeDisabled();
     await expect(page.getByText(/This screen does not simulate task completion/)).toBeVisible();
