@@ -80,7 +80,7 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
     await page.screenshot({ path: 'test-results/01_offline_boot.png' });
   });
 
-  test('connects to Kingdom, submits a task, and exercises the approval surface', async ({ page }) => {
+  test('connects to Kingdom but blocks task actions until the owner unlocks this host', async ({ page }) => {
     await page.goto('/');
     await completeClientSetup(page, kingdomTestUrl);
 
@@ -91,21 +91,21 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
     await page.screenshot({ path: 'test-results/02_status_panel.png' });
 
     await page.getByRole('button', { name: 'Activity & Tasks' }).click();
+    await expect(page.getByLabel(/Unlock real Kingdom task actions/)).toBeVisible();
     await page.getByPlaceholder('Enter prompt task for Kingdom processing...').fill('Contract verification task prompt');
-    await page.getByRole('button', { name: 'Submit Task' }).click();
-    await expect(page.locator('body')).toContainText('Contract verification task prompt');
-    await page.screenshot({ path: 'test-results/03_task_pipeline.png' });
+    await expect(page.getByRole('button', { name: 'Submit Task' })).toBeDisabled();
+    await expect(page.getByText(/Task changes require an explicitly unlocked owner session/)).toBeVisible();
+    await page.screenshot({ path: 'test-results/03_task_owner_locked.png' });
 
-    await page.getByRole('button', { name: 'Centipede AI' }).click();
-    await page.getByPlaceholder(/delete file/).fill('delete file /tmp/restricted_test_dir');
-    await page.getByRole('button', { name: 'Process Prompt Pipeline' }).click();
-    await expect(page.locator('body')).toContainText(/Approval request created|APPROVAL_REQUIRED/, { timeout: 10000 });
-    await page.screenshot({ path: 'test-results/04_security_review.png' });
+    await page.getByRole('button', { name: 'Segmentor', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Segmentor — Kingdom Tasks' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Submit real Kingdom task' })).toBeDisabled();
+    await expect(page.getByText(/This screen does not simulate task completion/)).toBeVisible();
+    await page.screenshot({ path: 'test-results/04_segmentor_owner_locked.png' });
 
     await page.getByRole('button', { name: 'Security & Approvals' }).click();
     await expect(page.locator('body')).toContainText('Pending Security Approvals');
-    await expect(page.locator('body')).toContainText('filesystem.delete');
-    await page.screenshot({ path: 'test-results/05_pending_approval.png' });
+    await page.screenshot({ path: 'test-results/05_approval_read_only.png' });
   });
 });
 

@@ -127,7 +127,7 @@ export const App: React.FC = () => {
         );
       case 'ai':
         return (
-          <Window id="win_ai" title="Centipede AI Pipeline" icon={Bot} isOpen={true} onClose={() => setActiveAppId('launcher')}>
+          <Window id="win_ai" title="Segmentor — Kingdom Tasks" icon={Bot} isOpen={true} onClose={() => setActiveAppId('launcher')}>
             <CentipedeAI adapter={kingdomAdapter} onNavigateSecurity={() => setActiveAppId('security')} />
           </Window>
         );
