@@ -6,7 +6,7 @@ Kingdom is a separate project and runtime. This repository contains a client and
 
 ---
 
-# Current release status
+## Status and roadmap
 
 Centipede `v1.0.0` has a desktop web bundle and platform build workflows for a Debian live ISO/USB image, QEMU VM disk, Android app, iOS app, and Docker image. The OS images launch the web app in a Chromium kiosk session; they do not add host-level Centipede execution or Kingdom. No stable GitHub release has been published. The synchronized tag workflow is designed to publish only verified BUILDABLE targets; Android device distribution and iOS device distribution remain BLOCKED until publisher credentials are configured.
 
@@ -15,6 +15,10 @@ Android and iOS use native Capacitor projects. Android release APKs require an A
 The desktop bundle requires a separately operated Kingdom service for Kingdom-backed actions. The Compose file does not install or implement Kingdom.
 
 Several desktop panels are prototypes or use browser-local/example data. The application does not provide host file access, remote phone pairing, an OS installer, host storage management, or system rollback. Native mobile packages display the same web UI. Stable Android/iOS distribution remains BLOCKED until the matching signing assets and release gates are configured.
+
+## Overview
+
+Centipede provides the user-facing desktop and assistant. Kingdom supplies the separately deployed task and security authority. The default local-admin Kingdom proxy allows only read operations. Actions require a separately authenticated, owner-authorized connection; connecting to a read proxy does not grant write privileges.
 
 ## Quick Navigation
 
@@ -40,6 +44,15 @@ Centipede is currently a browser-based desktop application. Its verified live in
 
 ---
 
+## Project map
+
+- `src/components/` contains the browser desktop and app panels.
+- `src/ai/` contains Segmentor's intent, planning and policy/request pipeline.
+- `src/api/` contains Kingdom compatibility negotiation and the API client.
+- `src/server/kingdomReadProxy.ts` exposes a local-admin, GET-only Kingdom view.
+- `src/workflow/`, `src/learning/` and `src/tools/` contain local workflow, memory and capability implementations; these are not equivalent to Kingdom's central durable services.
+- `docs/INTEGRATION_COHESION_AUDIT.md` records the verified integration gaps and acceptance gates.
+
 ## Core Concepts Explained
 
 ### What is Kingdom?
@@ -60,6 +73,10 @@ A **Scout** is a Kingdom discovery role. The profile selector in this app only s
 
 Platform build jobs are available in GitHub Actions. Stable-tag publishing waits for the desktop, ISO/USB/VM, and Docker release jobs, then fails closed on missing artifacts or checksum mismatches. Signed Android/iOS jobs are disabled until their target status, publisher credentials, and repository enablement are deliberately updated. Review [current target status](docs/SHIP_REALITY_MATRIX.md) and [release prerequisites](docs/PLATFORM_BUILD_GUIDE.md).
 
+## Integrations
+
+Kingdom is a separate deployment. For initial local setup, only allowlisted read requests are proxied through Centipede; action transport is not enabled through that proxy. Local integrations and browser prototypes must not be described as executed Kingdom work. See the [integration audit](docs/INTEGRATION_COHESION_AUDIT.md).
+
 ## Mobile companion prototype
 
 The pairing screen uses local browser state for demonstration. It does not pair a separate phone or provide mobile monitoring.
@@ -67,6 +84,10 @@ The pairing screen uses local browser state for demonstration. It does not pair 
 The mobile companion panel remains a local UI prototype. Native Android/iOS builds package the desktop web application in a native WebView; they do not add remote phone pairing or monitoring.
 
 ---
+
+## Run locally
+
+The following commands run the **browser desktop client**. They do not install Centipede as a standalone Linux OS or deploy Kingdom. A supported Bun runtime must be installed first.
 
 ## Installation Guide
 
@@ -98,6 +119,10 @@ Serve the generated `dist/` directory with a static web server. Kingdom-backed f
 
 ---
 
+## Configuration
+
+Configure Kingdom in the first-run wizard. The default local server's `/api/v1/kingdom` URL provides read-only, local-admin access using a server-side token. It is not a write/action gateway. Set `KINGDOM_API_URL` and `KINGDOM_API_TOKEN` on the server for authorized local read access. Do not put an owner token in publicly shipped browser JavaScript or share it with mobile clients.
+
 ## Security FAQ
 
 ### Q: Can this application delete my files or execute system commands?
@@ -114,11 +139,19 @@ No. The mobile companion is a local prototype and this release does not pair rem
 
 ---
 
+## Operations and updates
+
+The browser bundle cannot update its host OS or Kingdom. Update Kingdom and the Debian host using their own authenticated, tested recovery procedures. Centipede's release tooling is not evidence of a published, tested daily-driver installer.
+
 ## Recovery
 
 This browser application does not manage operating-system updates, host storage, rollback, or emergency process termination. Browser-local preferences and demo data are not a backup. Manage the separately deployed Kingdom service using its own operational procedures.
 
 ---
+
+## Verification
+
+Run typechecking, unit tests, contract validation and browser tests before claiming readiness. A successful CodeQL analysis does not replace a successful build, a native installation test, or a live owner-approved Kingdom action. The [cohesion audit](docs/INTEGRATION_COHESION_AUDIT.md) tracks these separate gates.
 
 ## Developer Info
 
@@ -141,3 +174,11 @@ bun run test:e2e
 - **Capability Negotiator**: `src/api/capabilityNegotiator.ts`
 - **Compatibility**: Kingdom protocol major `1`, minimum contract version `1.4.0`; runtime Kingdom release versions are discovered dynamically. The protocol and contract identifiers are independent of the Centipede product version.
 - **ZeroTrust Boundary**: Capability negotiation classifies version/capability status (`SUPPORTED`, `UNSUPPORTED`, `DEGRADED`, `INCOMPATIBLE`, `UNKNOWN`, `REQUIRES_UPDATE`), but NEVER acts as an authorization authority. Kingdom remains authoritative.
+
+## Documentation
+
+- [Project architecture](docs/ARCHITECTURE.md)
+- [Development guide](docs/DEVELOPMENT.md)
+- [Operations](docs/OPERATIONS.md)
+- [Current status](docs/PROJECT_STATUS.md)
+- [Kingdom integration cohesion audit](docs/INTEGRATION_COHESION_AUDIT.md)

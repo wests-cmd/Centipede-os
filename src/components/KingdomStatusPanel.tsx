@@ -28,6 +28,7 @@ export const KingdomStatusPanel: React.FC<KingdomStatusPanelProps> = ({
   const [compatInfo, setCompatInfo] = useState<VersionCompatibility>(adapter.getCompatibilityInfo());
 
   const runtimeInfo = adapter.getKingdomRuntimeInfo();
+  const readOnly = adapter.isReadOnlyConnection();
 
   const refreshDetails = async () => {
     const generation = detailsGeneration.current;
@@ -154,6 +155,12 @@ export const KingdomStatusPanel: React.FC<KingdomStatusPanelProps> = ({
         </div>
       )}
 
+      {readOnly && (
+        <div role="status" className="rounded-xl border border-blue-700 bg-slate-900 p-3 text-sm text-slate-200">
+          Kingdom status is read-only through this connection. Runtime controls and
+          approvals require a separate authenticated, owner-authorized action channel.
+        </div>
+      )}
       {/* Top Connection Banner */}
       <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center space-x-4">
@@ -195,7 +202,7 @@ export const KingdomStatusPanel: React.FC<KingdomStatusPanelProps> = ({
           ) : status.running ? (
             <button
               onClick={handleStopRuntime}
-              disabled={loadingAction}
+              disabled={loadingAction || readOnly}
               className="flex items-center space-x-2 bg-red-600 hover:bg-red-500 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors shadow-lg shadow-red-600/30"
             >
               <Power className="w-4 h-4" />
@@ -204,7 +211,7 @@ export const KingdomStatusPanel: React.FC<KingdomStatusPanelProps> = ({
           ) : (
             <button
               onClick={handleStartRuntime}
-              disabled={loadingAction || connectionState !== 'CONNECTED'}
+              disabled={loadingAction || readOnly || connectionState !== 'CONNECTED'}
               className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors shadow-lg shadow-emerald-600/30 disabled:opacity-50"
             >
               <Play className="w-4 h-4" />
