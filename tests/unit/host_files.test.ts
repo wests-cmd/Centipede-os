@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { mkdtemp, readFile, rm, symlink } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, symlink, chmod } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { apiRouter } from '../../src/server/routes';
@@ -33,6 +34,14 @@ afterEach(async () => {
 });
 
 describe('Centipede local Files security', () => {
+  it('rejects a workspace writable by untrusted local users', async () => {
+    if (process.platform === 'win32') {
+      const script = `$p=$env:CENTIPEDE_ACL_TEST_ROOT; $a=Get-Acl -LiteralPath $p; $sid=[System.Security.Principal.SecurityIdentifier]::new('S-1-1-0'); $rule=[System.Security.AccessControl.FileSystemAccessRule]::new($sid,'Write','Allow'); $a.AddAccessRule($rule); Set-Acl -LiteralPath $p -AclObject $a`;
+      execFileSync(join(process.env.SystemRoot || 'C:\\Windows','System32','WindowsPowerShell','v1.0','powershell.exe'), ['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],
+        { env: { SystemRoot:process.env.SystemRoot, WINDIR:process.env.WINDIR, CENTIPEDE_ACL_TEST_ROOT: root }, windowsHide: true, timeout:10_000 });
+    } else await chmod(root, 0o777);
+    expect((await request('list',{directory:''})).status).toBe(503);
+  });
   it('persists and reads a real on-disk text file', async () => {
     expect((await request('list',{directory:''})).data.entries).toEqual([]);
     expect((await request('mkdir',{directory:'',name:'Projects'})).status).toBe(201);
@@ -51,7 +60,7 @@ describe('Centipede local Files security', () => {
   it('denies traversal and symbolic links, including linked parent folders', async () => {
     for (const path of ['../outside','/etc','a/../../secret','.hidden','x\\..\\secret'])
       expect((await request('list',{directory:path})).status).toBe(422);
-    await symlink(tmpdir(), join(root, 'escape'));
+    await symlink(tmpdir(), join(root, 'escape'), process.platform === 'win32' ? 'junction' : undefined);
     expect((await request('list',{directory:'escape'})).status).toBe(403);
     expect((await request('read',{path:'escape/config'})).status).toBe(403);
   });
