@@ -1,4 +1,4 @@
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { ApiRequest, ApiResponse } from './routes';
 
 const PREFIX = '/api/v1/kingdom/actions';
@@ -9,9 +9,16 @@ const sessions = new Map<string, { expiresAt: number; credentialFingerprint: str
 let failureWindowStart = 0;
 let failedUnlocks = 0;
 
-const digest = (value: string) => createHash('sha256').update(value).digest('hex');
+// The session bookkeeping key is generated independently of the owner's code.
+// Never use a fast unsalted password hash to compare or retain owner credentials.
+const sessionKey = randomBytes(32);
+const digest = (value: string) => createHmac('sha256', sessionKey).update(value).digest('hex');
 function equalSecrets(a: string, b: string): boolean {
-  return timingSafeEqual(Buffer.from(digest(a), 'hex'), Buffer.from(digest(b), 'hex'));
+  const left = Buffer.from(a, 'utf8');
+  const right = Buffer.from(b, 'utf8');
+  // Input length is public to this local-only endpoint; matching-length
+  // credentials are compared in constant time without hashing the password.
+  return left.length === right.length && timingSafeEqual(left, right);
 }
 function header(req: ApiRequest, name: string): string {
   const entry = Object.entries(req.headers || {}).find(([key]) => key.toLowerCase() === name);
