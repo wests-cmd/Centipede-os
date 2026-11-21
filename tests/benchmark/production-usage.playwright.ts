@@ -41,7 +41,7 @@ test('production browser user journey: first run, all apps, offline security, an
   await expect(page.getByRole('heading', { name: 'Welcome to Centipede' })).toBeVisible({ timeout: 20_000 });
   const coldWizardVisibleMs = performance.now() - coldStart;
   const navigation = await page.evaluate(() => {
-    const entry = performance.getEntries().find((item) => item.entryType === 'navigation') as PerformanceNavigationTiming | undefined;
+    const entry = performance.getEntries().find((item) => String(item.entryType) === 'navigation') as PerformanceNavigationTiming | undefined;
     return {
       domContentLoadedMs: entry?.domContentLoadedEventEnd ?? null,
       loadEventMs: entry?.loadEventEnd ?? null,
