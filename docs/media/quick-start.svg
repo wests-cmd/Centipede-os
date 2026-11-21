@@ -7,7 +7,7 @@
 <rect x="36" y="40" width="888" height="5" fill="#7a2637"/>
 <text x="70" y="91" font-family="Arial,sans-serif" font-size="21" font-weight="bold" fill="#83b4ef">CENTIPEDE OS · BEGINNER GUIDE</text>
 <rect x="68" y="442" width="824" height="8" rx="4" fill="#203954"/>
-<g opacity="0">
+<g opacity="1">
 <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.12;0.125;1" dur="32s" begin="0s" repeatCount="indefinite"/>
 <text x="70" y="173" font-family="Arial,sans-serif" font-size="37" font-weight="bold" fill="#f4f8ff">Welcome to Centipede OS</text>
 <text x="70" y="258" font-family="Arial,sans-serif" font-size="24" fill="#b9d5f8">GitHub download → Live USB → First use</text>
