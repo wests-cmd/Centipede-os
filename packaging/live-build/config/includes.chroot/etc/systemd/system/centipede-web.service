@@ -1,6 +1,6 @@
 [Unit]
-Description=Centipede local static web application (unprivileged)
-After=network-online.target
+Description=Centipede local web and API service (unprivileged)
+After=network.target
 RequiresMountsFor=/opt/centipede/web
 StartLimitIntervalSec=60
 StartLimitBurst=5
@@ -9,8 +9,17 @@ StartLimitBurst=5
 Type=simple
 User=centipede-web
 Group=centipede-web
-WorkingDirectory=/opt/centipede/web
-ExecStart=/usr/bin/python3 -m http.server 3000 --bind 127.0.0.1 --directory /opt/centipede/web
+StateDirectory=centipede
+StateDirectoryMode=0700
+WorkingDirectory=/var/lib/centipede
+Environment=HOST=127.0.0.1
+Environment=PORT=3000
+Environment=CENTIPEDE_WEB_ROOT=/opt/centipede/web
+Environment=CENTIPEDE_FILES_ROOT=/var/lib/centipede/files
+Environment=CENTIPEDE_KNOWLEDGE_HOME=/var/lib/centipede/selected-knowledge
+EnvironmentFile=-/etc/centipede/owner.env
+ExecStart=/opt/centipede/bin/centipede-server
+ReadWritePaths=/var/lib/centipede
 Restart=on-failure
 RestartSec=3
 NoNewPrivileges=yes

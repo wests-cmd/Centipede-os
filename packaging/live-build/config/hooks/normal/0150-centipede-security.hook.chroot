@@ -9,5 +9,11 @@ fi
 if [ -d /opt/centipede/web ]; then
   chown -R root:root /opt/centipede/web
   chmod -R go-w /opt/centipede/web
-  test -r /opt/centipede/web/index.html
+  find /opt/centipede/web -type d -exec chmod 0755 {} +
+  find /opt/centipede/web -type f -exec chmod 0644 {} +
+  runuser -u centipede-web -- test -r /opt/centipede/web/index.html
+fi
+if [ -d /opt/centipede/bin ]; then
+  chown -R root:root /opt/centipede/bin
+  chmod 0755 /opt/centipede/bin /opt/centipede/bin/centipede-server
 fi

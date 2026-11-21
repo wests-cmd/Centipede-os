@@ -1,4 +1,4 @@
-import { join, normalize } from 'node:path';
+import { join, normalize, resolve } from 'node:path';
 import { networkInterfaces } from 'node:os';
 import { apiRouter, ApiRequest } from './routes';
 import { isLocalAdminRequest } from './requestTrust';
@@ -6,7 +6,7 @@ import { SelectedKnowledgeSources } from './selectedKnowledgeSources';
 import { handleSelectedKnowledgeRequest } from './selectedKnowledgeRoutes';
 
 const root = process.cwd();
-const webRoot = join(root, 'dist');
+const webRoot = process.env.CENTIPEDE_WEB_ROOT ? resolve(process.env.CENTIPEDE_WEB_ROOT) : join(root, 'dist');
 const port = Number(process.env.PORT || 3000);
 const isPrivateAddress = (address: string) => address.startsWith('10.') || address.startsWith('192.168.') || /^172\.(1[6-9]|2\d|3[01])\./.test(address);
 const interfaces = Object.values(networkInterfaces()).flat().filter((entry): entry is NonNullable<typeof entry> =>

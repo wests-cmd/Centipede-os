@@ -6,6 +6,7 @@ VERSION="$(node -p "require('${ROOT}/package.json').version")"
 CONFIG="${ROOT}/packaging/live-build/config"
 BUILD="${ROOT}/build/live"
 OUT="${ROOT}/release"
+BUN_BIN="${BUN_BIN:-$(command -v bun)}"
 
 for tool in lb qemu-img; do
   command -v "$tool" >/dev/null || { echo "Missing required build tool: $tool" >&2; exit 2; }
@@ -18,6 +19,10 @@ cp -a "$CONFIG/." "$BUILD/config/"
 find "$BUILD/config" -type d -name __pycache__ -prune -exec rm -rf {} +
 find "$BUILD/config" -type f -name '*.py[co]' -delete
 cp -a "$ROOT/dist/." "$BUILD/config/includes.chroot/opt/centipede/web/"
+mkdir -p "$BUILD/config/includes.chroot/opt/centipede/bin"
+"$BUN_BIN" build --compile --target=bun-linux-x64-baseline "$ROOT/src/server/production.ts" \
+  --outfile "$BUILD/config/includes.chroot/opt/centipede/bin/centipede-server"
+chmod 0755 "$BUILD/config/includes.chroot/opt/centipede/bin/centipede-server"
 mkdir -p "$BUILD/config/includes.binary/boot/grub"
 cp "$ROOT/public/branding/centipede-boot-emblem.png" "$BUILD/config/includes.binary/boot/grub/centipede-boot-emblem.png"
 mkdir -p "$BUILD/config/includes.chroot/etc/centipede"

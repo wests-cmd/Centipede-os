@@ -55,7 +55,7 @@ export const SkillsApp: React.FC<{adapter?: KingdomAdapter}> = ({adapter = kingd
       const res = skillManager.promoteCandidate(candidate.skillId, candidate.version);
       setBaseSkill(res.skill);
       setCandidate(null);
-      setMessage(`Promoted local demo skill v${res.skill.version} (not installed in Kingdom). Capability expansion: ${res.diff.isExpansion ? 'YES' : 'NO'}`);
+      setMessage(`Promoted local demo skill v${res.skill.version} (not installed in Kingdom). Capability expansion: ${res.diff.isExpansion ? 'YES' : 'NO'}`); // REALITY-LINT-ALLOW: reason = "Explicit local-only disclosure; no Kingdom execution claim"
     } catch (err: any) {
       setMessage(`Promotion Failed: ${err.message}`);
     }
@@ -65,7 +65,7 @@ export const SkillsApp: React.FC<{adapter?: KingdomAdapter}> = ({adapter = kingd
     try {
       const restored = skillManager.rollbackSkill('web-scraper');
       setBaseSkill(restored);
-      setMessage(`Rolled back the local demo to v${restored.version}; Kingdom was not changed.`);
+      setMessage(`Rolled back the local demo to v${restored.version}; Kingdom was not changed.`); // REALITY-LINT-ALLOW: reason = "Explicit local-only rollback disclosure"
     } catch (err: any) {
       setMessage(`Rollback Failed: ${err.message}`);
     }
@@ -89,7 +89,7 @@ export const SkillsApp: React.FC<{adapter?: KingdomAdapter}> = ({adapter = kingd
           className="flex items-center space-x-2 bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800 font-semibold px-4 py-2 rounded-xl text-xs transition-colors"
         >
           <RotateCcw className="w-4 h-4" />
-          <span>Rollback local demo</span>
+          <span>Rollback local demo</span> {/* REALITY-LINT-ALLOW: reason = "Honest label for a browser-local operation" */}
         </button>
       </div>
 
@@ -131,7 +131,7 @@ export const SkillsApp: React.FC<{adapter?: KingdomAdapter}> = ({adapter = kingd
             <h3 className="text-lg font-bold text-white">{baseSkill?.name || 'Web Scraper Engine'}</h3>
           </div>
           <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-full text-xs font-bold font-mono">
-            v{baseSkill?.version || '1.0.0'} • LOCAL DEMO
+            v{baseSkill?.version || '1.0.0'} • LOCAL DEMO {/* REALITY-LINT-ALLOW: reason = "Distinguishes local examples from the Kingdom registry" */}
           </span>
         </div>
 
@@ -173,7 +173,7 @@ export const SkillsApp: React.FC<{adapter?: KingdomAdapter}> = ({adapter = kingd
               onClick={handlePromoteCandidate}
               className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition-colors shadow-lg shadow-emerald-600/30"
             >
-              Promote local demo
+              Promote local demo {/* REALITY-LINT-ALLOW: reason = "Honest label for a browser-local operation" */}
             </button>
           )}
         </div>
