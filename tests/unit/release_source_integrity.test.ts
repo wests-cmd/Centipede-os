@@ -42,6 +42,8 @@ describe('stable release provenance ignores only generated outputs, not tracked 
     expect(dispatch).toContain('workflow_call:');
     expect(dispatch).toContain('workflow_dispatch:');
     expect(dispatch).toContain("'codex/**'");
+    expect(dispatch).toMatch(/pull_request:\s*\n\s+branches:\s*\n\s+- main/);
+    expect(dispatch).toContain('concurrency:');
     expect(dispatch).not.toMatch(/^\s+tags:\s*$/m);
     const release = readFileSync(join(process.cwd(), '.github/workflows/release.yml'), 'utf8');
     expect(release).toContain('needs: release-gate');
