@@ -27,6 +27,7 @@ import {
   Map,
   Cpu,
   Stethoscope,
+  BarChart3,
 } from 'lucide-react';
 
 interface DesktopShellProps {
@@ -106,6 +107,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
 
   const sidebarApps = [
     { id: 'launcher', name: 'Home', icon: Home },
+    { id: 'command', name: 'Command Center', icon: BarChart3 },
     { id: 'ai', name: 'Segmentor', icon: Bot },
     { id: 'perception', name: 'Camera, screen & mic', icon: Video },
     { id: 'agent_control', name: 'Agent Control Plane', icon: ShieldAlert },
@@ -272,7 +274,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         {sidebarApps.map((item) => {
           const Icon = item.icon;
           const isActive = activeAppId === item.id;
-          const mobileApp = ['launcher', 'mobile', 'files', 'tasks', 'search', 'settings'].includes(item.id);
+          const mobileApp = ['launcher', 'command', 'mobile', 'files', 'tasks', 'search', 'settings'].includes(item.id);
           return (
             <button
               key={item.id}
