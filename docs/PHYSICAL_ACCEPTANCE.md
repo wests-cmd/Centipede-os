@@ -2,6 +2,10 @@
 
 This is the missing **hardware evidence** for [issue #150](https://github.com/wests-cmd/Centipede-os/issues/150). Passing QEMU boots is necessary but does not establish that Laptop 2, DT1, or a beginner's installed desktop works. Do not mark the release general-availability-ready from branch CI.
 
+## No-terminal graphical check
+
+Newly built Centipede Debian images include **Applications → System → Centipede Readiness Check**. Double-click it to collect a private, non-destructive snapshot without opening a terminal or using sudo. The result displays on-screen and the JSON receipt is saved under `~/.local/share/centipede/physical-receipts/`. It diagnoses but does not install, restart, repair, or execute anything on Kingdom.
+
 ## Run locally after a supported Centipede boot
 
 From the checked-out current Centipede source on a **Debian machine with Centipede actually installed or booted**, run:
