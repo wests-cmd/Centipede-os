@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import os
+import json
 import pwd
 import shutil
 import subprocess
@@ -43,6 +44,9 @@ while time.monotonic() < deadline:
     try:
         with urllib.request.urlopen("http://127.0.0.1:3000/", timeout=2) as response:
             last_app_ready = response.status == 200 and b'id="root"' in response.read()
+        with urllib.request.urlopen("http://127.0.0.1:3000/api/v1/health", timeout=2) as response:
+            health = json.load(response)
+            last_app_ready = last_app_ready and response.status == 200 and health.get("status") in {"HEALTHY", "DEGRADED"}
     except Exception:
         last_app_ready = False
     last_browser_ready = desktop_browser_running(uid)
@@ -73,4 +77,22 @@ message = (
     f"lightdm={last_lightdm_ready} web={last_app_ready} chromium={last_browser_ready} apps={last_apps_ready}"
 )
 print(message, file=sys.stderr, flush=True)
+# A QEMU boot test must report why the concrete service failed; status,
+# exit code and the absence of a binary are evidence, not a "ready" marker.
+# Do not print environment variables, owner credentials or arbitrary journals.
+probe = subprocess.run(
+    ["systemctl", "show", "centipede-web.service",
+     "--property=ActiveState,SubState,Result,ExecMainCode,ExecMainStatus,MainPID",
+     "--no-pager"], capture_output=True, text=True, timeout=10, check=False)
+print("CENTIPEDE_WEB_UNIT_DIAGNOSTIC: " +
+      probe.stdout.replace("\n", " ").strip()[:500], file=sys.stderr, flush=True)
+binary = "/opt/centipede/bin/centipede-server"
+print(f"CENTIPEDE_WEB_BINARY_DIAGNOSTIC: present={os.path.isfile(binary)} executable={os.access(binary, os.X_OK)}",
+      file=sys.stderr, flush=True)
+try:
+    with open("/dev/ttyS0", "w", encoding="ascii", buffering=1) as serial:
+        serial.write(message + "\r\n")
+        serial.write("CENTIPEDE_WEB_UNIT_DIAGNOSTIC: " + probe.stdout.replace("\n", " ").strip()[:500] + "\r\n")
+except OSError:
+    pass
 sys.exit(1)

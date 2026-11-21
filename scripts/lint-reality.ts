@@ -37,7 +37,7 @@ function scanDirectory(dir: string) {
         for (const rule of SUSPICIOUS_PATTERNS) {
           if (rule.pattern.test(line)) {
             // Ignore type definitions, interface definitions, imports, comments, or standard JSX attributes
-            if (line.includes('type ') || line.includes('interface ') || line.includes('import ') || line.includes('//') || line.includes('#') || line.includes('placeholder=')) {
+            if (line.includes('type ') || line.includes('interface ') || line.includes('import ') || /^\s*(\/\/|\/\*|\*|#)/.test(line) || line.includes('placeholder=')) {
               continue;
             }
             console.error(`[REALITY LINT VIOLATION] ${rule.name} found in ${fullPath.replace(rootDir, '')}:${index + 1}`);

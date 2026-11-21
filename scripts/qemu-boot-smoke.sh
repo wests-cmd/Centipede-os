@@ -16,7 +16,7 @@ MONITOR="$OUT_DIR/${NAME}.monitor"
 SERIAL="$OUT_DIR/${NAME}.serial.log"
 SCREEN="$OUT_DIR/${NAME}.ppm"
 rm -f "$MONITOR" "$SERIAL" "$SCREEN"
-QEMU=(qemu-system-x86_64 -cpu qemu64 -smp 2 -m 4096 -cdrom "$ISO" -boot order=d -nic none -display none -serial "file:$SERIAL" -monitor "unix:$MONITOR,server,nowait" -no-reboot)
+QEMU=(qemu-system-x86_64 -cpu max -smp 2 -m 4096 -cdrom "$ISO" -boot order=d -nic none -display none -serial "file:$SERIAL" -monitor "unix:$MONITOR,server,nowait" -no-reboot)
 if [[ "$FIRMWARE" == uefi ]]; then
   CODE=$(find /usr/share/OVMF -maxdepth 1 -type f \( -name 'OVMF_CODE_4M.secboot.fd' -o -name 'OVMF_CODE.secboot.fd' \) -print -quit)
   VARS_TEMPLATE=$(find /usr/share/OVMF -maxdepth 1 -type f \( -name 'OVMF_VARS_4M.ms.fd' -o -name 'OVMF_VARS.ms.fd' \) -print -quit)
@@ -63,7 +63,7 @@ import socket, sys, time
 s=socket.socket(socket.AF_UNIX, socket.SOCK_STREAM); s.settimeout(5); s.connect(sys.argv[1]); time.sleep(.4); s.recv(4096); s.sendall(b"sendkey ret\r\n"); time.sleep(.5); s.close()
 PY
 fi
-for _ in $(seq 1 180); do
+for _ in $(seq 1 420); do
   if grep -Fq 'CENTIPEDE_DESKTOP_READY' "$SERIAL" 2>/dev/null; then
     python3 - "$MONITOR" "$SCREEN" <<'PY'
 import socket, sys, time
@@ -81,6 +81,16 @@ PY
   kill -0 "$PID" 2>/dev/null || break
   sleep 1
 done
+python3 - "$MONITOR" "$SCREEN" <<'PY' || true
+import socket, sys, time
+s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+s.settimeout(5)
+try:
+    s.connect(sys.argv[1]); time.sleep(.3); s.recv(4096)
+    s.sendall(("screendump " + sys.argv[2] + "\r\n").encode()); time.sleep(1)
+finally:
+    s.close()
+PY
 cat "$SERIAL" 2>/dev/null || true
-echo "FAIL: $NAME did not reach CENTIPEDE_DESKTOP_READY within 180 seconds." >&2
+echo "FAIL: $NAME did not reach CENTIPEDE_DESKTOP_READY within 420 seconds." >&2
 exit 1

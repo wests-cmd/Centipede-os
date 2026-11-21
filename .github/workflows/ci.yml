@@ -24,8 +24,14 @@ jobs:
 
   validate:
     name: Typecheck, Test & Build Validation
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
+    env:
+      CENTIPEDE_E2E_PYTHON: python
 
     steps:
       - name: Checkout repository
@@ -36,11 +42,21 @@ jobs:
         with:
           bun-version: latest
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Install Dependencies
         run: bun install --frozen-lockfile
 
+      - name: Reject known vulnerable locked dependencies
+        run: bun audit
+
       - name: Static Type Check
         run: bun x tsc --noEmit
+
+      - name: Verify release reality gate on every change
+        run: bun run lint:reality
 
       - name: Run Unit & Security Test Suite
         run: bun test
@@ -61,10 +77,15 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: centipede-e2e-screenshots
+          name: centipede-e2e-screenshots-${{ matrix.os }}
           path: test-results/*.png
           if-no-files-found: warn
 
       - name: Verify Release Build Execution
         run: bun run build:release
+
+      - name: Smoke-test the actual compiled web and API runtime
+        run: |
+          bun build --compile src/server/production.ts --outfile build/centipede-server
+          python scripts/smoke-packaged-server.py --binary build/centipede-server --web-root dist
 

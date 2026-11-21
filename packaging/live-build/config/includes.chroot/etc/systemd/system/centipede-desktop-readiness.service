@@ -1,12 +1,15 @@
 [Unit]
 Description=Verify Centipede desktop readiness
-After=graphical.target
-Wants=graphical.target
+After=lightdm.service centipede-web.service
+Wants=lightdm.service centipede-web.service
 
 [Service]
 Type=oneshot
 ExecStart=/usr/local/libexec/centipede-desktop-readiness.py
 TimeoutStartSec=130
+StandardOutput=journal+console
+StandardError=journal+console
+TTYPath=/dev/ttyS0
 
 [Install]
 WantedBy=graphical.target

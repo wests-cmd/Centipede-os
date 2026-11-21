@@ -3,6 +3,7 @@ import { lstat, mkdir, open, opendir, realpath } from 'node:fs/promises';
 import { join, resolve, isAbsolute } from 'node:path';
 import type { ApiRequest, ApiResponse } from './routes';
 import { isLocalOwnerActionAuthorized } from './kingdomAction';
+import { isPrivateWindowsDirectory } from './windowsFilesAcl';
 
 const PREFIX = '/api/v1/host-files';
 const MAX_TEXT = 128 * 1024;
@@ -23,8 +24,11 @@ async function rootDirectory(): Promise<string> {
   if (root === resolve('/') || root === resolve(process.cwd())) throw new FileError(503, 'Configure a dedicated Files root.');
   await mkdir(root, { recursive: true, mode: 0o700 });
   const stat = await lstat(root);
-  if (!stat.isDirectory() || stat.isSymbolicLink() || (stat.mode & 0o022) !== 0 || await realpath(root) !== root)
+  if (!stat.isDirectory() || stat.isSymbolicLink() || await realpath(root) !== root)
     throw new FileError(503, 'Files root must be a private real directory.');
+  const privateDirectory = process.platform === 'win32'
+    ? await isPrivateWindowsDirectory(root) : (stat.mode & 0o022) === 0;
+  if (!privateDirectory) throw new FileError(503, 'Files root must be a private real directory.');
   return root;
 }
 async function checked(root: string, parts: string[], kind: 'file' | 'dir'): Promise<string> {

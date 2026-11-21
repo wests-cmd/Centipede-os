@@ -1,7 +1,7 @@
 # ====================================================================
 # CENTIPEDE OS — PRODUCTION MULTI-STAGE DOCKERFILE
 # ====================================================================
-FROM oven/bun:1.4.2-alpine AS builder
+FROM oven/bun:1.4.3-alpine AS builder
 
 WORKDIR /app
 
@@ -18,8 +18,14 @@ COPY src/ ./src/
 # Build production bundle
 RUN bun run build
 
+# Fresh install prevents build/test packages leaking into the served runtime.
+FROM oven/bun:1.4.3-alpine AS production-dependencies
+WORKDIR /app
+COPY package.json bun.lock ./
+RUN bun install --production --frozen-lockfile
+
 # --- STAGE 2: PRODUCTION WEB + API RUNTIME ---
-FROM oven/bun:1.4.2-alpine AS runner
+FROM oven/bun:1.4.3-alpine AS runner
 
 WORKDIR /app
 
@@ -30,7 +36,7 @@ RUN addgroup -g 1001 centipede && \
 # The same-origin server handles the SPA and the shared mobile pairing API.
 COPY --from=builder /app/dist /app/dist
 COPY --from=builder /app/src /app/src
-COPY --from=builder /app/node_modules /app/node_modules
+COPY --from=production-dependencies /app/node_modules /app/node_modules
 COPY --from=builder /app/package.json /app/package.json
 
 # Set permissions

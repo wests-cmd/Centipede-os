@@ -6,6 +6,7 @@ VERSION="$(node -p "require('${ROOT}/package.json').version")"
 CONFIG="${ROOT}/packaging/live-build/config"
 BUILD="${ROOT}/build/live"
 OUT="${ROOT}/release"
+BUN_BIN="${BUN_BIN:-$(command -v bun)}"
 
 for tool in lb qemu-img; do
   command -v "$tool" >/dev/null || { echo "Missing required build tool: $tool" >&2; exit 2; }
@@ -18,12 +19,20 @@ cp -a "$CONFIG/." "$BUILD/config/"
 find "$BUILD/config" -type d -name __pycache__ -prune -exec rm -rf {} +
 find "$BUILD/config" -type f -name '*.py[co]' -delete
 cp -a "$ROOT/dist/." "$BUILD/config/includes.chroot/opt/centipede/web/"
+mkdir -p "$BUILD/config/includes.chroot/opt/centipede/bin"
+"$BUN_BIN" build --compile --target=bun-linux-x64-baseline "$ROOT/src/server/production.ts" \
+  --outfile "$BUILD/config/includes.chroot/opt/centipede/bin/centipede-server"
+chmod 0755 "$BUILD/config/includes.chroot/opt/centipede/bin/centipede-server"
 mkdir -p "$BUILD/config/includes.binary/boot/grub"
 cp "$ROOT/public/branding/centipede-boot-emblem.png" "$BUILD/config/includes.binary/boot/grub/centipede-boot-emblem.png"
 mkdir -p "$BUILD/config/includes.chroot/etc/centipede"
 printf '%s\n' "$VERSION" > "$BUILD/config/includes.chroot/etc/centipede/version"
 chmod +x "$BUILD/config/hooks/normal/0100-centipede-systemd.hook.chroot" "$BUILD/config/hooks/normal/0150-centipede-security.hook.chroot" "$BUILD/config/hooks/normal/0200-centipede-identity.hook.chroot" "$BUILD/config/hooks/normal/0300-centipede-boot-menu.hook.binary"
 chmod +x "$BUILD/config/includes.chroot/usr/local/bin/centipede-recovery" "$BUILD/config/includes.chroot/usr/local/bin/centipede-desktop"
+# systemd ExecStart launches readiness directly; missing executable bit prevents boot
+# even when the Python syntax is correct. Never depend on Git/archive mode alone.
+chmod 0755 "$BUILD/config/includes.chroot/usr/local/libexec/centipede-desktop-readiness.py"
+test -x "$BUILD/config/includes.chroot/usr/local/libexec/centipede-desktop-readiness.py"
 
 cd "$BUILD"
 lb config \
