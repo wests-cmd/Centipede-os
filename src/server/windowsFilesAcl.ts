@@ -15,7 +15,8 @@ $write=[System.Security.AccessControl.FileSystemRights]::Write -bor [System.Secu
 foreach($ace in $acl.GetAccessRules($true,$true,[System.Security.Principal.SecurityIdentifier])) {
  if($ace.AccessControlType -eq 'Allow' -and ($ace.FileSystemRights -band $write) -ne 0 -and $trusted -notcontains $ace.IdentityReference.Value){exit 4}
 }
-Write-Output 'PRIVATE'
+[Console]::Out.WriteLine('PRIVATE')
+exit 0
 `;
 export async function isPrivateWindowsDirectory(path: string): Promise<boolean> {
   try {
