@@ -41,7 +41,7 @@ test('production browser user journey: first run, all apps, offline security, an
   await expect(page.getByRole('heading', { name: 'Welcome to Centipede' })).toBeVisible({ timeout: 20_000 });
   const coldWizardVisibleMs = performance.now() - coldStart;
   const navigation = await page.evaluate(() => {
-    const entry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+    const entry = performance.getEntries().find((item) => item.entryType === 'navigation') as PerformanceNavigationTiming | undefined;
     return {
       domContentLoadedMs: entry?.domContentLoadedEventEnd ?? null,
       loadEventMs: entry?.loadEventEnd ?? null,
@@ -58,9 +58,6 @@ test('production browser user journey: first run, all apps, offline security, an
 
   // This deployment intentionally has no Kingdom owner key or real remote worker.
   // Check visible fail-closed states instead of simulating successful execution.
-  await page.getByRole('complementary').getByRole('button', { name: 'Segmentor', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Submit real Kingdom task' })).toBeDisabled();
-
   const firstOpen: { app: string; milliseconds: number }[] = [];
   const warmOpen: { app: string; milliseconds: number }[] = [];
   for (let pass = 0; pass < 2; pass++) {
@@ -68,6 +65,9 @@ test('production browser user journey: first run, all apps, offline security, an
       const start = performance.now();
       await page.getByRole('complementary').getByRole('button', { name: appName, exact: true }).click();
       await expect(page.getByRole('main').getByText(title, { exact: true }).first()).toBeVisible({ timeout: 15_000 });
+      if (appName === 'Segmentor') {
+        await expect(page.getByRole('button', { name: 'Submit real Kingdom task' })).toBeDisabled();
+      }
       const sample = { app: appName, milliseconds: Number((performance.now() - start).toFixed(1)) };
       (pass === 0 ? firstOpen : warmOpen).push(sample);
     }
