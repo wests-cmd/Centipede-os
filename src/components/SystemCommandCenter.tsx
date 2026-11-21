@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Activity, AlertTriangle, BarChart3, CheckCircle2, ChevronRight, CircleHelp,
-  Cpu, HardDrive, History, LockKeyhole, Network, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Activity, AlertTriangle, BarChart3, ChevronRight,
+  Cpu, HardDrive, History, LockKeyhole, RefreshCw, ShieldCheck } from 'lucide-react';
 import type { KingdomAdapter } from '../api/kingdomAdapter';
 import { kingdomActions } from '../api/kingdomActions';
 import { CENTIPEDE_VERSION } from '../version';
@@ -103,6 +103,15 @@ export const SystemCommandCenter: React.FC<Props> = ({ adapter, onNavigate }) =>
 
   useEffect(() => adapter.subscribeConnection(setConnection), [adapter]);
   useEffect(() => kingdomActions.subscribe(setOwnerUnlocked), []);
+  // Owner tokens expire independently of UI actions. Recheck while the owner panel is open,
+  // so an elapsed session can never continue displaying protected audit previews.
+  useEffect(() => {
+    if (mode !== 'owner') return;
+    const checkExpiry = () => setOwnerUnlocked(kingdomActions.isUnlocked());
+    checkExpiry();
+    const timer = window.setInterval(checkExpiry, 1000);
+    return () => window.clearInterval(timer);
+  }, [mode]);
   useEffect(() => {
     setTransitions(previous => previous[0]?.value === connection ? previous :
       [{ value: connection, at: Date.now() }, ...previous].slice(0, 20));
@@ -121,7 +130,7 @@ export const SystemCommandCenter: React.FC<Props> = ({ adapter, onNavigate }) =>
       connected && mode !== 'everyday' ? optional(() => adapter.get_models()) : Promise.resolve(null),
       connected && mode !== 'everyday' ? optional(() => adapter.get_skills()) : Promise.resolve(null),
       connected && mode !== 'everyday' ? optional(() => adapter.get_events(30)) : Promise.resolve(null),
-      connected && mode === 'owner' && ownerUnlocked
+      connected && mode === 'owner' && ownerUnlocked && kingdomActions.isUnlocked()
         ? optional(async () => (await adapter.get_audit(20)).audit_logs) : Promise.resolve(null),
     ]);
     if (generation !== requestNumber.current) return;
@@ -170,7 +179,7 @@ export const SystemCommandCenter: React.FC<Props> = ({ adapter, onNavigate }) =>
     [snapshot, checkedAt]);
   const alerts = useMemo(() => deriveVisibilityAlerts(snapshot), [snapshot, checkedAt]);
   const freshHost = telemetryIsFresh(snapshot.host) ? snapshot.host : null;
-  const canReadAudit = mode === 'owner' && ownerUnlocked && snapshot.connection === 'CONNECTED';
+  const canReadAudit = mode === 'owner' && ownerUnlocked && kingdomActions.isUnlocked() && snapshot.connection === 'CONNECTED';
   const important = new Set(['system','performance','kingdom','segmentor','tasks','notifications']);
   const visibleCards = mode === 'everyday' ? cards.filter(card=>important.has(card.id)) : cards;
 
@@ -186,7 +195,12 @@ export const SystemCommandCenter: React.FC<Props> = ({ adapter, onNavigate }) =>
       <p className="text-xs leading-5 text-slate-300">{card.description}</p>
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 pt-2">
         <span className="text-[10px] text-slate-500">Source: {card.source}</span>
-        <button type="button" onClick={() => onNavigate(card.navigate)}
+        <button type="button" onClick={() => {
+          if (card.navigate === 'command') {
+            document.getElementById(card.id === 'notifications' ? 'attention-heading' : 'performance-heading')?.scrollIntoView({ behavior: 'smooth' });
+            if (card.id === 'performance') setMode('advanced');
+          } else onNavigate(card.navigate);
+        }}
           className="inline-flex items-center gap-1 text-xs text-blue-300 hover:text-blue-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-300">
           {card.action}<ChevronRight aria-hidden="true" className="h-3 w-3"/>
         </button>
