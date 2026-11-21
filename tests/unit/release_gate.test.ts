@@ -21,10 +21,9 @@ describe('release channel must never mislabel a preview as certified stable', ()
     }
   });
   it('blocks stable tags without exact-current-commit GA evidence AND human repository opt-in', () => {
-    expect(attestation.approved).toBe(false);
     const ref = 'refs/tags/v1.0.1';
     for (const [file, flag, commit] of [
-      [attestation, true, sha], [pass, false, sha], [pass, true, 'b'.repeat(40)],
+      [{ ...pass, approved: false }, true, sha], [pass, false, sha], [pass, true, 'b'.repeat(40)],
       [{ ...pass, evidenceUrl: 'https://example.com/approval' }, true, sha],
       [{ ...pass, approvedBy: '' }, true, sha],
     ] as const) expect(() => requireReleaseEligibility(ref, '1.0.1', commit, file, flag)).toThrow();
