@@ -1,0 +1,69 @@
+name: Centipede OS measured usage benchmark
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'scripts/start-centipede.ts'
+      - 'scripts/build-cache.ts'
+      - 'scripts/benchmark-runtime-usage.py'
+      - 'playwright.usage.config.ts'
+      - 'tests/benchmark/**'
+      - '.github/workflows/usage-benchmark.yml'
+      - 'package.json'
+      - 'bun.lock'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'scripts/start-centipede.ts'
+      - 'scripts/build-cache.ts'
+      - 'scripts/benchmark-runtime-usage.py'
+      - 'playwright.usage.config.ts'
+      - 'tests/benchmark/**'
+      - '.github/workflows/usage-benchmark.yml'
+      - 'package.json'
+      - 'bun.lock'
+
+permissions:
+  contents: read
+
+jobs:
+  measure-production-usage:
+    name: Built web/API + real browser journey (not physical machine)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Validate TypeScript before measuring
+        run: bun x tsc --noEmit
+      - name: Build the production browser bundle once
+        run: bun run build
+      - name: Install real Chromium
+        run: bun x playwright install --with-deps chromium
+      - name: Benchmark production desktop and mobile viewport user interactions
+        run: bun x playwright test --config playwright.usage.config.ts
+      - name: Benchmark isolated Bun server startup, CPU, RSS and health throughput
+        run: python3 scripts/benchmark-runtime-usage.py
+      - name: Print measured CI results
+        if: success()
+        run: |
+          python3 -c "import json; d=json.load(open('benchmark-results/browser.json')); print('Browser cold wizard ms:',d['firstRun']['coldWizardVisibleMs']); print('All 14 first-open windows median ms:',d['appOpening']['firstOpenStats']['p50Ms']); print('All 14 warm-open windows median ms:',d['appOpening']['warmOpenStats']['p50Ms']); print('Renderer used JS heap MiB:',d['renderer']['usedJSHeapMiB'])"
+          python3 -c "import json; d=json.load(open('benchmark-results/runtime.json')); print('Runtime startup ms:',d['productionBunWebAndApi']['startupReadyMs']); print('API request p95 ms:',d['productionBunWebAndApi']['latencyMs']['p95']); print('Bun peak RSS MiB:',d['productionBunWebAndApi']['peakBunProcessRssMiB']); print('Runner logical CPU count:',d['hardware']['logicalCpuCount'])"
+      - name: Upload auditable benchmark JSON and failure traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: centipede-usage-benchmark
+          path: |
+            benchmark-results/*.json
+            test-results/
+          if-no-files-found: warn
+          retention-days: 30
