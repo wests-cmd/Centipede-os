@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { mkdtemp, readFile, rm, symlink, chmod } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, symlink, chmod, realpath } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -17,7 +17,9 @@ const request = (action: string, body: object, local = true, token = session) =>
     body, isLocalAdmin: local, headers: { 'x-centipede-owner-intent':'1', 'x-centipede-action-session': token } });
 beforeEach(async () => {
   resetOwnerActionSessionsForTests();
-  root = await mkdtemp(join(tmpdir(), 'centipede-files-test-'));
+  // Windows hosted runners can expose TEMP through an 8.3 alias. Use the real
+  // path so this fixture exercises ACL enforcement, not alias rejection.
+  root = await realpath(await mkdtemp(join(tmpdir(), 'centipede-files-test-')));
   process.env.CENTIPEDE_FILES_ROOT = root;
   process.env.KINGDOM_API_URL = 'http://127.0.0.1:8000';
   process.env.KINGDOM_API_TOKEN = secret;
