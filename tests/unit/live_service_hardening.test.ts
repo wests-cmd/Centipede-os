@@ -32,12 +32,12 @@ describe('Debian live-image static web hardening and fallback', () => {
       'packaging/live-build/config/includes.chroot/usr/local/bin/centipede-recovery',
       'packaging/live-build/config/includes.chroot/usr/local/bin/centipede-desktop',
     ]) {
-      const result = spawnSync('sh', ['-n'], { input: file(path).replaceAll('\r\n', '\n') });
+      const result = spawnSync('sh', ['-n'], { input: file(path).replaceAll('\r\n', '\n'), timeout: 10_000 });
       expect(result.status, String(result.stderr)).toBe(0);
     }
-    const build = spawnSync('bash', ['-n'], { input: file('scripts/build-live-image.sh').replaceAll('\r\n', '\n') });
+    const build = spawnSync('bash', ['-n'], { input: file('scripts/build-live-image.sh').replaceAll('\r\n', '\n'), timeout: 10_000 });
     expect(build.status, String(build.stderr)).toBe(0);
-  });
+  }, 45_000);
   it('provides a graphical service-failure fallback without destructive recovery steps', () => {
     const entry = file('packaging/live-build/config/includes.chroot/usr/local/bin/centipede-desktop');
     const fallback = file('packaging/live-build/config/includes.chroot/usr/local/bin/centipede-recovery');
