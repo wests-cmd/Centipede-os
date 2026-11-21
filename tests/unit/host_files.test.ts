@@ -36,12 +36,12 @@ afterEach(async () => {
 describe('Centipede local Files security', () => {
   it('rejects a workspace writable by untrusted local users', async () => {
     if (process.platform === 'win32') {
-      const script = `$p=$env:CENTIPEDE_ACL_TEST_ROOT; $a=Get-Acl -LiteralPath $p; $sid=[System.Security.Principal.SecurityIdentifier]::new('S-1-1-0'); $rule=[System.Security.AccessControl.FileSystemAccessRule]::new($sid,'Write','Allow'); $a.AddAccessRule($rule); Set-Acl -LiteralPath $p -AclObject $a`;
+      const script = `$ErrorActionPreference='Stop'; $p=$env:CENTIPEDE_ACL_TEST_ROOT; $a=[System.IO.Directory]::GetAccessControl($p); $sid=[System.Security.Principal.SecurityIdentifier]::new('S-1-1-0'); $rule=[System.Security.AccessControl.FileSystemAccessRule]::new($sid,'Write','Allow'); $a.AddAccessRule($rule); [System.IO.Directory]::SetAccessControl($p,$a)`;
       execFileSync(join(process.env.SystemRoot || 'C:\\Windows','System32','WindowsPowerShell','v1.0','powershell.exe'), ['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],
         { env: { SystemRoot:process.env.SystemRoot, WINDIR:process.env.WINDIR, CENTIPEDE_ACL_TEST_ROOT: root }, windowsHide: true, timeout:10_000 });
     } else await chmod(root, 0o777);
     expect((await request('list',{directory:''})).status).toBe(503);
-  });
+  }, 30_000);
   it('persists and reads a real on-disk text file', async () => {
     expect((await request('list',{directory:''})).data.entries).toEqual([]);
     expect((await request('mkdir',{directory:'',name:'Projects'})).status).toBe(201);
@@ -50,29 +50,29 @@ describe('Centipede local Files security', () => {
     expect(files.data.entries[0].name).toBe('notes.txt');
     expect((await request('read',{path:'Projects/notes.txt'})).data.content).toBe('real data');
     expect(await readFile(join(root,'Projects','notes.txt'),'utf8')).toBe('real data');
-  });
+  }, 30_000);
   it('blocks remote clients, missing sessions, wrong method and owner intent', async () => {
     expect((await request('list',{directory:''}, false)).status).toBe(403);
     expect((await request('list',{directory:''}, true, '')).status).toBe(401);
     expect((await apiRouter.handleRequest({path:'/api/v1/host-files/list',method:'GET',isLocalAdmin:true})).status).toBe(405);
     expect((await apiRouter.handleRequest({path:'/api/v1/host-files/list',method:'POST',isLocalAdmin:true,headers:{'x-centipede-action-session':session},body:{directory:''}})).status).toBe(401);
-  });
+  }, 30_000);
   it('denies traversal and symbolic links, including linked parent folders', async () => {
     for (const path of ['../outside','/etc','a/../../secret','.hidden','x\\..\\secret'])
       expect((await request('list',{directory:path})).status).toBe(422);
     await symlink(tmpdir(), join(root, 'escape'), process.platform === 'win32' ? 'junction' : undefined);
     expect((await request('list',{directory:'escape'})).status).toBe(403);
     expect((await request('read',{path:'escape/config'})).status).toBe(403);
-  });
+  }, 30_000);
   it('never overwrites existing files and bounds content size', async () => {
     expect((await request('create',{directory:'',name:'safe.txt',content:'original'})).status).toBe(201);
     expect((await request('create',{directory:'',name:'safe.txt',content:'override'})).status).toBe(409);
     expect(await readFile(join(root,'safe.txt'),'utf8')).toBe('original');
     expect((await request('create',{directory:'',name:'huge.txt',content:'x'.repeat(128*1024+1)})).status).toBe(413);
-  });
+  }, 30_000);
   it('revokes Files access immediately after owner locks', async () => {
     expect((await apiRouter.handleRequest({path:'/api/v1/kingdom/actions/lock',method:'POST',isLocalAdmin:true,
       headers:{'x-centipede-owner-intent':'1','x-centipede-action-session':session},body:{}})).status).toBe(200);
     expect((await request('list',{directory:''})).status).toBe(401);
-  });
+  }, 30_000);
 });

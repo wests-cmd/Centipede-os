@@ -7,7 +7,7 @@ import { promisify } from 'node:util';
 const script = `
 $ErrorActionPreference='Stop'
 $identity=[System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-$acl=Get-Acl -LiteralPath $env:CENTIPEDE_FILES_ACL_ROOT
+$acl=[System.IO.Directory]::GetAccessControl($env:CENTIPEDE_FILES_ACL_ROOT)
 $owner=$acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value
 $trusted=@($identity,'S-1-5-18','S-1-5-32-544')
 if($trusted -notcontains $owner){exit 3}
