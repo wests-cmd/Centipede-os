@@ -5,6 +5,11 @@ import { spawnSync } from 'node:child_process';
 const file = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 
 describe('Debian live-image static web hardening and fallback', () => {
+  it('opens the verified local dashboard in an app window without kiosk lock-in', () => {
+    const entry = file('packaging/live-build/config/includes.chroot/usr/local/bin/centipede-desktop');
+    expect(entry).toContain('--start-maximized --app=http://127.0.0.1:3000');
+    expect(entry).not.toContain('--kiosk');
+  });
   it('preserves executable mode for systemd ExecStart Python readiness and repairs it in staged image', () => {
     const script = 'packaging/live-build/config/includes.chroot/usr/local/libexec/centipede-desktop-readiness.py';
     const staged = file('scripts/build-live-image.sh');
