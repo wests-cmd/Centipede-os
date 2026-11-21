@@ -13,6 +13,10 @@ describe('Debian live-image static web hardening and fallback', () => {
   });
   it('does not run the local static server as root and confines it to loopback', () => {
     const unit = file('packaging/live-build/config/includes.chroot/etc/systemd/system/centipede-web.service');
+    // The loopback-only service must start offline: waiting for an externally
+    // reachable network can deadlock or delay QEMU and live USB first boot.
+    expect(unit).toContain('After=network.target');
+    expect(unit).not.toContain('network-online.target');
     expect(unit).toContain('User=centipede-web');
     expect(unit).toContain('Group=centipede-web');
     expect(unit).not.toContain('User=root');
@@ -23,7 +27,11 @@ describe('Debian live-image static web hardening and fallback', () => {
     expect(unit).toContain('StateDirectoryMode=0700');
     expect(unit).not.toContain('http.server');
     expect(file('scripts/build-live-image.sh')).toContain('--target=bun-linux-x64-baseline');
-    expect(file('packaging/live-build/config/includes.chroot/usr/local/libexec/centipede-desktop-readiness.py')).toContain('/api/v1/health');
+    const readiness = file('packaging/live-build/config/includes.chroot/usr/local/libexec/centipede-desktop-readiness.py');
+    expect(readiness).toContain('/api/v1/health');
+    expect(readiness).toContain('CENTIPEDE_WEB_UNIT_DIAGNOSTIC');
+    expect(readiness).toContain('ExecMainStatus');
+    expect(readiness).not.toContain('show-environment');
   });
   it('creates the service account in live-build and sets application content owner', () => {
     const hook = file('packaging/live-build/config/hooks/normal/0150-centipede-security.hook.chroot');

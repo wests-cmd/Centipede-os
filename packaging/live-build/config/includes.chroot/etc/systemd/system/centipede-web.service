@@ -1,6 +1,6 @@
 [Unit]
 Description=Centipede local web and API service (unprivileged)
-After=network-online.target
+After=network.target
 RequiresMountsFor=/opt/centipede/web
 StartLimitIntervalSec=60
 StartLimitBurst=5
