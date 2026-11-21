@@ -22,9 +22,9 @@ export interface CompatibilityGateResult {
 
 export class TargetUpdateChecker {
   public static parseArtifactVersion(versionString: string): { coreVersion: string; target: TargetName; revision: number } | null {
-    const match = versionString.match(/^(\d+\.\d+\.\d+)\+([a-z-]+)\.(\d+)$/);
+    const match = versionString.match(/^(\d+\.\d+\.\d+)\+([a-z-]+)\.([1-9]\d*)$/);
     const validTargets: TargetName[] = ['desktop', 'iso', 'live-usb', 'vm', 'android', 'ios', 'docker'];
-    if (!match || !validTargets.includes(match[2] as TargetName)) return null;
+    if (!match || !parseSemver(match[1]) || !validTargets.includes(match[2] as TargetName)) return null;
     const revision = Number.parseInt(match[3], 10);
     if (!Number.isSafeInteger(revision) || revision < 1) return null;
     return { coreVersion: match[1], target: match[2] as TargetName, revision };
@@ -53,7 +53,9 @@ export class TargetUpdateChecker {
     }
 
     // 4. SHA256 Checksum Verification
-    if (targetMeta.sha256.toLowerCase() !== providedSha256.toLowerCase()) {
+    if (typeof targetMeta.sha256 !== 'string' || !/^[a-f0-9]{64}$/i.test(targetMeta.sha256) ||
+        typeof providedSha256 !== 'string' || !/^[a-f0-9]{64}$/i.test(providedSha256) ||
+        targetMeta.sha256.toLowerCase() !== providedSha256.toLowerCase()) {
       return { allowed: false, reason: `CHECKSUM_MISMATCH: Provided SHA-256 ${providedSha256} does not match manifest ${targetMeta.sha256}` };
     }
 
@@ -69,16 +71,28 @@ export class TargetUpdateChecker {
     const targetInfo = latestManifest.targets?.[target];
     const targetArtifact = latestManifest.artifacts?.find((a: any) => a.target === target);
 
-    if (!targetInfo || !targetArtifact || typeof latestManifest.coreVersion !== 'string') {
+    // A missing/invalid installed identity must never be treated as eligible for
+    // update. Malformed manifests and blocked mobile release targets fail closed.
+    if (!parsedCurrent || parsedCurrent.target !== target || !targetInfo || !targetArtifact ||
+      targetInfo.status !== 'BUILDABLE' || typeof latestManifest.coreVersion !== 'string' ||
+      typeof targetArtifact.filename !== 'string' ||
+      !/^[A-Za-z0-9][A-Za-z0-9._-]{1,180}$/.test(targetArtifact.filename) ||
+      typeof targetArtifact.sha256 !== 'string' || !/^[a-f0-9]{64}$/i.test(targetArtifact.sha256)) {
       return { updateAvailable: false, isCoreUpdate: false, metadata: null };
     }
-
-    const latestRevision = targetInfo.revision || 1;
+    const latestRevision = targetInfo.revision;
     const latestCoreVersion = latestManifest.coreVersion;
+    const latest = parseSemver(latestCoreVersion);
+    const installed = parseSemver(parsedCurrent.coreVersion);
+    if (!Number.isSafeInteger(latestRevision) || latestRevision < 1 || !latest || !installed) {
+      return { updateAvailable: false, isCoreUpdate: false, metadata: null };
+    }
     const latestArtifactVersion = `${latestCoreVersion}+${target}.${latestRevision}`;
-
-    const isCoreUpdate = parsedCurrent ? parsedCurrent.coreVersion !== latestCoreVersion : false;
-    const isTargetUpdate = parsedCurrent ? parsedCurrent.revision < latestRevision : false;
+    // Do not offer downgrades. Revision numbers compare only inside the
+    // *same core version*; resetting a revision in a newer core is valid.
+    const comparison = compareSemver(latest, installed);
+    const isCoreUpdate = comparison > 0;
+    const isTargetUpdate = comparison === 0 && latestRevision > parsedCurrent.revision;
 
     const metadata: TargetUpdateMetadata = {
       target,
@@ -114,16 +128,24 @@ function targetMetaArch(target: TargetName): string {
   }
 }
 
-function parseSemver(v: string): [number, number, number] {
-  const clean = v.replace(/^v/, '').split('+')[0];
-  const parts = clean.split('.').map((p) => parseInt(p, 10) || 0);
-  return [parts[0] || 0, parts[1] || 0, parts[2] || 0];
+function parseSemver(v: string): [number, number, number] | null {
+  if (typeof v !== 'string') return null;
+  const clean = v.replace(/^v/, '').split('+', 1)[0];
+  const match = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.exec(clean);
+  if (!match) return null;
+  const numbers = match.slice(1).map(Number);
+  return numbers.every(Number.isSafeInteger) ? numbers as [number, number, number] : null;
+}
+
+function compareSemver(a: [number, number, number], b: [number, number, number]): number {
+  for (let index = 0; index < 3; index++) {
+    if (a[index] !== b[index]) return a[index] > b[index] ? 1 : -1;
+  }
+  return 0;
 }
 
 function isCoreVersionSupported(minVersion: string, currentVersion: string): boolean {
   const min = parseSemver(minVersion);
   const cur = parseSemver(currentVersion);
-  if (cur[0] !== min[0]) return cur[0] > min[0];
-  if (cur[1] !== min[1]) return cur[1] > min[1];
-  return cur[2] >= min[2];
+  return Boolean(min && cur && compareSemver(cur, min) >= 0);
 }
