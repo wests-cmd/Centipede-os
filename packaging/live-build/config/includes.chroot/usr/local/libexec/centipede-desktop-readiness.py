@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import os
+import json
 import pwd
 import shutil
 import subprocess
@@ -43,6 +44,9 @@ while time.monotonic() < deadline:
     try:
         with urllib.request.urlopen("http://127.0.0.1:3000/", timeout=2) as response:
             last_app_ready = response.status == 200 and b'id="root"' in response.read()
+        with urllib.request.urlopen("http://127.0.0.1:3000/api/v1/health", timeout=2) as response:
+            health = json.load(response)
+            last_app_ready = last_app_ready and response.status == 200 and health.get("status") in {"HEALTHY", "DEGRADED"}
     except Exception:
         last_app_ready = False
     last_browser_ready = desktop_browser_running(uid)

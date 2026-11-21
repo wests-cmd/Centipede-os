@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { spawn, ChildProcess } from 'child_process';
+import { startKingdomFixture } from '../fixtures/kingdomFixtureProcess';
 import { KingdomAdapter } from '../../src/api/kingdomAdapter';
 
 describe('Kingdom Docker & HTTP Server Integration Test Suite', () => {
@@ -8,11 +9,7 @@ describe('Kingdom Docker & HTTP Server Integration Test Suite', () => {
   const TEST_PORT = '8088';
 
   beforeAll(async () => {
-    serverProcess = spawn(process.env.CENTIPEDE_E2E_PYTHON || (process.platform === 'win32' ? 'python' : 'python3'), ['tests/fixtures/kingdom-contract-fixture.py'], {
-      env: { ...process.env, PORT: TEST_PORT },
-      stdio: 'ignore',
-    });
-    await new Promise((r) => setTimeout(r, 1200));
+    serverProcess = await startKingdomFixture(TEST_PORT);
 
     adapter = new KingdomAdapter(`http://localhost:${TEST_PORT}`);
 

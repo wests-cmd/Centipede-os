@@ -12,7 +12,12 @@ describe('Debian live-image static web hardening and fallback', () => {
     expect(unit).not.toContain('User=root');
     for (const flag of ['NoNewPrivileges=yes', 'PrivateDevices=yes', 'ProtectSystem=strict', 'ProtectHome=yes','CapabilityBoundingSet='])
       expect(unit).toContain(flag);
-    expect(unit).toContain('--bind 127.0.0.1');
+    expect(unit).toContain('Environment=HOST=127.0.0.1');
+    expect(unit).toContain('ExecStart=/opt/centipede/bin/centipede-server');
+    expect(unit).toContain('StateDirectoryMode=0700');
+    expect(unit).not.toContain('http.server');
+    expect(file('scripts/build-live-image.sh')).toContain('--target=bun-linux-x64-baseline');
+    expect(file('packaging/live-build/config/includes.chroot/usr/local/libexec/centipede-desktop-readiness.py')).toContain('/api/v1/health');
   });
   it('creates the service account in live-build and sets application content owner', () => {
     const hook = file('packaging/live-build/config/hooks/normal/0150-centipede-security.hook.chroot');
