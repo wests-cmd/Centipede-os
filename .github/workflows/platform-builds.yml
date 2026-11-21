@@ -8,11 +8,11 @@ on:
         description: Build a publisher-signed Android APK for validation
         type: boolean
         default: false
+  # Tag releases run through release.yml only, so the release-gate executes
+  # before a signed mobile build or expensive OS-image job can start.
   push:
     branches:
       - 'codex/**'
-    tags:
-      - 'v*'
 
 permissions:
   contents: read

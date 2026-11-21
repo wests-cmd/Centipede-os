@@ -5,6 +5,7 @@ import { basename, join, resolve, sep } from 'node:path';
 import packageJson from '../package.json';
 import releaseConfig from '../release/targets.json';
 import { classifyReleaseRef } from '../src/platform/releaseGate';
+import { isTrackedSourceDirty } from './releaseSourceIntegrity';
 
 const root = process.cwd();
 const releaseDir = join(root, 'release');
@@ -19,7 +20,7 @@ if (!target.artifact) throw new Error(`No artifact name is configured for ${targ
 
 const ref = process.env.GITHUB_REF ?? '';
 const identity = classifyReleaseRef(ref, version);
-if (identity.channel === 'stable' && execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }).trim()) {
+if (identity.channel === 'stable' && isTrackedSourceDirty(root)) {
   throw new Error('Stable release builds require a clean committed source tree.');
 }
 

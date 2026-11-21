@@ -1,5 +1,28 @@
 # Platform build and signing guide
 
+## Release source and certificate integrity (November 2026)
+
+The source-of-truth tag release starts in `.github/workflows/release.yml` and
+first evaluates its GA or preview-release gate. A `v*` tag does **not** independently
+launch `platform-builds.yml`; the release workflow calls that reusable workflow
+after the gate passes. Developer branch validation and manual workflow dispatch
+remain available.
+
+The release builder permits generated **untracked** output (such as `dist/`,
+screenshots and downloaded archives) but fails if a tracked source file, staged
+configuration or release policy has been altered after checkout. Git errors
+also fail closed. Do not disable the source check to make a failed release pass.
+
+**Known blocked release:** the November 21 `v1.0.1` stable-tag run failed both
+the dirty-source check (before this repair) and Android certificate pinning.
+It published no stable release. The certificate mismatch is still a hard
+NO: preserve the existing publisher's signing key or explicitly approve and
+pin the **intended** new publisher certificate after verifying its provenance.
+Never silently replace signing secrets or bypass the fingerprint comparison.
+After the real signing identity is settled and the required physical GA gates
+are met, build a *new* immutable, version-matched tag rather than force-moving
+the already-pushed tag. Numbered `-rc.N` tags are preview-only.
+
 The `Centipede platform builds` workflow builds the OS disk formats and container on GitHub-hosted Linux. It builds a debug Android APK and iOS Simulator app for branch validation. A version tag runs signed mobile jobs only when the corresponding `CENTIPEDE_ENABLE_SIGNED_ANDROID_RELEASE` or `CENTIPEDE_ENABLE_SIGNED_IOS_RELEASE` repository variable is set to `true`. Those targets remain BLOCKED and are omitted from the release until signing credentials and target configuration are ready. The stable release waits for every BUILDABLE target and publishes nothing if a required build or integrity check fails.
 
 ## Stable Android APK

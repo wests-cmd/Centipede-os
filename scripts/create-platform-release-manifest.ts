@@ -6,6 +6,7 @@ import packageJson from '../package.json';
 import releaseConfig from '../release/targets.json';
 import attestation from '../release/ga-attestation.json';
 import { classifyReleaseRef, requireReleaseEligibility } from '../src/platform/releaseGate';
+import { isTrackedSourceDirty } from './releaseSourceIntegrity';
 import { CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL, KINGDOM_PROTOCOL_MAJOR } from '../src/version';
 import { KINGDOM_CONTRACT_SPEC } from '../src/api/contractSpec';
 import { expectedArtifactSha256 } from '../src/platform/releaseIntegrity';
@@ -17,7 +18,7 @@ const version = packageJson.version;
 const ref = process.env.GITHUB_REF ?? '';
 const identity = classifyReleaseRef(ref, version);
 const channel = identity.channel;
-const sourceDirty = execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }).trim().length > 0;
+const sourceDirty = isTrackedSourceDirty(root);
 if (channel === 'stable' && sourceDirty) throw new Error('Stable release packaging requires a clean committed tree.');
 
 const paths: Record<string, string> = {
