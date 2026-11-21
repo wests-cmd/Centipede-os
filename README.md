@@ -6,6 +6,32 @@ Kingdom is a separate project and runtime. This repository contains a client and
 
 ---
 
+## Start here: try Centipede in four steps
+
+> **Preview, not a permanent OS installer.** The published image starts a Debian live desktop with Centipede. It does **not** erase or install onto your computer's internal disk. You must not attempt to replace your primary OS with this preview.
+
+[**Watch the animated install-and-use walkthrough**](docs/media/quick-start.svg) · [Read the complete beginner guide](docs/INSTALLATION_GUIDE.md) · [Accessible video transcript](docs/VIDEO_GUIDE.md)
+
+![Animated Centipede OS quick-start walkthrough](docs/media/quick-start.svg)
+
+1. **Download:** [Live USB preview v1.0.1-rc.9 (.iso)](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.9/centipede-os-1.0.1-live-usb-x86_64.iso) from the [published preview release](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.1-rc.9). The older stable-labelled v1.0.0 is a separate, older prototype. Neither includes the latest main-branch fixes.
+2. **Make a USB:** Use a spare USB drive of **at least 8 GB** (16 GB recommended) and [balenaEtcher](https://etcher.balena.io/): **Flash from file → Select target → Flash**. **This erases the selected USB**, so check it carefully.
+3. **Boot:** Restart, open your PC's boot-device menu (commonly F12, F9, F11 or Esc), and choose the USB's live/start option. When you're finished, shut down and remove the USB.
+4. **Use Centipede:** Open **Home** for navigation, **Segmentor** for assistant requests, **Tasks** to view Kingdom-backed work, and **Settings** for preferences. A separate, authorized Kingdom installation is required for real Kingdom actions; phone pairing and permanent installation are not provided by this preview.
+
+| What do you want? | Best starting point |
+| --- | --- |
+| Try Centipede without overwriting Windows/Linux | [Live USB walkthrough](docs/INSTALLATION_GUIDE.md) |
+| Try it in a VM | [Published preview VM media](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.9/centipede-os-1.0.1-x86_64.qcow2) — optical-media qcow2, **not** a preinstalled hard disk |
+| Use the browser app as a developer | [Local development instructions](#run-locally) |
+| Operate the web API in Docker | [Platform guide](docs/PLATFORM_BUILD_GUIDE.md) — Kingdom remains a separate service |
+| Install Centipede permanently on a computer | **Not yet supported by a verified graphical installer** |
+| Install a production Android/iOS companion | **Not certified; signing/pairing and physical-device checks still required** |
+
+**Current source versus downloads:** The links above point to published **RC9 preview** binaries, not to the latest code on `main`. Newer fixes and user-experience improvements require their own release build, validation and publication. Do not interpret a successful virtual boot as proof of a safe permanent installation.
+
+---
+
 ## Status and roadmap
 
 Centipede `v1.0.0` has a desktop web bundle and platform build workflows for a Debian live ISO/USB image, QEMU VM disk, Android app, iOS app, and Docker image. The OS images launch the web app in a Chromium kiosk session; they do not add host-level Centipede execution or Kingdom. An older stable-labelled GitHub Release `v1.0.0` was published on September 30, 2026, but it is a live/browser-kiosk prototype; it does **not** contain the current `main` branch and is not a completed daily-driver installer. The synchronized tag workflow is designed to publish only verified BUILDABLE targets; Android device distribution and iOS device distribution remain BLOCKED until publisher credentials are configured.
