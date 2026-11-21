@@ -86,10 +86,13 @@ def inspect_http(path: str) -> tuple[bool, str, dict]:
         version = payload.get("version")
         # Do not call DEGRADED healthy just because HTTP returned 200.
         good = status == "HEALTHY" and isinstance(version, str) and re.fullmatch(r"\d+\.\d+\.\d+", version)
-        return bool(good), ("Local Centipede API reports HEALTHY." if good else
-                            "Centipede API is degraded or version is unverified."),
-        {"apiStatus": status if status in {"HEALTHY", "DEGRADED"} else "UNKNOWN",
-         "coreVersion": version if isinstance(version, str) and len(version) < 40 else None}
+        return (
+            bool(good),
+            "Local Centipede API reports HEALTHY." if good else
+                "Centipede API is degraded or version is unverified.",
+            {"apiStatus": status if status in {"HEALTHY", "DEGRADED"} else "UNKNOWN",
+             "coreVersion": version if isinstance(version, str) and len(version) < 40 else None},
+        )
 
 
 def chromium_app_window() -> bool:
