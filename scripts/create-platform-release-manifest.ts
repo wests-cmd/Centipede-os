@@ -4,6 +4,8 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileS
 import { join } from 'node:path';
 import packageJson from '../package.json';
 import releaseConfig from '../release/targets.json';
+import attestation from '../release/ga-attestation.json';
+import { classifyReleaseRef, requireReleaseEligibility } from '../src/platform/releaseGate';
 import { CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL, KINGDOM_PROTOCOL_MAJOR } from '../src/version';
 import { KINGDOM_CONTRACT_SPEC } from '../src/api/contractSpec';
 import { expectedArtifactSha256 } from '../src/platform/releaseIntegrity';
@@ -12,9 +14,9 @@ const root = process.cwd();
 const releaseDir = join(root, 'release');
 const downloaded = join(releaseDir, 'platforms');
 const version = packageJson.version;
-const stableTag = `v${version}`;
 const ref = process.env.GITHUB_REF ?? '';
-const channel = ref === `refs/tags/${stableTag}` ? 'stable' : 'candidate';
+const identity = classifyReleaseRef(ref, version);
+const channel = identity.channel;
 const sourceDirty = execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }).trim().length > 0;
 if (channel === 'stable' && sourceDirty) throw new Error('Stable release packaging requires a clean committed tree.');
 
@@ -29,6 +31,9 @@ const paths: Record<string, string> = {
 };
 
 const gitCommit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+if (identity.tagged) requireReleaseEligibility(ref, version, gitCommit, attestation,
+  process.env.CENTIPEDE_STABLE_RELEASE_APPROVED === 'true',
+  process.env.CENTIPEDE_GA_APPROVED_SHA);
 mkdirSync(join(releaseDir, 'manifests'), { recursive: true });
 const artifacts: Array<Record<string, unknown> & { relativePath: string; sha256: string; sizeBytes: number }> = [];
 const checksums: string[] = [];
@@ -72,7 +77,7 @@ for (const [target, targetConfig] of Object.entries(releaseConfig.targets)) {
 }
 
 const combined = {
-  product: 'Centipede OS', coreVersion: version, centipedeVersion: version, release: stableTag,
+  product: 'Centipede OS', coreVersion: version, centipedeVersion: version, release: identity.tag,
   releaseChannel: channel, gitCommit, sourceDirty,
   kingdom: { protocol: CENTIPEDE_SUPPORTED_KINGDOM_PROTOCOL, protocolMajor: KINGDOM_PROTOCOL_MAJOR, contractVersion: KINGDOM_CONTRACT_SPEC.contractVersion },
   targets: releaseConfig.targets, artifacts,
