@@ -230,6 +230,37 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
+      - name: Smoke compiled API in Debian Bookworm userspace before building the ISO
+        run: |
+          set -euo pipefail
+          bun run build
+          bun build --compile --target=bun-linux-x64-baseline src/server/production.ts --outfile "$RUNNER_TEMP/centipede-server-bookworm"
+          chmod 0755 "$RUNNER_TEMP/centipede-server-bookworm"
+          docker run -d --rm --name centipede-bookworm-preflight \
+            --user 65534:65534 --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m \
+            --env HOST=0.0.0.0 --env PORT=3000 --env HOME=/tmp \
+            --env CENTIPEDE_WEB_ROOT=/opt/centipede/web \
+            --volume "$PWD/dist:/opt/centipede/web:ro" \
+            --volume "$RUNNER_TEMP/centipede-server-bookworm:/opt/centipede/bin/centipede-server:ro" \
+            -p 127.0.0.1::3000 debian:bookworm-slim /opt/centipede/bin/centipede-server
+          trap 'docker logs centipede-bookworm-preflight || true; docker rm -f centipede-bookworm-preflight || true' EXIT
+          TARGET="$(docker port centipede-bookworm-preflight 3000/tcp)"
+          test -n "$TARGET"
+          ready=0
+          for attempt in $(seq 1 25); do
+            if curl --silent --show-error --fail "http://$TARGET/api/v1/health" > "$RUNNER_TEMP/centipede-bookworm-health.json" 2>/dev/null; then
+              ready=1
+              break
+            fi
+            if [ "$(docker inspect --format='{{.State.Running}}' centipede-bookworm-preflight)" != true ]; then
+              break
+            fi
+            sleep 1
+          done
+          test "$ready" = 1 || { echo 'FAIL: compiled Bun server did not start in Debian Bookworm'; exit 1; }
+          grep -Eq '"status":"(HEALTHY|DEGRADED)"' "$RUNNER_TEMP/centipede-bookworm-health.json"
+          curl --fail --silent --show-error "http://$TARGET/" | grep -Fq 'id="root"'
+          echo 'PASS: rootless compiled server serves real HTML and API on Debian Bookworm'
       - name: Build bootable images
         run: sudo -E env BUN_BIN="$(command -v bun)" bash scripts/build-live-image.sh
       - name: Restore artifact ownership for QEMU and upload
