@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { isTrackedSourceDirty } from '../../scripts/releaseSourceIntegrity';
@@ -37,14 +37,13 @@ describe('stable release provenance ignores only generated outputs, not tracked 
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
   it('stops standalone tag-triggered platform jobs from bypassing the release gate', () => {
-    const fs = require('node:fs') as typeof import('node:fs');
-    const workflow = fs.readFileSync(join(process.cwd(), '.github/workflows/platform-builds.yml'), 'utf8');
+    const workflow = readFileSync(join(process.cwd(), '.github/workflows/platform-builds.yml'), 'utf8');
     const dispatch = workflow.split('\npermissions:', 1)[0];
     expect(dispatch).toContain('workflow_call:');
     expect(dispatch).toContain('workflow_dispatch:');
     expect(dispatch).toContain("'codex/**'");
     expect(dispatch).not.toMatch(/^\s+tags:\s*$/m);
-    const release = fs.readFileSync(join(process.cwd(), '.github/workflows/release.yml'), 'utf8');
+    const release = readFileSync(join(process.cwd(), '.github/workflows/release.yml'), 'utf8');
     expect(release).toContain('needs: release-gate');
   });
 });
