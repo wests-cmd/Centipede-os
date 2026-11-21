@@ -5,6 +5,7 @@ import { CENTIPEDE_VERSION } from '../version';
 import { proxyKingdomRead } from './kingdomReadProxy';
 import { handleKingdomAction } from './kingdomAction';
 import { handleHostFiles } from './hostFiles';
+import { handleLocalInference } from './localInference';
 
 export interface ApiRequest {
   path: string;
@@ -45,6 +46,9 @@ export class ApiRouter {
       const runtimeInfo = await platformDetector.detectRuntimeInfo();
       return { status: 200, data: runtimeInfo };
     }
+
+    const localInference = await handleLocalInference(req);
+    if (localInference) return localInference;
 
     const localFiles = await handleHostFiles(req);
     if (localFiles) return localFiles;
