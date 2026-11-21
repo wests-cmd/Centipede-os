@@ -5,6 +5,12 @@ import { spawnSync } from 'node:child_process';
 const file = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 
 describe('Debian live-image static web hardening and fallback', () => {
+  it('orders readiness after concrete services without cycling its target', () => {
+    const unit = file('packaging/live-build/config/includes.chroot/etc/systemd/system/centipede-desktop-readiness.service');
+    expect(unit).toContain('After=lightdm.service centipede-web.service');
+    expect(unit).not.toContain('After=graphical.target');
+    expect(unit).not.toContain('Wants=graphical.target');
+  });
   it('does not run the local static server as root and confines it to loopback', () => {
     const unit = file('packaging/live-build/config/includes.chroot/etc/systemd/system/centipede-web.service');
     expect(unit).toContain('User=centipede-web');
