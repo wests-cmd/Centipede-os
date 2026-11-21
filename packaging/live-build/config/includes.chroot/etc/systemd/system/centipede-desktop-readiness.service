@@ -7,6 +7,9 @@ Wants=lightdm.service centipede-web.service
 Type=oneshot
 ExecStart=/usr/local/libexec/centipede-desktop-readiness.py
 TimeoutStartSec=130
+StandardOutput=journal+console
+StandardError=journal+console
+TTYPath=/dev/ttyS0
 
 [Install]
 WantedBy=graphical.target

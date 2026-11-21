@@ -81,6 +81,16 @@ PY
   kill -0 "$PID" 2>/dev/null || break
   sleep 1
 done
+python3 - "$MONITOR" "$SCREEN" <<'PY' || true
+import socket, sys, time
+s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+s.settimeout(5)
+try:
+    s.connect(sys.argv[1]); time.sleep(.3); s.recv(4096)
+    s.sendall(("screendump " + sys.argv[2] + "\r\n").encode()); time.sleep(1)
+finally:
+    s.close()
+PY
 cat "$SERIAL" 2>/dev/null || true
 echo "FAIL: $NAME did not reach CENTIPEDE_DESKTOP_READY within 420 seconds." >&2
 exit 1
