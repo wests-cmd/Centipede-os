@@ -68,8 +68,9 @@ export class TargetUpdateChecker {
     latestManifest: any
   ): { updateAvailable: boolean; isCoreUpdate: boolean; metadata: TargetUpdateMetadata | null } {
     const parsedCurrent = this.parseArtifactVersion(currentArtifactVersion);
-    const targetInfo = latestManifest.targets?.[target];
-    const targetArtifact = latestManifest.artifacts?.find((a: any) => a.target === target);
+    const targetInfo = latestManifest?.targets?.[target];
+    const targetArtifact = Array.isArray(latestManifest?.artifacts)
+      ? latestManifest.artifacts.find((a: any) => a && a.target === target) : null;
 
     // A missing/invalid installed identity must never be treated as eligible for
     // update. Malformed manifests and blocked mobile release targets fail closed.

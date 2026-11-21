@@ -32,6 +32,8 @@ describe('platform update metadata is not permission to downgrade or claim OS ac
     broken.artifacts[0].sha256 = 'unknown';
     expect(TargetUpdateChecker.checkTargetUpdateAvailable('iso', '1.0.1+iso.1', broken).updateAvailable).toBe(false);
     expect(TargetUpdateChecker.checkTargetUpdateAvailable('iso', 'garbage', manifest('1.0.2', 2)).updateAvailable).toBe(false);
+    expect(TargetUpdateChecker.checkTargetUpdateAvailable('iso', '1.0.1+iso.1', null).updateAvailable).toBe(false);
+    expect(TargetUpdateChecker.checkTargetUpdateAvailable('iso', '1.0.1+iso.1', { targets: {}, artifacts: {} }).updateAvailable).toBe(false);
   });
   it('allows only forward core versions or forward revisions of the same core version', () => {
     const freshCore = TargetUpdateChecker.checkTargetUpdateAvailable('iso', '1.0.1+iso.9', manifest('1.0.2', 1));
