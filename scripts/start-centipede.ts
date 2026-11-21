@@ -2,14 +2,19 @@ import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import packageJson from '../package.json';
+import { shouldBuildDesktop } from './build-cache';
 
 const rootDir = process.cwd();
 const dataDir = join(rootDir, 'data');
 if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
 
 console.log(`Centipede OS v${packageJson.version}`);
-console.log('Preparing the web app and shared pairing service...');
-execFileSync('bun', ['run', 'build'], { cwd: rootDir, stdio: 'inherit' });
+if (shouldBuildDesktop(rootDir)) {
+  console.log('Building the desktop web app (new or changed source)...');
+  execFileSync('bun', ['run', 'build'], { cwd: rootDir, stdio: 'inherit' });
+} else {
+  console.log('Starting with the up-to-date desktop bundle; build skipped.');
+}
 
 const kingdomUrl = process.env.KINGDOM_API_URL || 'http://localhost:8000';
 try {
