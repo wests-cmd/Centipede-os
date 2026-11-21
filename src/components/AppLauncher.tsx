@@ -27,6 +27,7 @@ interface AppLauncherProps {
   onOpenApp: (appId: string) => void;
   activeAppId: string;
   pendingApprovalsCount: number;
+  approvalsVerified?: boolean;
   homeVisual: HomeVisual;
   connectionState?: ConnectionState;
 }
@@ -66,6 +67,7 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
   onOpenApp,
   activeAppId,
   pendingApprovalsCount,
+  approvalsVerified = false,
   homeVisual,
   connectionState = 'DISCONNECTED',
 }) => {
@@ -118,7 +120,7 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
       <section aria-labelledby="system-overview-heading" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-900/70 bg-slate-900/80 p-4">
         <div className="space-y-1">
           <h2 id="system-overview-heading" className="flex items-center gap-2 text-base font-semibold text-white"><BarChart3 aria-hidden="true" className="h-5 w-5 text-blue-300" />Your system at a glance</h2>
-          <p className="text-xs text-slate-300">Kingdom: <strong>{connectionState}</strong> · Pending approvals: {connectionState === 'CONNECTED' ? pendingApprovalsCount : 'Not verified'}</p>
+          <p className="text-xs text-slate-300">Kingdom: <strong>{connectionState}</strong> · Pending approvals: {connectionState === 'CONNECTED' && approvalsVerified ? pendingApprovalsCount : 'Not verified'}</p>
           <p className="text-xs text-slate-400">CPU, RAM, disk, devices, task truth and recovery checks are shown only when data is available.</p>
         </div>
         <button type="button" onClick={() => onOpenApp('command')}
