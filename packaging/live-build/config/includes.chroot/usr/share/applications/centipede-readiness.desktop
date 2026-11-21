@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Centipede Readiness Check
+GenericName=Non-destructive system diagnostics
+Comment=Check local Centipede service and save private hardware evidence; no repair or installation
+Exec=/usr/local/bin/centipede-readiness-ui
+Terminal=false
+Icon=dialog-information
+Categories=System;Utility;
+StartupNotify=false

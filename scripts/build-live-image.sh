@@ -29,6 +29,11 @@ mkdir -p "$BUILD/config/includes.chroot/etc/centipede"
 printf '%s\n' "$VERSION" > "$BUILD/config/includes.chroot/etc/centipede/version"
 chmod +x "$BUILD/config/hooks/normal/0100-centipede-systemd.hook.chroot" "$BUILD/config/hooks/normal/0150-centipede-security.hook.chroot" "$BUILD/config/hooks/normal/0200-centipede-identity.hook.chroot" "$BUILD/config/hooks/normal/0300-centipede-boot-menu.hook.binary"
 chmod +x "$BUILD/config/includes.chroot/usr/local/bin/centipede-recovery" "$BUILD/config/includes.chroot/usr/local/bin/centipede-desktop"
+# Bundle an unprivileged, non-destructive real-machine evidence collector.
+install -m 0755 "$ROOT/scripts/physical-acceptance.py" "$BUILD/config/includes.chroot/usr/local/bin/centipede-physical-check"
+chmod 0755 "$BUILD/config/includes.chroot/usr/local/bin/centipede-readiness-ui"
+test -x "$BUILD/config/includes.chroot/usr/local/bin/centipede-physical-check"
+test -x "$BUILD/config/includes.chroot/usr/local/bin/centipede-readiness-ui"
 # systemd ExecStart launches readiness directly; missing executable bit prevents boot
 # even when the Python syntax is correct. Never depend on Git/archive mode alone.
 chmod 0755 "$BUILD/config/includes.chroot/usr/local/libexec/centipede-desktop-readiness.py"

@@ -21,6 +21,10 @@ jobs:
         run: python3 -m unittest discover -s scripts -p 'test_local_*.py' -v
       - name: Test boot-menu branding and recovery fallback
         run: python3 -m unittest discover -s scripts -p test_boot_branding.py -v
+      - name: Test physical readiness receipt policy (simulated inputs only)
+        run: python3 -m unittest discover -s scripts -p test_physical_acceptance.py -v
+      - name: Compile physical evidence collector
+        run: python3 -m py_compile scripts/physical-acceptance.py
 
   validate:
     name: Typecheck, Test & Build Validation

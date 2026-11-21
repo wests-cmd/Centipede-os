@@ -25,6 +25,20 @@ describe('Debian live-image static web hardening and fallback', () => {
     expect(python.status, String(python.stderr)).toBe(0);
   });
 
+  it('installs a real no-terminal non-destructive physical readiness action', () => {
+    const build = file('scripts/build-live-image.sh');
+    const entry = file('packaging/live-build/config/includes.chroot/usr/share/applications/centipede-readiness.desktop');
+    const wrapper = file('packaging/live-build/config/includes.chroot/usr/local/bin/centipede-readiness-ui');
+    expect(entry).toContain('Terminal=false');
+    expect(entry).toContain('Exec=/usr/local/bin/centipede-readiness-ui');
+    expect(wrapper).toContain('--mode desktop');
+    expect(wrapper).not.toContain('sudo ');
+    expect(wrapper).not.toContain('mkfs');
+    expect(build).toContain('install -m 0755 "$ROOT/scripts/physical-acceptance.py"');
+    const shell = spawnSync('sh', ['-n'], { input: wrapper, timeout: 10_000 });
+    expect(shell.status, String(shell.stderr)).toBe(0);
+  });
+
   it('orders readiness after concrete services without cycling its target', () => {
     const unit = file('packaging/live-build/config/includes.chroot/etc/systemd/system/centipede-desktop-readiness.service');
     expect(unit).toContain('After=lightdm.service centipede-web.service');

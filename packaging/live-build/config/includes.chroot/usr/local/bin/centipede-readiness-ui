@@ -1,0 +1,17 @@
+#!/bin/sh
+# Real-machine acceptance from XFCE menu; no sudo, installer, or credential request.
+set -eu
+OUTPUT="${HOME}/.local/share/centipede/physical-receipts"
+LOG=$(mktemp "${TMPDIR:-/tmp}/centipede-readiness.XXXXXX")
+trap 'rm -f "$LOG"' EXIT HUP INT TERM
+if /usr/local/bin/centipede-physical-check --role other --mode desktop --output "$OUTPUT" >"$LOG" 2>&1; then
+  TITLE="Centipede physical snapshot passed"
+else
+  TITLE="Centipede needs more verification"
+fi
+if command -v zenity >/dev/null 2>&1 && [ -n "${DISPLAY:-}" ]; then
+  zenity --text-info --title="$TITLE" --filename="$LOG" --width=740 --height=450 || true
+else
+  cat "$LOG"
+fi
+echo "This check does not certify permanent installation, Kingdom work or OS rollback."
