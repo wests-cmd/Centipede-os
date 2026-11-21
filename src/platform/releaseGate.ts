@@ -2,7 +2,6 @@ export type ReleaseChannel = 'stable' | 'candidate';
 export interface Attestation {
   approved: boolean;
   version: string | null;
-  commit: string | null;
   evidenceUrl: string | null;
   approvedBy: string | null;
 }
@@ -25,13 +24,13 @@ export function classifyReleaseRef(ref: string, coreVersion: string): {
 }
 export function requireReleaseEligibility(
   ref: string, version: string, commit: string, attestation: Attestation,
-  stableApproved: boolean,
+  stableApproved: boolean, pinnedApprovedSha: string | undefined,
 ): { channel: ReleaseChannel; tag: string; tagged: boolean } {
   const identity = classifyReleaseRef(ref, version);
   if (!identity.tagged) throw Error('A verified Git tag is required to publish a release.');
   if (identity.channel === 'stable') {
     if (!stableApproved || !attestation.approved || attestation.version !== version ||
-      attestation.commit !== commit ||
+      !/^[a-f0-9]{40}$/.test(pinnedApprovedSha || '') || pinnedApprovedSha !== commit ||
       typeof attestation.approvedBy !== 'string' || !/^[A-Za-z0-9_-]{2,40}$/.test(attestation.approvedBy) ||
       typeof attestation.evidenceUrl !== 'string' ||
       !/^https:\/\/github\.com\/wests-cmd\/Centipede-os\/issues\/150(?:#issuecomment-\d+)?$/.test(attestation.evidenceUrl)) {

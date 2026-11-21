@@ -32,7 +32,8 @@ const paths: Record<string, string> = {
 
 const gitCommit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
 if (identity.tagged) requireReleaseEligibility(ref, version, gitCommit, attestation,
-  process.env.CENTIPEDE_STABLE_RELEASE_APPROVED === 'true');
+  process.env.CENTIPEDE_STABLE_RELEASE_APPROVED === 'true',
+  process.env.CENTIPEDE_GA_APPROVED_SHA);
 mkdirSync(join(releaseDir, 'manifests'), { recursive: true });
 const artifacts: Array<Record<string, unknown> & { relativePath: string; sha256: string; sizeBytes: number }> = [];
 const checksums: string[] = [];
