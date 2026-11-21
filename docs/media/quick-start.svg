@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-labelledby="title desc">
+<title id="title">Animated Centipede OS download, USB and first-use guide</title>
+<desc id="desc">Eight slides illustrate how to download the current preview from GitHub, write a USB, boot the live desktop, navigate the apps and shut down safely. This is not a recorded installation.</desc>
+<rect width="960" height="540" fill="#050b18"/>
+<rect x="32" y="32" width="896" height="476" rx="22" fill="#0c162b" stroke="#29456f" stroke-width="3"/>
+<rect x="32" y="32" width="896" height="8" rx="4" fill="#3984da"/>
+<rect x="36" y="40" width="888" height="5" fill="#7a2637"/>
+<text x="70" y="91" font-family="Arial,sans-serif" font-size="21" font-weight="bold" fill="#83b4ef">CENTIPEDE OS · BEGINNER GUIDE</text>
+<rect x="68" y="442" width="824" height="8" rx="4" fill="#203954"/>
+<g opacity="0">
+<animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.12;0.125;1" dur="32s" begin="0s" repeatCount="indefinite"/>
+<text x="70" y="173" font-family="Arial,sans-serif" font-size="37" font-weight="bold" fill="#f4f8ff">Welcome to Centipede OS</text>
+<text x="70" y="258" font-family="Arial,sans-serif" font-size="24" fill="#b9d5f8">GitHub download → Live USB → First use</text>
+<text x="70" y="335" font-family="Arial,sans-serif" font-size="19" fill="#d5dce8">Illustrated walkthrough · Preview only</text>
+<rect x="68" y="442" width="103" height="8" rx="4" fill="#3984da"/>
+<text x="70" y="480" font-family="Arial,sans-serif" font-size="18" fill="#95a8c3">1 / 8</text>
+</g><g opacity="0">
+<animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.12;0.125;1" dur="32s" begin="4s" repeatCount="indefinite"/>
+<text x="70" y="173" font-family="Arial,sans-serif" font-size="37" font-weight="bold" fill="#f4f8ff">1 · Open the release</text>
+<text x="70" y="258" font-family="Arial,sans-serif" font-size="24" fill="#b9d5f8">github.com/wests-cmd/Centipede-os/releases</text>
+<text x="70" y="335" font-family="Arial,sans-serif" font-size="19" fill="#d5dce8">Choose v1.0.1-rc.9 · Do not click Source code ZIP</text>
+<rect x="68" y="442" width="206" height="8" rx="4" fill="#3984da"/>
+<text x="70" y="480" font-family="Arial,sans-serif" font-size="18" fill="#95a8c3">2 / 8</text>
+</g><g opacity="0">
+<animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.12;0.125;1" dur="32s" begin="8s" repeatCount="indefinite"/>
+<text x="70" y="173" font-family="Arial,sans-serif" font-size="37" font-weight="bold" fill="#f4f8ff">2 · Download the USB image</text>
+<text x="70" y="258" font-family="Arial,sans-serif" font-size="24" fill="#b9d5f8">centipede-os-1.0.1-live-usb-x86_64.iso</text>
+<text x="70" y="335" font-family="Arial,sans-serif" font-size="19" fill="#d5dce8">A spare USB (8 GB minimum, 16 GB recommended)</text>
+<rect x="68" y="442" width="309" height="8" rx="4" fill="#3984da"/>
+<text x="70" y="480" font-family="Arial,sans-serif" font-size="18" fill="#95a8c3">3 / 8</text>
+</g><g opacity="0">
+<animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.12;0.125;1" dur="32s" begin="12s" repeatCount="indefinite"/>
+<text x="70" y="173" font-family="Arial,sans-serif" font-size="37" font-weight="bold" fill="#f4f8ff">3 · Flash with Etcher</text>
+<text x="70" y="258" font-family="Arial,sans-serif" font-size="24" fill="#b9d5f8">Flash from file → Select target → Flash</text>
+<text x="70" y="335" font-family="Arial,sans-serif" font-size="19" fill="#d5dce8">WARNING: This erases the selected USB device</text>
+<rect x="68" y="442" width="412" height="8" rx="4" fill="#3984da"/>
+<text x="70" y="480" font-family="Arial,sans-serif" font-size="18" fill="#95a8c3">4 / 8</text>
+</g><g opacity="0">
+<animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.12;0.125;1" dur="32s" begin="16s" repeatCount="indefinite"/>
+<text x="70" y="173" font-family="Arial,sans-serif" font-size="37" font-weight="bold" fill="#f4f8ff">4 · Boot from the USB</text>
+<text x="70" y="258" font-family="Arial,sans-serif" font-size="24" fill="#b9d5f8">Restart PC → Boot menu → Select USB</text>
+<text x="70" y="335" font-family="Arial,sans-serif" font-size="19" fill="#d5dce8">Common keys: F12, F9, F11, Esc</text>
+<rect x="68" y="442" width="515" height="8" rx="4" fill="#3984da"/>
+<text x="70" y="480" font-family="Arial,sans-serif" font-size="18" fill="#95a8c3">5 / 8</text>
+</g><g opacity="0">
+<animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.12;0.125;1" dur="32s" begin="20s" repeatCount="indefinite"/>
+<text x="70" y="173" font-family="Arial,sans-serif" font-size="37" font-weight="bold" fill="#f4f8ff">5 · Start the live preview</text>
+<text x="70" y="258" font-family="Arial,sans-serif" font-size="24" fill="#b9d5f8">Choose the live/start option → Follow setup</text>
+<text x="70" y="335" font-family="Arial,sans-serif" font-size="19" fill="#d5dce8">No permanent disk installer is included</text>
+<rect x="68" y="442" width="618" height="8" rx="4" fill="#3984da"/>
+<text x="70" y="480" font-family="Arial,sans-serif" font-size="18" fill="#95a8c3">6 / 8</text>
+</g><g opacity="0">
+<animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.12;0.125;1" dur="32s" begin="24s" repeatCount="indefinite"/>
+<text x="70" y="173" font-family="Arial,sans-serif" font-size="37" font-weight="bold" fill="#f4f8ff">6 · Open the desktop apps</text>
+<text x="70" y="258" font-family="Arial,sans-serif" font-size="24" fill="#b9d5f8">Home · Segmentor · Tasks · Files · Settings</text>
+<text x="70" y="335" font-family="Arial,sans-serif" font-size="19" fill="#d5dce8">Kingdom actions need a separate trusted Kingdom service</text>
+<rect x="68" y="442" width="721" height="8" rx="4" fill="#3984da"/>
+<text x="70" y="480" font-family="Arial,sans-serif" font-size="18" fill="#95a8c3">7 / 8</text>
+</g><g opacity="0">
+<animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.12;0.125;1" dur="32s" begin="28s" repeatCount="indefinite"/>
+<text x="70" y="173" font-family="Arial,sans-serif" font-size="37" font-weight="bold" fill="#f4f8ff">Finish safely</text>
+<text x="70" y="258" font-family="Arial,sans-serif" font-size="24" fill="#b9d5f8">Shut down → Remove USB → Restart normally</text>
+<text x="70" y="335" font-family="Arial,sans-serif" font-size="19" fill="#d5dce8">Preview only — do not overwrite your main system</text>
+<rect x="68" y="442" width="824" height="8" rx="4" fill="#3984da"/>
+<text x="70" y="480" font-family="Arial,sans-serif" font-size="18" fill="#95a8c3">8 / 8</text>
+</g></svg>
