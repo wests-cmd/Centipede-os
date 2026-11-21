@@ -5,6 +5,7 @@ This navigation organizes existing source and evidence; it moves no runtime file
 | Need | Guide |
 | --- | --- |
 | Try the published USB image | [Beginner installation guide](INSTALLATION_GUIDE.md) |
+| Watch an animated illustrated installation/use tutorial | [Quick-start animation](media/quick-start.svg), [accessible transcript](VIDEO_GUIDE.md) |
 | Understand application, image and mobile boundaries | [Architecture](ARCHITECTURE.md) |
 | Run, configure, build and test | [Development](DEVELOPMENT.md) |
 | Operate services and update safely | [Operations](OPERATIONS.md) |
