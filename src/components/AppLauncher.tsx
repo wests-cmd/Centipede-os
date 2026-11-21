@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Activity,
+  BarChart3,
   AppWindow,
   AtSign,
   Bot,
@@ -20,12 +21,14 @@ import {
   Video,
 } from 'lucide-react';
 import { CentipedeWorldVisual, HomeVisual } from './CentipedeWorldVisual';
+import type { ConnectionState } from '../types';
 
 interface AppLauncherProps {
   onOpenApp: (appId: string) => void;
   activeAppId: string;
   pendingApprovalsCount: number;
   homeVisual: HomeVisual;
+  connectionState?: ConnectionState;
 }
 
 const everydayApps = [
@@ -64,8 +67,10 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
   activeAppId,
   pendingApprovalsCount,
   homeVisual,
+  connectionState = 'DISCONNECTED',
 }) => {
   const apps = [
+    { id: 'command', name: 'System Command Center', icon: BarChart3, description: 'Understand system health, performance, Kingdom work, alerts, updates, and what is not verified.' },
     { id: 'files', name: 'Example files', icon: Folder, description: 'Browse the sample files included with this demo.' /* REALITY-LINT-ALLOW: reason = "Truthful disclosure that the Files panel only shows bundled examples" */ },
     { id: 'search', name: 'Search', icon: Search, description: 'Look across Centipede tasks and saved information.' },
     { id: 'tasks', name: 'Tasks', icon: Activity, description: 'See work sent to the connected Kingdom service.' },
@@ -108,6 +113,18 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
         <div className="absolute bottom-4 right-4 z-10 hidden rounded-full border border-white/10 bg-slate-950/55 px-3 py-1.5 text-[11px] text-slate-300 backdrop-blur sm:block">
           {homeVisual === 'centipede-world' ? 'Centipede + World' : homeVisual.replace('-', ' ')}
         </div>
+      </section>
+
+      <section aria-labelledby="system-overview-heading" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-900/70 bg-slate-900/80 p-4">
+        <div className="space-y-1">
+          <h2 id="system-overview-heading" className="flex items-center gap-2 text-base font-semibold text-white"><BarChart3 aria-hidden="true" className="h-5 w-5 text-blue-300" />Your system at a glance</h2>
+          <p className="text-xs text-slate-300">Kingdom: <strong>{connectionState}</strong> · Pending approvals: {connectionState === 'CONNECTED' ? pendingApprovalsCount : 'Not verified'}</p>
+          <p className="text-xs text-slate-400">CPU, RAM, disk, devices, task truth and recovery checks are shown only when data is available.</p>
+        </div>
+        <button type="button" onClick={() => onOpenApp('command')}
+          className="rounded-lg border border-blue-700 bg-blue-950/50 px-4 py-2 text-sm font-semibold text-blue-100 hover:border-blue-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-300">
+          Open Command Center
+        </button>
       </section>
 
       <section aria-labelledby="everyday-apps-heading">
