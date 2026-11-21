@@ -1,23 +1,7 @@
-import { PerceptionPanel } from './components/PerceptionPanel';
 import React, { useEffect, useState } from 'react';
 import { kingdomAdapter } from './api/kingdomAdapter';
 import { DesktopShell } from './components/DesktopShell';
 import { AppLauncher } from './components/AppLauncher';
-import { KingdomStatusPanel } from './components/KingdomStatusPanel';
-import { ActivityTaskView } from './components/ActivityTaskView';
-import { PermissionsApprovalView } from './components/PermissionsApprovalView';
-import { MobileCompanionApp } from './components/MobileCompanionApp';
-import { WorkspaceApp } from './components/WorkspaceApp';
-import { AgentControlApp } from './components/AgentControlApp';
-import { UniversalSearch } from './components/UniversalSearch';
-import { FileManager } from './components/FileManager';
-import { Terminal } from './components/Terminal';
-import { CentipedeAI } from './components/CentipedeAI';
-import { SettingsPanel } from './components/SettingsPanel';
-import { MemoryApp } from './components/MemoryApp';
-import { SkillsApp } from './components/SkillsApp';
-import { DoctorApp } from './components/DoctorApp';
-import { MapsApp } from './components/MapsApp';
 import { Window } from './components/Window';
 import { applyAccessibilitySettings, DEFAULT_ACCESSIBILITY_SETTINGS, loadAccessibilitySettings } from './platform/accessibility';
 import { FirstRunWizard } from './components/FirstRunWizard';
@@ -26,6 +10,24 @@ import { HOME_VISUALS, HomeVisual } from './components/CentipedeWorldVisual';
 import { ApprovalRequest, ConnectionState, RuntimeStatus } from './types';
 import { CENTIPEDE_VERSION } from './version';
 import { Brain, Cpu, Map, Server, Shield, Activity, Folder, Terminal as TermIcon, Sliders, Bot, Search, Smartphone, Grid, ShieldAlert } from 'lucide-react';
+
+// Only the desktop shell and launcher load at startup. Other apps load when opened.
+const PerceptionPanel = React.lazy(() => import('./components/PerceptionPanel').then((module) => ({ default: module.PerceptionPanel })));
+const KingdomStatusPanel = React.lazy(() => import('./components/KingdomStatusPanel').then((module) => ({ default: module.KingdomStatusPanel })));
+const ActivityTaskView = React.lazy(() => import('./components/ActivityTaskView').then((module) => ({ default: module.ActivityTaskView })));
+const PermissionsApprovalView = React.lazy(() => import('./components/PermissionsApprovalView').then((module) => ({ default: module.PermissionsApprovalView })));
+const MobileCompanionApp = React.lazy(() => import('./components/MobileCompanionApp').then((module) => ({ default: module.MobileCompanionApp })));
+const WorkspaceApp = React.lazy(() => import('./components/WorkspaceApp').then((module) => ({ default: module.WorkspaceApp })));
+const AgentControlApp = React.lazy(() => import('./components/AgentControlApp').then((module) => ({ default: module.AgentControlApp })));
+const UniversalSearch = React.lazy(() => import('./components/UniversalSearch').then((module) => ({ default: module.UniversalSearch })));
+const FileManager = React.lazy(() => import('./components/FileManager').then((module) => ({ default: module.FileManager })));
+const Terminal = React.lazy(() => import('./components/Terminal').then((module) => ({ default: module.Terminal })));
+const CentipedeAI = React.lazy(() => import('./components/CentipedeAI').then((module) => ({ default: module.CentipedeAI })));
+const SettingsPanel = React.lazy(() => import('./components/SettingsPanel').then((module) => ({ default: module.SettingsPanel })));
+const MemoryApp = React.lazy(() => import('./components/MemoryApp').then((module) => ({ default: module.MemoryApp })));
+const SkillsApp = React.lazy(() => import('./components/SkillsApp').then((module) => ({ default: module.SkillsApp })));
+const DoctorApp = React.lazy(() => import('./components/DoctorApp').then((module) => ({ default: module.DoctorApp })));
+const MapsApp = React.lazy(() => import('./components/MapsApp').then((module) => ({ default: module.MapsApp })));
 
 export const App: React.FC = () => {
   const [activeAppId, setActiveAppId] = useState<string>('launcher');
@@ -226,7 +228,9 @@ export const App: React.FC = () => {
       pendingApprovalsCount={pendingApprovalsCount}
     >
       <AppUpdateManager currentVersion={CENTIPEDE_VERSION} />
-      {renderActiveView()}
+      <React.Suspense fallback={<div role="status" className="p-6 text-sm text-slate-300">Opening app…</div>}>
+        {renderActiveView()}
+      </React.Suspense>
     </DesktopShell>
   );
 };

@@ -12,9 +12,13 @@ This guide is for trying Centipede OS from a USB drive. It uses buttons and menu
 
 ## 1. Download Centipede
 
-Click the [direct Centipede OS v1.0.0 ISO download](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.0/centipede-os-1.0.0-x86_64.iso) and save the file. If your browser asks, choose **Save**. It will usually go into your **Downloads** folder.
+**Want to see the steps first?** [Watch the animated beginner walkthrough](media/quick-start.svg) or read the [accessible guide transcript](VIDEO_GUIDE.md). The illustration is not footage of a completed permanent installation.
 
-The public `v1.0.0` release was published on September 30, 2026. It is the older live/browser-kiosk layout and **does not include** the later merged Kingdom owner task actions, Workspace task handoff, or on-disk Files workspace. Check the [release page](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0) and [SHA256SUMS](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.0/SHA256SUMS) to verify your file. A newly verified installer for permanent use has not been released.
+Open the [published preview release `v1.0.1-rc.9`](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.1-rc.9). Click the **[Live USB image (.iso)](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.9/centipede-os-1.0.1-live-usb-x86_64.iso)** under Assets and save it. **Do not click `Source code (zip)`**: source archives are not bootable operating-system images.
+
+The published RC9 image is a **preview based on older source**. It is not built from the latest `main` branch and is not a certified permanent installer. The older [`v1.0.0` release](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0) is available for historical comparison, not recommended as a more recent image. Check the [preview checksums](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.9/SHA256SUMS) before writing your USB.
+
+**Safety:** Only use the live boot choice. Never select an internal disk or overwrite your normal operating system.
 
 ## 2. Write the download to the USB
 
@@ -48,7 +52,7 @@ When you are done, shut down Centipede, remove the USB after the PC is off, and 
 - Files and settings created in the temporary session may be lost when the PC shuts down. Save important work somewhere else.
 - This does not include the Kingdom service. Kingdom-backed features need a separately deployed Kingdom service.
 - Hardware support varies. Some Wi-Fi, graphics, or other devices may need firmware that is not included in this image.
-- The public v1.0.0 image does not contain the redesigned everyday-app desktop shown in the README preview. That change needs a new tagged release.
+- The current README may show changes made after RC9. That published preview does not contain newer main-branch changes; they require a separately verified tagged release.
 
 ## If the PC will not start from the USB
 
