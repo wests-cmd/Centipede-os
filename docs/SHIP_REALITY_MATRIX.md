@@ -1,6 +1,6 @@
 # CENTIPEDE OS — CURRENT SHIP REALITY MATRIX
 
-**Published release identity:** `v1.0.0` (September 30, 2026). Current `main` has unreleased changes beyond this artifact. Core package version remains `1.0.0`.
+**Published identities:** `v1.0.0` historical stable-labelled prototype and `v1.0.1-rc.9` preview (older tag commit `2261b27d`, not current main). Current main core version is `1.0.1`; GA certification remains NO.
 **Kingdom compatibility:** Protocol major `1`; contract version `1.4.0`
 **Authoritative target gates:** [`release/targets.json`](../release/targets.json)
 

@@ -9,12 +9,29 @@ permissions:
   contents: read
 
 jobs:
+  release-gate:
+    name: Refuse uncertified stable releases
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Verify candidate tag or exact-source GA approval
+        env:
+          CENTIPEDE_STABLE_RELEASE_APPROVED: ${{ vars.CENTIPEDE_STABLE_RELEASE_APPROVED }}
+        run: bun scripts/check-release-gate.ts
+
   platforms:
+    needs: release-gate
     name: Build verified platform targets
     uses: ./.github/workflows/platform-builds.yml
     secrets: inherit
 
   desktop:
+    needs: release-gate
     name: Test and build desktop bundle
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -54,7 +71,9 @@ jobs:
         run: |
           mkdir -p release/desktop
           cp release/platforms/centipede-desktop-release-bundle/* release/desktop/
-      - name: Validate artifacts and generate the authoritative manifest and checksums
+      - name: Validate artifacts, release channel, GA approval and checksums
+        env:
+          CENTIPEDE_STABLE_RELEASE_APPROVED: ${{ vars.CENTIPEDE_STABLE_RELEASE_APPROVED }}
         run: bun scripts/create-platform-release-manifest.ts
       - name: Publish verified assets
         uses: softprops/action-gh-release@v2
@@ -69,5 +88,6 @@ jobs:
             release/release-manifest.json
             release/SHA256SUMS
           draft: false
-          prerelease: false
+          prerelease: ${{ contains(github.ref_name, '-rc.') }}
+          make_latest: ${{ contains(github.ref_name, '-rc.') && 'false' || 'true' }}
           generate_release_notes: true

@@ -16,6 +16,37 @@ The desktop bundle requires a separately operated Kingdom service for Kingdom-ba
 
 Several desktop panels are prototypes or use browser-local/example data. An owner-unlocked, local-only Centipede Files workspace now supports reading/listing and creating files/folders under a dedicated directory; it is not full host file access. Remote phone tasks, a complete OS installer, general host storage management and system rollback are not yet provided. Native mobile packages display the same web UI. Stable Android/iOS distribution remains BLOCKED until the matching signing assets and release gates are configured.
 
+## Current verified source and downloads (November 21, 2026)
+
+PR #156 is merged into `main`: the source now includes the compiled Debian
+live API. Its GitHub image pipeline successfully booted BIOS normal, BIOS safe,
+UEFI normal and UEFI safe. **A successful virtual boot is not a tested permanent
+installation, host update/rollback, or a physical daily-driver certification.**
+
+The **latest published preview** is [v1.0.1-rc.9](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.1-rc.9).
+That pre-release points to earlier source commit `2261b27d`; it does **not**
+include all fixes currently on `main`. The links are genuine published assets,
+but are previews, not a certified finished product.
+
+| Preview download | Existing asset |
+|---|---|
+| Live USB (flashing erases the selected USB) | [1.0.1 RC9 USB ISO](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.9/centipede-os-1.0.1-live-usb-x86_64.iso) |
+| BIOS/UEFI live ISO | [1.0.1 RC9 ISO](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.9/centipede-os-1.0.1-x86_64.iso) |
+| QEMU optical-media qcow2 (not an installed disk) | [1.0.1 RC9 VM](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.9/centipede-os-1.0.1-x86_64.qcow2) |
+| Web/API Docker server (Kingdom external) | [1.0.1 RC9 Docker](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.9/centipede-docker-image-1.0.1.tar) |
+| File-integrity hashes | [RC9 SHA256SUMS](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.9/SHA256SUMS) |
+
+An [RC9 Android APK](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.9/centipede-android-1.0.1-release.apk)
+also exists. Its file name alone does not establish the current signed publisher
+identity, remote phone functionality, or store compliance. Do not treat it as
+a certified production mobile client.
+
+**Release safety:** newly tagged `v1.0.1-rc.N` builds are marked pre-release,
+never Latest. Stable `v1.0.1` publishing is blocked until issue
+[#150](https://github.com/wests-cmd/Centipede-os/issues/150) has exact-commit
+physical, security, Kingdom and rollback evidence and an owner attestation.
+**Do not overwrite an existing operating system with these preview images.**
+
 ## Download a published Centipede image
 
 The following are **verified assets from the older [v1.0.0 GitHub Release](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0), published September 30, 2026**. They do **not** include the more recent Kingdom task, Workspace, or Files fixes on `main`. This is a live/prototype release—not a certified permanent OS installer.

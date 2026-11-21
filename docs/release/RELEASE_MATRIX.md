@@ -1,4 +1,4 @@
-# Centipede OS v1.0.0 target release matrix
+# Centipede OS v1.0.1 target release matrix (GA NOT certified)
 
 **Core version:** `package.json` is the sole core version source.
 **Target status and artifact names:** [`release/targets.json`](../../release/targets.json)
@@ -16,4 +16,4 @@
 
 Every target has an independent revision for artifact identity. The release workflow checks `v${package.json.version}`, packages only BUILDABLE targets, verifies downloaded build checksums, and creates one target manifest plus a combined manifest and checksum list. A missing or stale build artifact fails publication.
 
-A successful branch validation run is not a published stable release. No stable GitHub Release exists until a version tag completes the synchronized release workflow.
+A successful branch validation run is not GA certification. The historical v1.0.0 stable-labelled release was a prototype, and v1.0.1-rc.9 is a preview. New -rc.N tags publish as pre-release (not Latest); a stable v1.0.1 tag also requires matching release/ga-attestation.json exact-commit evidence, issue #150 acceptance, and repository variable CENTIPEDE_STABLE_RELEASE_APPROVED=true. Green CI and QEMU alone are not daily-driver certification.
