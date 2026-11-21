@@ -1,0 +1,8 @@
+# Ownership is advisory until the repository owner enables GitHub branch rulesets.
+# Do not mistake this file for actual protection of main.
+* @wests-cmd
+/.github/workflows/ @wests-cmd
+/release/ @wests-cmd
+/packaging/ @wests-cmd
+/src/server/ @wests-cmd
+/scripts/ @wests-cmd

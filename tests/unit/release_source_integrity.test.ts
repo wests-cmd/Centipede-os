@@ -47,5 +47,8 @@ describe('stable release provenance ignores only generated outputs, not tracked 
     expect(dispatch).not.toMatch(/^\s+tags:\s*$/m);
     const release = readFileSync(join(process.cwd(), '.github/workflows/release.yml'), 'utf8');
     expect(release).toContain('needs: release-gate');
+    const owners = readFileSync(join(process.cwd(), '.github/CODEOWNERS'), 'utf8');
+    expect(owners).toContain('* @wests-cmd');
+    expect(owners).toContain('/.github/workflows/ @wests-cmd');
   });
 });
