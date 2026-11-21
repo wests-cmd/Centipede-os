@@ -35,6 +35,7 @@ export const App: React.FC = () => {
   const [status, setStatus] = useState<RuntimeStatus | null>(null);
   const [connectionState, setConnectionState] = useState<ConnectionState>('DISCONNECTED');
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
+  const [approvalsVerified, setApprovalsVerified] = useState(false);
   const [homeVisual, setHomeVisual] = useState<HomeVisual>(() => {
     try {
       const saved = window.localStorage.getItem('centipede_home_visual');
@@ -75,9 +76,12 @@ export const App: React.FC = () => {
     const checkApprovals = async () => {
       try {
         const approvals = await kingdomAdapter.list_approvals('pending');
+        if (!Array.isArray(approvals)) throw new Error('Approval list was invalid');
         setPendingApprovalsCount(approvals.length);
+        setApprovalsVerified(true);
       } catch (e) {
         setPendingApprovalsCount(0);
+        setApprovalsVerified(false);
       }
     };
 
@@ -99,6 +103,7 @@ export const App: React.FC = () => {
             onOpenApp={(id) => setActiveAppId(id)}
             activeAppId={activeAppId}
             pendingApprovalsCount={pendingApprovalsCount}
+            approvalsVerified={approvalsVerified}
             connectionState={connectionState}
             homeVisual={homeVisual}
           />
@@ -205,6 +210,7 @@ export const App: React.FC = () => {
             onOpenApp={(id) => setActiveAppId(id)}
             activeAppId={activeAppId}
             pendingApprovalsCount={pendingApprovalsCount}
+            approvalsVerified={approvalsVerified}
             connectionState={connectionState}
             homeVisual={homeVisual}
           />
