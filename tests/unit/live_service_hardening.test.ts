@@ -15,7 +15,8 @@ describe('Debian live-image static web hardening and fallback', () => {
     expect(unit).toContain('ExecStart=/usr/local/libexec/centipede-desktop-readiness.py');
     expect(staged).toContain('chmod 0755 "$BUILD/config/includes.chroot/usr/local/libexec/centipede-desktop-readiness.py"');
     expect(staged).toContain('test -x "$BUILD/config/includes.chroot/usr/local/libexec/centipede-desktop-readiness.py"');
-    const python = spawnSync('python3', ['-m', 'py_compile', script], { encoding: 'utf8', timeout: 10_000 });
+    const python = spawnSync(process.env.CENTIPEDE_E2E_PYTHON || (process.platform === 'win32' ? 'python' : 'python3'),
+      ['-m', 'py_compile', script], { encoding: 'utf8', timeout: 10_000 });
     expect(python.status, String(python.stderr)).toBe(0);
   });
 
