@@ -5,6 +5,20 @@ import { spawnSync } from 'node:child_process';
 const file = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 
 describe('Debian live-image static web hardening and fallback', () => {
+  it('preserves executable mode for systemd ExecStart Python readiness and repairs it in staged image', () => {
+    const script = 'packaging/live-build/config/includes.chroot/usr/local/libexec/centipede-desktop-readiness.py';
+    const staged = file('scripts/build-live-image.sh');
+    const unit = file('packaging/live-build/config/includes.chroot/etc/systemd/system/centipede-desktop-readiness.service');
+    const tracked = spawnSync('git', ['ls-files', '--stage', '--', script], { encoding: 'utf8', timeout: 10_000 });
+    expect(tracked.status, String(tracked.stderr)).toBe(0);
+    expect(tracked.stdout).toMatch(/^100755 /);
+    expect(unit).toContain('ExecStart=/usr/local/libexec/centipede-desktop-readiness.py');
+    expect(staged).toContain('chmod 0755 "$BUILD/config/includes.chroot/usr/local/libexec/centipede-desktop-readiness.py"');
+    expect(staged).toContain('test -x "$BUILD/config/includes.chroot/usr/local/libexec/centipede-desktop-readiness.py"');
+    const python = spawnSync('python3', ['-m', 'py_compile', script], { encoding: 'utf8', timeout: 10_000 });
+    expect(python.status, String(python.stderr)).toBe(0);
+  });
+
   it('orders readiness after concrete services without cycling its target', () => {
     const unit = file('packaging/live-build/config/includes.chroot/etc/systemd/system/centipede-desktop-readiness.service');
     expect(unit).toContain('After=lightdm.service centipede-web.service');
