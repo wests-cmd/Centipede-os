@@ -1,0 +1,8 @@
+{
+  "approved": false,
+  "version": null,
+  "commit": null,
+  "evidenceUrl": null,
+  "approvedBy": null,
+  "note": "Stable GA is prohibited until issue #150 has physical-install, trust, rollback, security and Kingdom acceptance evidence for the exact tagged commit. Release candidates remain clearly marked pre-release."
+}
