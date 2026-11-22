@@ -37,6 +37,7 @@ def validate(local: dict, remote: dict) -> None:
     targets = json.loads((ROOT / "release/targets.json").read_text("utf-8"))["targets"]
     required = {name for name, info in targets.items() if info["status"] == "BUILDABLE"}
     required.add("checksums")
+    required.add("manifest")
     if set(local["assets"]) != required:
         raise AssertionError(
             "Download catalog does not exactly match BUILDABLE targets and checksums."
