@@ -1,4 +1,4 @@
-"""No-network acceptance tests for immutable, fail-closed RC10 publication policy."""
+"""No-network acceptance tests for immutable, fail-closed RC11 publication policy."""
 import unittest
 from unittest.mock import patch
 
@@ -83,9 +83,9 @@ class PreviewGateTests(unittest.TestCase):
             release.execute(SHA, "unittest-token", "1.0.1")
         tags = [call for call in calls if call[:2] == ("POST", "git/refs")]
         dispatches = [call for call in calls if call[:2] == ("POST", "actions/workflows/release.yml/dispatches")]
-        self.assertEqual(tags, [("POST", "git/refs", {"ref": "refs/tags/v1.0.1-rc.10", "sha": SHA})])
+        self.assertEqual(tags, [("POST", "git/refs", {"ref": "refs/tags/v1.0.1-rc.11", "sha": SHA})])
         self.assertEqual(dispatches, [
-            ("POST", "actions/workflows/release.yml/dispatches", {"ref": "v1.0.1-rc.10"})
+            ("POST", "actions/workflows/release.yml/dispatches", {"ref": "v1.0.1-rc.11"})
         ])
 
     def test_existing_tag_can_never_be_moved_or_replaced(self):
