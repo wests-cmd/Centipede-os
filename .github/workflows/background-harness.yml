@@ -51,7 +51,7 @@ jobs:
           set -euo pipefail
           docker volume create centipede-harness-ci-state
           # Initialize persistent state in an isolated, disposable root helper
-          # with only CHOWN and no network. The actual worker has zero caps.
+          # with only CHOWN/FOWNER and no network. The actual worker has zero caps.
           docker run --rm --network none --user 0:0 --cap-drop ALL --cap-add CHOWN --cap-add FOWNER \
             -v centipede-harness-ci-state:/data --entrypoint sh centipede-harness:ci \
             -c 'chmod 0700 /data && chown 1000:1000 /data'
