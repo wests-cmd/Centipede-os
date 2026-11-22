@@ -4,6 +4,7 @@ import { apiRouter, ApiRequest } from './routes';
 import { isLocalAdminRequest } from './requestTrust';
 import { SelectedKnowledgeSources } from './selectedKnowledgeSources';
 import { handleSelectedKnowledgeRequest } from './selectedKnowledgeRoutes';
+import { serve, ServerOptions, staticFile } from './httpRuntime';
 
 const root = process.cwd();
 const webRoot = process.env.CENTIPEDE_WEB_ROOT ? resolve(process.env.CENTIPEDE_WEB_ROOT) : join(root, 'dist');
@@ -26,7 +27,7 @@ const selectedSources = () => knowledgeSources ??= new SelectedKnowledgeSources(
   process.env.CENTIPEDE_KNOWLEDGE_HOME || join(root, 'data', 'selected-knowledge'));
 const hostnameFromHeader = (host: string) => host.startsWith('[') ? host.slice(1, host.indexOf(']')) : host.split(':')[0];
 
-const serverOptions: Omit<Parameters<typeof Bun.serve>[0], 'hostname'> = {
+const serverOptions: ServerOptions = {
   port,
   // Restrict request size; pairing requests are tiny JSON documents.
   maxRequestBodySize: 1024 * 1024,
@@ -86,13 +87,13 @@ const serverOptions: Omit<Parameters<typeof Bun.serve>[0], 'hostname'> = {
     relativePath = relativePath.replace(/^\/+/, '');
     const safePath = normalize(relativePath || 'index.html');
     if (safePath.startsWith('..') || safePath.includes(':')) return new Response('Not found', { status: 404 });
-    let file = Bun.file(join(webRoot, safePath));
-    if (!(await file.exists())) file = Bun.file(join(webRoot, 'index.html'));
-    if (!(await file.exists())) return new Response('Centipede web build is missing. Run `bun run build` first.', { status: 503 });
-    return new Response(request.method === 'HEAD' ? null : file);
+    const head = request.method === 'HEAD';
+    return await staticFile(join(webRoot, safePath), head)
+      || await staticFile(join(webRoot, 'index.html'), head)
+      || new Response('Centipede web build is missing. Run `bun run build` first.', { status: 503 });
   },
 };
-const servers = hostnames.map((hostname) => Bun.serve({ ...serverOptions, hostname }));
+const servers = hostnames.map((hostname) => serve(serverOptions, hostname));
 
 console.log(`[Centipede] Web app and pairing API listening at ${hostnames.map((hostname) => `http://${hostname}:${port}`).join(', ')}`);
 console.log(`[Centipede] Phone address for this network: ${publicUrl}`);
