@@ -32,9 +32,15 @@ def validate(local: dict, remote: dict) -> None:
             raise AssertionError(
                 f"{role}: {name} is absent or changed size in the published GitHub release"
             )
-    required = {"live-usb", "iso", "vm", "docker", "android", "desktop", "checksums"}
+    # Only BUILDABLE targets may appear in the current download catalog. A
+    # historical APK is not a current RC11 download while Android is BLOCKED.
+    targets = json.loads((ROOT / "release/targets.json").read_text("utf-8"))["targets"]
+    required = {name for name, info in targets.items() if info["status"] == "BUILDABLE"}
+    required.add("checksums")
     if set(local["assets"]) != required:
-        raise AssertionError("Download catalog target set changed; review distribution roles.")
+        raise AssertionError(
+            "Download catalog does not exactly match BUILDABLE targets and checksums."
+        )
     print(f"PASS: {len(required)} checked, size-matched assets on {local['releaseTag']}.")
     print("NOTE: These published previews predate current main and are not permanent installers.")
 
