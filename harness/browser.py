@@ -53,6 +53,23 @@ def browser_job(job: dict, state_dir: str, should_stop) -> tuple[str, str | None
     from playwright.sync_api import sync_playwright
 
     root = validate_public_url(job["url"])
+    hostname = urlparse(root).hostname
+    if not hostname:
+        raise PolicyError("Missing approved browser hostname.")
+    # Pin Chromium to a DNS-verified public IPv4 endpoint for the whole job.
+    # A website cannot rebind its allowed hostname to 127.0.0.1, RFC1918 or
+    # cloud metadata after the Python preflight and before browser navigation.
+    try:
+        addresses = socket.getaddrinfo(hostname, 443, type=socket.SOCK_STREAM)
+    except OSError as error:
+        raise PolicyError("Cannot resolve approved public host.") from error
+    for entry in addresses:
+        if not ipaddress.ip_address(entry[4][0]).is_global:
+            raise PolicyError("Approved host resolved to a private/special-use address.")
+    pinned_ipv4 = next((entry[4][0] for entry in addresses
+                        if ipaddress.ip_address(entry[4][0]).version == 4), None)
+    if pinned_ipv4 is None:
+        raise PolicyError("Only public hosts with an IPv4 address are supported by this initial worker.")
     name = job["runId"]
     if not re.fullmatch(r"run_[0-9a-f]{24}", name):
         raise PolicyError("Unsafe run receipt ID.")
@@ -68,7 +85,11 @@ def browser_job(job: dict, state_dir: str, should_stop) -> tuple[str, str | None
     with sync_playwright() as playwright:
         # No display server / X11 / Wayland / active user profile is attached.
         browser = playwright.chromium.launch(
-            headless=True, args=["--disable-background-networking", "--no-first-run"],
+            headless=True, chromium_sandbox=True,
+            args=[
+                "--disable-background-networking", "--no-first-run",
+                "--host-resolver-rules=MAP " + hostname + " " + pinned_ipv4,
+            ],
         )
         try:
             context = browser.new_context(
