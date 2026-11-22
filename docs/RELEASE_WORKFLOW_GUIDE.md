@@ -1,12 +1,12 @@
 # Centipede OS — verified preview and stable release workflow
 
-## Single-source, pre-release v1.0.1-rc.10
+## Single-source, pre-release v1.0.1-rc.11
 
 The current source version is `1.0.1`. A reviewable one-shot workflow
-[`prepare-preview-rc10.yml`](../.github/workflows/prepare-preview-rc10.yml)
+[`prepare-preview-rc11.yml`](../.github/workflows/prepare-preview-rc11.yml)
 starts when a trusted **main push** completes
 `Centipede OS Continuous Integration` with success. It refuses to create
-`v1.0.1-rc.10` unless three **same-commit**, **main-push** workflows all
+`v1.0.1-rc.11` unless three **same-commit**, **main-push** workflows all
 completed successfully:
 
 1. **Centipede OS Continuous Integration** (including Windows, Ubuntu, the local safety harness, and browser tests).
@@ -15,7 +15,7 @@ completed successfully:
 
 The coordinator requires the source commit to equal the **current `main`**
 tip, rechecks it after its bounded wait, and permits only the literal
-`v1.0.1-rc.10` tag. It creates an immutable lightweight tag at that commit;
+`v1.0.1-rc.11` tag. It creates an immutable lightweight tag at that commit;
 it **never** moves an existing tag, releases from a PR result, or enables a
 stable channel. A rerun may dispatch the existing correctly pointed tag only
 if no GitHub Release has yet been published. A partially published release
@@ -48,10 +48,10 @@ stable phone app, or turn Simulator-only iOS output into an installable iPhone I
 ### How to follow, recover or diagnose
 
 - The one-shot coordinator workflow appears under **Actions → Publish one
-  verified Centipede preview (v1.0.1-rc.10)**.
+  verified Centipede preview (v1.0.1-rc.11)**.
 - The actual build/publisher runs under **Actions → Centipede verified
   multi-platform release**. A started run is **not** a downloadable release.
-- If the coordinator created a correct RC10 tag but did not dispatch the build,
+- If the coordinator created a correct RC11 tag but did not dispatch the build,
   an operator may use its **Run workflow** control on `main` after investigating
   the failure; its exact-commit/status checks run again. Never delete and
   repoint a release tag to retry.
