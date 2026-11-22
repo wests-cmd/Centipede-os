@@ -12,5 +12,14 @@ until python3 -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.
   fi
   sleep 2
 done
+# A maximize request sent before the X11 window manager is ready can be lost.
+if [ -n "${DISPLAY:-}" ] && command -v xprop >/dev/null 2>&1; then
+  attempt=0
+  until xprop -root _NET_SUPPORTING_WM_CHECK 2>/dev/null | grep -q 'window id # 0x'; do
+    attempt=$((attempt + 1))
+    if [ "$attempt" -ge 50 ]; then break; fi
+    sleep 0.2
+  done
+fi
 echo "Starting Centipede desktop in a maximized browser window"
 exec chromium --no-first-run --disable-infobars --disable-gpu --start-maximized --app=http://127.0.0.1:3000

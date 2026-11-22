@@ -19,6 +19,12 @@ describe('Debian live-image static web hardening and fallback', () => {
     expect(entry).toContain('--start-maximized --app=http://127.0.0.1:3000');
     expect(entry).not.toContain('--kiosk');
   });
+  it('waits for the X11 window manager before requesting a maximized application window', () => {
+    const entry = file('packaging/live-build/config/includes.chroot/usr/local/bin/centipede-desktop');
+    expect(entry).toContain('_NET_SUPPORTING_WM_CHECK');
+    expect(entry.indexOf('_NET_SUPPORTING_WM_CHECK')).toBeLessThan(entry.indexOf('exec chromium'));
+    expect(entry).not.toMatch(/--window-size=\d+,\d+/);
+  });
   it('preserves executable mode for systemd ExecStart Python readiness and repairs it in staged image', () => {
     const script = 'packaging/live-build/config/includes.chroot/usr/local/libexec/centipede-desktop-readiness.py';
     const staged = file('scripts/build-live-image.sh');
