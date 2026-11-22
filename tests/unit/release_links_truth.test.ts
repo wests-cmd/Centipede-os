@@ -4,18 +4,17 @@ import { join } from 'node:path';
 
 const read = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
 
-describe('real published preview links and installation limitations', () => {
-  it('links exact RC9 assets without directing first-time users to older stable-labelled prototypes', () => {
+describe('verified published RC11 preview links and installation limitations', () => {
+  it('links exact RC11 assets while withholding unverified mobile installers', () => {
     const text = read('README.md');
-    const release = 'https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.9/';
+    const release = 'https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.11/';
     for (const asset of [
       'centipede-os-1.0.1-live-usb-x86_64.iso',
       'centipede-os-1.0.1-x86_64.iso',
       'centipede-docker-image-1.0.1.tar',
-      'centipede-android-1.0.1-release.apk',
       'SHA256SUMS',
     ]) expect(text).toContain(release + asset);
-    expect(text).toContain('does **not** contain the current `main` branch');
+    expect(text).toContain('Changes made after that commit are not inside these files.');
     expect(text).toContain('DOWNLOADS.md');
     expect(text).not.toContain('releases/latest/download/');
   });
