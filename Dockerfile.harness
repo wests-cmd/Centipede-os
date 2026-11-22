@@ -1,6 +1,6 @@
 # Explicitly opt-in isolated background browser worker, separate from UI/Kingdom.
 # Browser build must be verified in CI before making production claims.
-FROM mcr.microsoft.com/playwright/python:v1.57.0-noble
+FROM mcr.microsoft.com/playwright/python:v1.64.1-noble
 
 WORKDIR /opt/centipede
 COPY harness/requirements.txt /opt/centipede/harness/requirements.txt
