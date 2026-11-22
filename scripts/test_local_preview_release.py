@@ -39,7 +39,7 @@ class PreviewGateTests(unittest.TestCase):
         for version, tag, sha in [
             ("1.0.0", release.TAG, SHA),
             ("1.0.1", "v1.0.1", SHA),
-            ("1.0.1", "v1.0.1-rc.11", SHA),
+            ("1.0.1", "v1.0.1-rc.12", SHA),
             ("1.0.1", release.TAG, "short"),
         ]:
             with self.assertRaises(release.ReleaseError):
