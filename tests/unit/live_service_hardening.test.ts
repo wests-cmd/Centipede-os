@@ -1,10 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 const file = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 
 describe('Debian live-image static web hardening and fallback', () => {
+  it('keeps the hardware mouse pointer visible in the default display session', () => {
+    const configuration = file('packaging/live-build/config/includes.chroot/etc/lightdm/lightdm.conf.d/20-centipede.conf');
+    expect(configuration).toContain('xserver-command=X -s 0');
+    expect(configuration).not.toMatch(/^\s*xserver-command=.*(?:^|\s)-nocursor(?:\s|$)/m);
+    const directory = 'packaging/live-build/config/includes.chroot/etc/lightdm/lightdm.conf.d';
+    for (const name of readdirSync(directory).filter(name => name.endsWith('.conf'))) {
+      expect(file(`${directory}/${name}`)).not.toMatch(/^\s*xserver-command=.*(?:^|\s)-nocursor(?:\s|$)/m);
+    }
+  });
   it('opens the verified local dashboard in an app window without kiosk lock-in', () => {
     const entry = file('packaging/live-build/config/includes.chroot/usr/local/bin/centipede-desktop');
     expect(entry).toContain('--start-maximized --app=http://127.0.0.1:3000');
