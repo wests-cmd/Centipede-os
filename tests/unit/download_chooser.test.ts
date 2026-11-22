@@ -18,29 +18,29 @@ const downloadUrl = (name: string) =>
   `https://github.com/wests-cmd/Centipede-os/releases/download/${catalog.releaseTag}/${name}`;
 
 describe('beginner download chooser truth contract', () => {
-  it('pins a genuinely published preview release rather than falsely claiming current-main binaries', () => {
+  it('pins the verified published RC11 preview without pretending that future source is included', () => {
     expect(catalog.releaseTag).toMatch(/^v\d+\.\d+\.\d+-rc\.\d+$/);
     expect(catalog.releaseChannel).toBe('PREVIEW');
     expect(Date.parse(catalog.releasePublishedAt)).toBeGreaterThan(0);
     expect(catalog.schemaVersion).toBe(1);
     const readme = read('README.md');
     const guide = read('DOWNLOADS.md');
-    expect(readme).toContain('does **not** contain the current `main` branch');
-    expect(guide).toContain('built **before** the latest `main` updates');
+    expect(readme).toContain('Changes made after that commit are not inside these files.');
+    expect(guide).toContain('Later source updates are not yet in this image.');
     expect(readme).not.toContain('releases/latest/download/');
     expect(guide).not.toContain('releases/latest/download/');
   });
 
-  it('maps all six real downloadable files to their published RC9 URLs in the full chooser', () => {
+  it('maps all currently published RC11 files and checksums to real URLs', () => {
     const guide = read('DOWNLOADS.md');
     expect(Object.keys(catalog.assets).sort()).toEqual(
-      ['android', 'checksums', 'desktop', 'docker', 'iso', 'live-usb', 'vm'].sort(),
+      ['checksums', 'desktop', 'docker', 'iso', 'live-usb', 'vm'].sort(),
     );
     for (const asset of Object.values(catalog.assets)) {
       expect(asset.sizeBytes).toBeGreaterThan(100);
       expect(guide).toContain(downloadUrl(asset.fileName));
     }
-    for (const key of ['live-usb', 'iso', 'docker', 'android', 'checksums']) {
+    for (const key of ['live-usb', 'iso', 'docker', 'checksums']) {
       expect(read('README.md')).toContain(downloadUrl(catalog.assets[key].fileName));
     }
   });
@@ -68,19 +68,19 @@ describe('beginner download chooser truth contract', () => {
     expect(targets.targets.docker.architecture).toBe('linux/amd64');
     expect(guide).toContain('**Not supported.**');
     expect(guide).toContain('**Not published.**');
-    expect(guide).toContain('Publisher certificate continuity');
-    expect(guide).toContain('**not** a double-click Windows');
+    expect(guide).toContain('publisher signature continuity');
+    expect(guide).toContain('not a native desktop installer');
     expect(guide).toContain('No separate installer exists for each profile');
     expect(guide).toContain('**Flashing will erase the selected USB.**');
-    expect(guide).toContain('Source code (zip/tar.gz)');
+    expect(guide).toContain('Source code');
   });
 
   it('guides the first-time user directly from README and the install guide', () => {
-    expect(read('README.md')).toContain('[OPEN THE SIMPLE DOWNLOAD CHOOSER — FILES, SIZES & INSTRUCTIONS](DOWNLOADS.md)');
+    expect(read('README.md')).toContain('[CHOOSE YOUR DOWNLOAD — BEGINNER GUIDE, SIZES AND INSTRUCTIONS](DOWNLOADS.md)');
     expect(read('docs/README.md')).toContain('(../DOWNLOADS.md)');
     expect(read('docs/INSTALLATION_GUIDE.md')).toContain('(../DOWNLOADS.md)');
-    expect(read('DOWNLOADS.md')).toContain('[1. Live USB');
-    expect(read('DOWNLOADS.md')).toContain('[2. Virtual machine boot ISO');
+    expect(read('DOWNLOADS.md')).toContain('[Live USB — Centipede preview');
+    expect(read('DOWNLOADS.md')).toContain('[Virtual machine boot ISO');
     expect(read('README.md')).toContain('**Not yet available**');
   });
 });
