@@ -38,6 +38,7 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+      - seccomp:./harness/seccomp_profile.json
     pids_limit: 128
     cpus: "0.75"
     mem_limit: 1024m
