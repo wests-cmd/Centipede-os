@@ -27,6 +27,7 @@ import {
   Map,
   Cpu,
   Stethoscope,
+  BarChart3,
 } from 'lucide-react';
 
 interface DesktopShellProps {
@@ -106,6 +107,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
 
   const sidebarApps = [
     { id: 'launcher', name: 'Home', icon: Home },
+    { id: 'command', name: 'Command Center', icon: BarChart3 },
     { id: 'ai', name: 'Segmentor', icon: Bot },
     { id: 'perception', name: 'Camera, screen & mic', icon: Video },
     { id: 'agent_control', name: 'Agent Control Plane', icon: ShieldAlert },
@@ -154,15 +156,16 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
             <span className="text-slate-400">Active Tasks: <span className="text-emerald-400 font-mono">{connectionState === 'CONNECTED' && status ? status.tasks.running : 'Unknown'}</span></span>
           </div>
 
-          <div
+          <button type="button"
             onClick={() => setActiveAppId('status')}
-            className={`flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-semibold transition-all sm:gap-2 sm:px-3 sm:text-xs ${getBadgeStyle()}`}
+            aria-label="Inspect Kingdom connection status"
+            className={`flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-semibold transition-all sm:gap-2 sm:px-3 sm:text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-300 ${getBadgeStyle()}`}
           >
             <span className={`w-2 h-2 rounded-full ${
               connectionState === 'CONNECTED' ? 'bg-emerald-400' : 'bg-amber-400'
             }`}></span>
             <span className="uppercase tracking-wider">{connectionState === 'DISCONNECTED' ? 'Offline' : connectionState.toLowerCase()}</span>
-          </div>
+          </button>
 
           <div className="hidden border-l border-slate-800 pl-2 font-mono text-xs text-slate-400 lg:block">{time}</div>
         </div>
@@ -272,7 +275,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         {sidebarApps.map((item) => {
           const Icon = item.icon;
           const isActive = activeAppId === item.id;
-          const mobileApp = ['launcher', 'mobile', 'files', 'tasks', 'search', 'settings'].includes(item.id);
+          const mobileApp = ['launcher', 'command', 'mobile', 'files', 'tasks', 'search', 'settings'].includes(item.id);
           return (
             <button
               key={item.id}

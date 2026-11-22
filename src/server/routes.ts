@@ -6,6 +6,7 @@ import { proxyKingdomRead } from './kingdomReadProxy';
 import { handleKingdomAction } from './kingdomAction';
 import { handleHostFiles } from './hostFiles';
 import { handleLocalInference } from './localInference';
+import { handleHostTelemetry } from './hostTelemetry';
 
 export interface ApiRequest {
   path: string;
@@ -46,6 +47,9 @@ export class ApiRouter {
       const runtimeInfo = await platformDetector.detectRuntimeInfo();
       return { status: 200, data: runtimeInfo };
     }
+
+    const hostTelemetry = handleHostTelemetry(req);
+    if (hostTelemetry) return hostTelemetry;
 
     const localInference = await handleLocalInference(req);
     if (localInference) return localInference;

@@ -9,7 +9,7 @@ import { AppUpdateManager } from './components/AppUpdateManager';
 import { HOME_VISUALS, HomeVisual } from './components/CentipedeWorldVisual';
 import { ApprovalRequest, ConnectionState, RuntimeStatus } from './types';
 import { CENTIPEDE_VERSION } from './version';
-import { Brain, Cpu, Map, Server, Shield, Activity, Folder, Terminal as TermIcon, Sliders, Bot, Search, Smartphone, Grid, ShieldAlert } from 'lucide-react';
+import { Brain, Cpu, Map, Server, Shield, Activity, Folder, Terminal as TermIcon, Sliders, Bot, Search, Smartphone, Grid, ShieldAlert, BarChart3 } from 'lucide-react';
 
 // Only the desktop shell and launcher load at startup. Other apps load when opened.
 const PerceptionPanel = React.lazy(() => import('./components/PerceptionPanel').then((module) => ({ default: module.PerceptionPanel })));
@@ -28,12 +28,14 @@ const MemoryApp = React.lazy(() => import('./components/MemoryApp').then((module
 const SkillsApp = React.lazy(() => import('./components/SkillsApp').then((module) => ({ default: module.SkillsApp })));
 const DoctorApp = React.lazy(() => import('./components/DoctorApp').then((module) => ({ default: module.DoctorApp })));
 const MapsApp = React.lazy(() => import('./components/MapsApp').then((module) => ({ default: module.MapsApp })));
+const SystemCommandCenter = React.lazy(() => import('./components/SystemCommandCenter').then((module) => ({ default: module.SystemCommandCenter })));
 
 export const App: React.FC = () => {
   const [activeAppId, setActiveAppId] = useState<string>('launcher');
   const [status, setStatus] = useState<RuntimeStatus | null>(null);
   const [connectionState, setConnectionState] = useState<ConnectionState>('DISCONNECTED');
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
+  const [approvalsVerified, setApprovalsVerified] = useState(false);
   const [homeVisual, setHomeVisual] = useState<HomeVisual>(() => {
     try {
       const saved = window.localStorage.getItem('centipede_home_visual');
@@ -74,9 +76,12 @@ export const App: React.FC = () => {
     const checkApprovals = async () => {
       try {
         const approvals = await kingdomAdapter.list_approvals('pending');
+        if (!Array.isArray(approvals)) throw new Error('Approval list was invalid');
         setPendingApprovalsCount(approvals.length);
+        setApprovalsVerified(true);
       } catch (e) {
         setPendingApprovalsCount(0);
+        setApprovalsVerified(false);
       }
     };
 
@@ -98,9 +103,15 @@ export const App: React.FC = () => {
             onOpenApp={(id) => setActiveAppId(id)}
             activeAppId={activeAppId}
             pendingApprovalsCount={pendingApprovalsCount}
+            approvalsVerified={approvalsVerified}
+            connectionState={connectionState}
             homeVisual={homeVisual}
           />
         );
+      case 'command':
+        return <Window id="win_command" title="System Command Center" icon={BarChart3} isOpen={true} onClose={() => setActiveAppId('launcher')}>
+          <SystemCommandCenter adapter={kingdomAdapter} onNavigate={setActiveAppId} />
+        </Window>;
       case 'perception':
         return <Window id="win_perception" title="Camera, screen and microphone" icon={Bot} isOpen={true} onClose={() => setActiveAppId('launcher')}><PerceptionPanel /></Window>;
       case 'agent_control':
@@ -199,6 +210,8 @@ export const App: React.FC = () => {
             onOpenApp={(id) => setActiveAppId(id)}
             activeAppId={activeAppId}
             pendingApprovalsCount={pendingApprovalsCount}
+            approvalsVerified={approvalsVerified}
+            connectionState={connectionState}
             homeVisual={homeVisual}
           />
         );

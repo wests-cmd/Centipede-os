@@ -49,8 +49,11 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
       await androidLike.getByRole('button', { name: 'Create Pairing Code' }).click();
       const pin = (await androidLike.locator('.font-mono.font-bold.text-cyan-300').textContent())?.trim();
       expect(pin).toMatch(/^\d{6}$/);
+      // The desktop also has an accessible Kingdom connection-status button.
+      // Pairing must target the exact 'Connect' action rather than a partial name.
+      await expect(iosLike.getByRole('button', { name: 'Inspect Kingdom connection status' })).toHaveCount(1);
       await iosLike.getByLabel('Pairing code').fill(pin!);
-      await iosLike.getByRole('button', { name: 'Connect' }).click();
+      await iosLike.getByRole('button', { name: 'Connect', exact: true }).click();
       await expect(iosLike.getByText('This phone is paired with the Centipede service.')).toBeVisible();
       await androidLike.getByRole('button', { name: 'Refresh paired devices' }).click();
       await expect(androidLike.getByRole('heading', { name: `Trusted Paired Devices (${initialCount + 1})` })).toBeVisible();
@@ -60,7 +63,7 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
       await androidLike.screenshot({ path: 'test-results/07_mobile-paired-device-list.png', fullPage: true });
 
       await iosLike.getByLabel('Pairing code').fill(pin!);
-      await iosLike.getByRole('button', { name: 'Connect' }).click();
+      await iosLike.getByRole('button', { name: 'Connect', exact: true }).click();
       await expect(iosLike.locator('body')).toContainText('Invalid or expired pairing code.');
       await androidLike.getByRole('button', { name: 'Revoke' }).click();
       await expect(androidLike.locator('body')).toContainText('REVOKED');

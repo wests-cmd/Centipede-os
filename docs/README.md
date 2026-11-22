@@ -10,6 +10,8 @@ This navigation organizes existing source and evidence; it moves no runtime file
 | Run, configure, build and test | [Development](DEVELOPMENT.md) |
 | Operate services and update safely | [Operations](OPERATIONS.md) |
 | Check published versus implemented versus unverified | [Project status](PROJECT_STATUS.md) |
+| Inspect system health and what the user can actually see | [System Command Center (16 areas)](SYSTEM_COMMAND_CENTER.md) |
+| Run measured browser/API usage benchmark | [Usage benchmark](USAGE_BENCHMARK.md) |
 
 ## Source and integration references
 
