@@ -86,7 +86,7 @@ def host_headroom() -> tuple[bool, str]:
         if load > max(0.5, cpus * 0.5):
             return False, "Host CPU load is elevated; background work deferred."
         return True, "Host memory and load hint permit one bounded background job."
-    except (OSError, ValueError):
+    except (OSError, ValueError, AttributeError):
         return False, "Host resource budget could not be checked; deferring work."
 
 
