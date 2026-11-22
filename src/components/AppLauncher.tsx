@@ -73,6 +73,7 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
 }) => {
   const apps = [
     { id: 'command', name: 'System Command Center', icon: BarChart3, description: 'Understand system health, performance, Kingdom work, alerts, updates, and what is not verified.' },
+    { id: 'background', name: 'Background Work', icon: Cpu, description: 'Configure owner-approved recurring browser tasks in an isolated worker, never on the active desktop.' },
     { id: 'files', name: 'Example files', icon: Folder, description: 'Browse the sample files included with this demo.' /* REALITY-LINT-ALLOW: reason = "Truthful disclosure that the Files panel only shows bundled examples" */ },
     { id: 'search', name: 'Search', icon: Search, description: 'Look across Centipede tasks and saved information.' },
     { id: 'tasks', name: 'Tasks', icon: Activity, description: 'See work sent to the connected Kingdom service.' },
