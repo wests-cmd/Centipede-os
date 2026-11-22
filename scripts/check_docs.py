@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check the six current navigation documents using only the Python standard library.
+"""Check the seven current navigation documents using only the Python standard library.
 
 Checks local Markdown inline/reference links, repository containment, exact path
 case and the nine README headings. It does not crawl historical reports, fetch
@@ -10,7 +10,7 @@ import re
 import sys
 from urllib.parse import unquote, urlsplit
 
-DOCUMENTS = ("README.md", "docs/README.md", "docs/ARCHITECTURE.md",
+DOCUMENTS = ("README.md", "DOWNLOADS.md", "docs/README.md", "docs/ARCHITECTURE.md",
              "docs/DEVELOPMENT.md", "docs/OPERATIONS.md", "docs/PROJECT_STATUS.md")
 SECTIONS = ("Overview", "Project map", "Run locally", "Configuration",
             "Verification", "Operations and updates", "Integrations",
