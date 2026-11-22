@@ -58,6 +58,7 @@ Centipede provides the user-facing desktop and assistant. Kingdom supplies the s
 - [Choosing Your Profile](#choosing-your-profile)
 - [How Do I Control Centipede OS From My Phone?](#phone-command-center)
 - **[Choose a download for your device](DOWNLOADS.md)**
+- **[Background Work — isolated autonomous browser worker (source preview)](docs/BACKGROUND_HARNESS.md)**
 - [Installation Guide](docs/INSTALLATION_GUIDE.md)
 - [Security & Privacy FAQ](#security-faq)
 - [Troubleshooting & Recovery](#recovery)
@@ -83,6 +84,7 @@ Centipede is currently a browser-based desktop application. Its verified live in
 - `src/ai/` contains Segmentor's intent, planning and policy/request pipeline.
 - `src/api/` contains Kingdom compatibility negotiation and the API client.
 - `src/server/kingdomReadProxy.ts` exposes a local-admin, GET-only Kingdom view.
+- `harness/`, `Dockerfile.harness`, and `src/server/harnessProxy.ts` add a separate opt-in, constrained browser-work queue, not native host/desktop input control. See [Background Work guide](docs/BACKGROUND_HARNESS.md).
 - `src/workflow/`, `src/learning/` and `src/tools/` contain local workflow, memory and capability implementations; these are not equivalent to Kingdom's central durable services.
 - `docs/INTEGRATION_COHESION_AUDIT.md` records the verified integration gaps and acceptance gates.
 
