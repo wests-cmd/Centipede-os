@@ -96,6 +96,8 @@ class PreviewGateTests(unittest.TestCase):
                 return {"workflow_runs": green_runs()}
             if endpoint.startswith("git/ref/tags/"):
                 return {"object": {"type": "commit", "sha": OLD}}
+            if endpoint.startswith("releases/tags/"):
+                return None
             raise AssertionError("must stop before creating a new ref or dispatch")
 
         with patch.object(release, "api", side_effect=fake_api):
@@ -123,12 +125,39 @@ class PreviewGateTests(unittest.TestCase):
                     "release-manifest.json",
                     "SHA256SUMS",
                 ]
-                return {"prerelease": True, "draft": False, "assets": [{"name": x} for x in names]}
+                return {"tag_name": release.TAG, "prerelease": True, "draft": False,
+                        "assets": [{"name": x, "size": 100} for x in names]}
             raise AssertionError("must not write when already published")
 
         with patch.object(release, "api", side_effect=fake_api):
             release.execute(SHA, "unittest-token", "1.0.1")
         self.assertFalse(any(method == "POST" for method, _ in calls))
+
+    def test_completed_one_shot_from_older_main_commit_is_a_noop_on_future_pushes(self):
+        calls = []
+
+        def api_stub(method, endpoint, token, payload=None, allow_missing=False):
+            calls.append((method, endpoint))
+            if endpoint.startswith("git/ref/tags/"):
+                return {"object": {"type": "commit", "sha": OLD}}
+            if endpoint.startswith("releases/tags/"):
+                names = [
+                    "centipede-os-1.0.1-desktop-web-bundle.tar.gz",
+                    "centipede-os-1.0.1-x86_64.iso",
+                    "centipede-os-1.0.1-live-usb-x86_64.iso",
+                    "centipede-os-1.0.1-x86_64.qcow2",
+                    "centipede-docker-image-1.0.1.tar",
+                    "release-manifest.json", "SHA256SUMS",
+                ]
+                return {
+                    "tag_name": release.TAG, "prerelease": True, "draft": False,
+                    "assets": [{"name": x, "size": 1500} for x in names],
+                }
+            raise AssertionError("completed one-shot release must never requalify or write")
+
+        with patch.object(release, "api", side_effect=api_stub):
+            release.execute(SHA, "unittest-token", "1.0.1")
+        self.assertEqual([method for method, _ in calls], ["GET", "GET"])
 
     def test_existing_partial_preview_is_not_marked_a_success(self):
         def fake_api(method, endpoint, token, payload=None, allow_missing=False):
@@ -139,7 +168,8 @@ class PreviewGateTests(unittest.TestCase):
             if endpoint.startswith("git/ref/tags/"):
                 return {"object": {"type": "commit", "sha": SHA}}
             if endpoint.startswith("releases/tags/"):
-                return {"prerelease": True, "draft": False, "assets": [{"name": "SHA256SUMS"}]}
+                return {"tag_name": release.TAG, "prerelease": True, "draft": False,
+                        "assets": [{"name": "SHA256SUMS", "size": 100}]}
             raise AssertionError("must not modify a partial release")
         with patch.object(release, "api", side_effect=fake_api):
             with self.assertRaises(release.ReleaseError):
