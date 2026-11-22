@@ -54,11 +54,11 @@ jobs:
           # with only CHOWN/FOWNER and no network. The actual worker has zero caps.
           docker run --rm --network none --user 0:0 --cap-drop ALL --cap-add CHOWN --cap-add FOWNER \
             -v centipede-harness-ci-state:/data --entrypoint sh centipede-harness:ci \
-            -c 'chmod 0700 /data && chown 1000:1000 /data'
-          docker run --rm --user 1000:1000 --read-only \
+            -c 'chmod 0700 /data && chown 1001:1001 /data'
+          docker run --rm --user 1001:1001 --read-only \
             -v centipede-harness-ci-state:/data --entrypoint python centipede-harness:ci \
             -c 'import os,sqlite3; p="/data"; st=os.stat(p); print("volume uid",st.st_uid,"gid",st.st_gid,"mode",oct(st.st_mode & 0o777),"writable",os.access(p,os.W_OK)); c=sqlite3.connect(p+"/preflight.sqlite3"); c.execute("CREATE TABLE IF NOT EXISTS ok (n INTEGER)"); c.close()'
-          docker run -d --name centipede-harness-ci             --init --read-only --user 1000:1000 --cap-drop ALL             --security-opt no-new-privileges:true             --pids-limit 128 --cpus 0.75 --memory 1024m --shm-size 192m             --tmpfs /tmp:rw,nosuid,nodev,size=192m             -e CENTIPEDE_HARNESS_TOKEN="$(printf 'a%.0s' {1..64})"             -e CENTIPEDE_HARNESS_DATA=/data             -p 127.0.0.1:3011:3011             -v centipede-harness-ci-state:/data centipede-harness:ci
+          docker run -d --name centipede-harness-ci             --init --read-only --user 1001:1001 --cap-drop ALL             --security-opt no-new-privileges:true             --pids-limit 128 --cpus 0.75 --memory 1024m --shm-size 192m             --tmpfs /tmp:rw,nosuid,nodev,size=192m             -e CENTIPEDE_HARNESS_TOKEN="$(printf 'a%.0s' {1..64})"             -e CENTIPEDE_HARNESS_DATA=/data             -p 127.0.0.1:3011:3011             -v centipede-harness-ci-state:/data centipede-harness:ci
           for attempt in $(seq 1 30); do
             if docker exec centipede-harness-ci python -m harness.healthcheck; then break; fi
             sleep 2
