@@ -10,6 +10,7 @@ const req = (path: string, method: 'GET' | 'POST' | 'PUT' = 'GET',
   apiRouter.handleRequest({ path, method, isLocalAdmin, ...(body ? { body } : {}), headers });
 
 describe('isolated background worker proxy trust boundary', () => {
+  const originalFetch = globalThis.fetch;
   const original = {
     CENTIPEDE_HARNESS_URL: process.env.CENTIPEDE_HARNESS_URL,
     CENTIPEDE_HARNESS_TOKEN: process.env.CENTIPEDE_HARNESS_TOKEN,
@@ -28,7 +29,7 @@ describe('isolated background worker proxy trust boundary', () => {
       if (value === undefined) delete process.env[key];
       else process.env[key] = value;
     }
-    vi.unstubAllGlobals();
+    globalThis.fetch = originalFetch;
     resetOwnerActionSessionsForTests();
   });
 
@@ -63,7 +64,7 @@ describe('isolated background worker proxy trust boundary', () => {
       routines: [], runs: [], limits: { maxConcurrent:1,maxJobSeconds:30,maxSteps:5,minIntervalSeconds:900 },
     };
     const fetcher = vi.fn().mockResolvedValue(Response.json(worker));
-    vi.stubGlobal('fetch', fetcher);
+    globalThis.fetch = fetcher as unknown as typeof fetch;
     const result = await req('/api/v1/harness/status');
     expect(result.status).toBe(200);
     expect(result.data).toEqual(worker);
@@ -74,13 +75,13 @@ describe('isolated background worker proxy trust boundary', () => {
   });
 
   it('fails closed on forged worker identity, timeout and oversized response', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(Response.json({ scope: 'unrelated' })));
+    globalThis.fetch = vi.fn().mockResolvedValueOnce(Response.json({ scope: 'unrelated' })) as unknown as typeof fetch;
     expect((await req('/api/v1/harness/status')).status).toBe(502);
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValueOnce(new Error('offline')));
+    globalThis.fetch = vi.fn().mockRejectedValueOnce(new Error('offline')) as unknown as typeof fetch;
     expect((await req('/api/v1/harness/status')).status).toBe(503);
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(
+    globalThis.fetch = vi.fn().mockResolvedValueOnce(
       new Response(JSON.stringify({ blob: 'x'.repeat(70000) }), {status:200})
-    ));
+    ) as unknown as typeof fetch;
     expect((await req('/api/v1/harness/status')).status).toBe(502);
   });
 
@@ -91,7 +92,7 @@ describe('isolated background worker proxy trust boundary', () => {
     const sessionToken = unlocked.data.sessionToken;
     expect(sessionToken).toMatch(/^[a-f0-9]{64}$/);
     const fetcher = vi.fn().mockResolvedValue(Response.json({ enabled: true, paused: false, routines: [], runs: [] }));
-    vi.stubGlobal('fetch', fetcher);
+    globalThis.fetch = fetcher as unknown as typeof fetch;
     const control = await req('/api/v1/harness/control', 'POST', true, { action: 'enable' },
       { 'x-centipede-owner-intent': '1', 'x-centipede-action-session': sessionToken });
     expect(control.status).toBe(200);
