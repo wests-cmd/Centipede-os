@@ -11,6 +11,7 @@ import json
 import os
 import re
 import signal
+import subprocess
 import sys
 import threading
 import time
@@ -18,15 +19,54 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from .core import HarnessStore, PolicyError
-from .browser import browser_job
+from .core import HarnessStore, PolicyError, MAX_DURATION
+
 
 MAX_REQUEST_BYTES = 4096
 SAFE_RUN = re.compile(r"^run_[0-9a-f]{24}$")
 
 
+def bounded_browser_process(job: dict, state_dir: str, should_stop):
+    """Bounded separate process group: no unknown browser child survives timeouts."""
+    if should_stop():
+        raise PolicyError("Worker paused or disabled; refusing to start browser.")
+    command = [sys.executable, "-m", "harness.browser_task"]
+    env = {
+        "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+        "HOME": os.environ.get("HOME", "/tmp"),
+        "CENTIPEDE_HARNESS_DATA": state_dir,
+        "PYTHONPATH": str(Path(__file__).resolve().parents[1]),
+        "PYTHONUNBUFFERED": "1",
+    }
+    process = subprocess.Popen(
+        command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL, text=True, start_new_session=True, env=env,
+    )
+    try:
+        output, _ = process.communicate(json.dumps(job, separators=(",", ":")), timeout=MAX_DURATION)
+    except subprocess.TimeoutExpired as error:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        process.communicate()
+        raise PolicyError("Browser exceeded the 30-second wall-clock limit; process group stopped.") from error
+    if process.returncode != 0 or len(output) > 4096:
+        raise PolicyError("Browser task failed or produced an invalid receipt.")
+    try:
+        result = json.loads(output)
+    except ValueError as error:
+        raise PolicyError("Browser task returned invalid receipt JSON.") from error
+    if (not isinstance(result, dict) or set(result) != {"summary", "sha256", "screenshot"} or
+        not isinstance(result["summary"], str) or len(result["summary"]) > 400 or
+        not isinstance(result["sha256"], str) or not re.fullmatch(r"[a-f0-9]{64}", result["sha256"]) or
+        (result["screenshot"] is not None and result["screenshot"] != job["runId"] + ".png")):
+        raise PolicyError("Browser receipt failed strict validation.")
+    return result["summary"], result["sha256"], result["screenshot"]
+
+
 class Harness:
-    def __init__(self, state_dir: str, *, runner=browser_job):
+    def __init__(self, state_dir: str, *, runner=bounded_browser_process):
         self.state_dir = state_dir
         self.store = HarnessStore(str(Path(state_dir) / "queue.sqlite3"))
         self.runner = runner
