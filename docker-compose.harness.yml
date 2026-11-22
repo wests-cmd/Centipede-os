@@ -1,0 +1,30 @@
+# OPT-IN background browser worker. Separate from Centipede web and Kingdom.
+# Set a private random secret in .centipede-harness.env first.
+services:
+  centipede-harness:
+    build:
+      context: .
+      dockerfile: Dockerfile.harness
+    env_file:
+      - .centipede-harness.env
+    ports:
+      - "127.0.0.1:3011:3011"
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=192m
+    shm_size: 192mb
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    cpus: "0.75"
+    mem_limit: 1024m
+    volumes:
+      - centipede_harness_state:/data
+    stop_grace_period: 40s
+
+volumes:
+  centipede_harness_state:
