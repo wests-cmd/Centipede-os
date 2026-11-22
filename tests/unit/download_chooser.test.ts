@@ -71,7 +71,7 @@ describe('beginner download chooser truth contract', () => {
     expect(guide).toContain('Publisher certificate continuity');
     expect(guide).toContain('**not** a double-click Windows');
     expect(guide).toContain('No separate installer exists for each profile');
-    expect(guide).toContain('Writing it **erases the selected USB');
+    expect(guide).toContain('**Flashing will erase the selected USB.**');
     expect(guide).toContain('Source code (zip/tar.gz)');
   });
 
@@ -79,8 +79,8 @@ describe('beginner download chooser truth contract', () => {
     expect(read('README.md')).toContain('[OPEN THE SIMPLE DOWNLOAD CHOOSER — FILES, SIZES & INSTRUCTIONS](DOWNLOADS.md)');
     expect(read('docs/README.md')).toContain('(../DOWNLOADS.md)');
     expect(read('docs/INSTALLATION_GUIDE.md')).toContain('(../DOWNLOADS.md)');
-    expect(read('DOWNLOADS.md')).toContain('**1. Live USB');
-    expect(read('DOWNLOADS.md')).toContain('**2. Virtual machine boot ISO');
+    expect(read('DOWNLOADS.md')).toContain('[1. Live USB');
+    expect(read('DOWNLOADS.md')).toContain('[2. Virtual machine boot ISO');
     expect(read('README.md')).toContain('**Not yet available**');
   });
 });
