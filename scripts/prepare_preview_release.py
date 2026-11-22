@@ -112,47 +112,59 @@ def check_runs_until_ready(source: str, token: str) -> None:
     raise ReleaseError("Timed out: required exact-SHA CI/CodeQL/docs results never all passed.")
 
 
+def complete_candidate(release: dict | None, version: str) -> bool:
+    if release is None:
+        return False
+    if release.get("tag_name") != TAG or not release.get("prerelease") or release.get("draft"):
+        raise ReleaseError("Existing release has the wrong tag, channel or draft state.")
+    expected_targets = {
+        f"centipede-os-{version}-desktop-web-bundle.tar.gz",
+        f"centipede-os-{version}-x86_64.iso",
+        f"centipede-os-{version}-live-usb-x86_64.iso",
+        f"centipede-os-{version}-x86_64.qcow2",
+        f"centipede-docker-image-{version}.tar",
+        "release-manifest.json",
+        "SHA256SUMS",
+    }
+    published = {
+        asset.get("name"): asset.get("size", 0)
+        for asset in release.get("assets", [])
+    }
+    if any(name not in published or not isinstance(published[name], int) or
+           published[name] <= 0 for name in expected_targets):
+        raise ReleaseError("Published candidate has missing/empty assets; do not overwrite released bytes.")
+    return True
+
+
 def execute(source: str, token: str, version: str) -> None:
     validate_candidate(source, version)
+    # A one-shot coordinator must remain harmless after future main commits.
+    # If the older pinned candidate already shipped, do not try to move it.
+    tag = api("GET", "git/ref/tags/" + quote(TAG, safe=""), token, allow_missing=True)
+    if tag is not None:
+        obj = tag.get("object") or {}
+        if obj.get("type") != "commit":
+            raise ReleaseError("Existing candidate tag is not a lightweight commit reference.")
+        existing_release = api("GET", "releases/tags/" + quote(TAG, safe=""), token, allow_missing=True)
+        if complete_candidate(existing_release, version):
+            print(f"One-shot candidate {TAG} was already published; leaving immutable tag unchanged.")
+            return
+        if obj.get("sha") != source:
+            raise ReleaseError("Tag points to a different commit; never move or overwrite a preview tag.")
     if current_main_sha(token) != source:
         raise ReleaseError("Refusing to publish: trigger SHA is not current main.")
     check_runs_until_ready(source, token)
     if current_main_sha(token) != source:
         raise ReleaseError("main moved after verification; refusing to tag an older commit.")
 
-    tag = api("GET", "git/ref/tags/" + quote(TAG, safe=""), token, allow_missing=True)
-    if tag is not None:
-        obj = tag.get("object") or {}
-        if obj.get("type") != "commit" or obj.get("sha") != source:
-            raise ReleaseError("Release tag exists but is not this exact commit. Never move or overwrite tags.")
-    else:
+    if tag is None:
         print(f"Creating immutable candidate reference {TAG} at {source}.", flush=True)
         api("POST", "git/refs", token, {"ref": "refs/tags/" + TAG, "sha": source})
-
-    existing_release = api("GET", "releases/tags/" + quote(TAG, safe=""), token, allow_missing=True)
-    if existing_release is not None:
-        if not existing_release.get("prerelease") or existing_release.get("draft"):
-            raise ReleaseError("Existing release has an unacceptable channel or draft state.")
-        expected_targets = {
-            f"centipede-os-{version}-desktop-web-bundle.tar.gz",
-            f"centipede-os-{version}-x86_64.iso",
-            f"centipede-os-{version}-live-usb-x86_64.iso",
-            f"centipede-os-{version}-x86_64.qcow2",
-            f"centipede-docker-image-{version}.tar",
-            "release-manifest.json",
-            "SHA256SUMS",
-        }
-        published_assets = {a.get("name") for a in existing_release.get("assets", [])}
-        if expected_targets <= published_assets:
-            print(f"Candidate {TAG} is already published with required asset names; no duplicate dispatch.")
-            return
-        raise ReleaseError("Tag release exists but required assets are missing; investigate, do not overwrite it.")
-
-    # GITHUB_TOKEN-authored tag refs do NOT trigger push-tag workflows. A
-    # workflow_dispatch event is allowed and runs release.yml *at the tag*.
+    # A GITHUB_TOKEN-authored tag does NOT trigger the tag-push release workflow.
+    # workflow_dispatch is explicitly permitted and runs release.yml at TAG.
     print(f"Dispatching trusted release.yml at refs/tags/{TAG}.", flush=True)
     api("POST", "actions/workflows/release.yml/dispatches", token, {"ref": TAG})
-    print("Release workflow dispatched; its build/smoke/checksum gates determine publication.")
+    print("Release workflow dispatched; build, boot, checksum and publisher gates decide publication.")
 
 
 def main() -> None:
