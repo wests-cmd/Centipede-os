@@ -1,5 +1,22 @@
 # Centipede OS — verified preview and stable release workflow
 
+## Why v1.0.1-rc.10 was not released
+
+The pinned [RC10 build](https://github.com/wests-cmd/Centipede-os/actions/runs/44987000648)
+was started from source `d7e860d7bddfec69ffe9d228b1edeb217ef5ce1f` after green
+main CI/CodeQL/docs. Its desktop and Docker jobs passed, but the signed
+Android job started because a repository variable was enabled even though
+`release/targets.json` still marked Android `BLOCKED`. Gradle then hit
+Maven Central HTTP **429 Too Many Requests** and that job failed. The RC10
+tag is immutable and **must not be moved** to a revised source commit.
+
+RC11 fixes the *actual build-system boundary*: signed Android/iOS jobs require
+**both** their publisher-enable repository variables and a `BUILDABLE` state
+from the committed target manifest. `BLOCKED` mobile targets are skipped,
+not treated as prerequisite jobs for a PC live-image preview. The source
+manifest remains the single source of truth. A successful optional signing
+job alone does not unblock a production mobile release.
+
 ## Single-source, pre-release v1.0.1-rc.11
 
 The current source version is `1.0.1`. A reviewable one-shot workflow
