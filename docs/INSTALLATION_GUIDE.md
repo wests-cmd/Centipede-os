@@ -16,9 +16,9 @@ This guide is for trying Centipede OS from a USB drive. It uses buttons and menu
 
 **Want to see the steps first?** [Watch the animated beginner walkthrough](media/quick-start.svg) or read the [accessible guide transcript](VIDEO_GUIDE.md). The illustration is not footage of a completed permanent installation.
 
-Open the [published preview release `v1.0.1-rc.9`](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.1-rc.9). Click the **[Live USB image (.iso)](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.9/centipede-os-1.0.1-live-usb-x86_64.iso)** under Assets and save it. **Do not click `Source code (zip)`**: source archives are not bootable operating-system images.
+Open the [published preview release `v1.0.1-rc.11`](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.1-rc.11). Click the **[Live USB image (.iso)](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.11/centipede-os-1.0.1-live-usb-x86_64.iso)** under Assets and save it. **Do not click `Source code (zip)`**: source archives are not bootable operating-system images.
 
-The published RC9 image is a **preview based on older source**. It is not built from the latest `main` branch and is not a certified permanent installer. The older [`v1.0.0` release](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0) is available for historical comparison, not recommended as a more recent image. Check the [preview checksums](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.9/SHA256SUMS) before writing your USB.
+The RC11 preview was built from source commit `63b4b63d7af104cb456a86530e43d16e8b5a699d` and contains the Command Center. It is **not a certified permanent installer**; later main changes are not included. The older [`v1.0.0` release](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.0) is available for historical comparison, not recommended as a more recent image. Check the [preview checksums](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.11/SHA256SUMS) before writing your USB.
 
 **Safety:** Only use the live boot choice. Never select an internal disk or overwrite your normal operating system.
 
@@ -54,7 +54,7 @@ When you are done, shut down Centipede, remove the USB after the PC is off, and 
 - Files and settings created in the temporary session may be lost when the PC shuts down. Save important work somewhere else.
 - This does not include the Kingdom service. Kingdom-backed features need a separately deployed Kingdom service.
 - Hardware support varies. Some Wi-Fi, graphics, or other devices may need firmware that is not included in this image.
-- The current README may show changes made after RC9. That published preview does not contain newer main-branch changes; they require a separately verified tagged release.
+- Later README/code updates may be newer than the pinned RC11 image. New features require another separately verified release.
 
 ## If the PC will not start from the USB
 
