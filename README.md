@@ -8,46 +8,44 @@ Kingdom is a separate project and runtime. This repository contains a client and
 
 ## Download Centipede: choose by device and what you want to do
 
-**[OPEN THE SIMPLE DOWNLOAD CHOOSER — FILES, SIZES & INSTRUCTIONS](DOWNLOADS.md)**
+**[CHOOSE YOUR DOWNLOAD — BEGINNER GUIDE, SIZES AND INSTRUCTIONS](DOWNLOADS.md)**
 
-The newest **published preview**, [v1.0.1-rc.9](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.1-rc.9), is from **October 7, 2026**. It does **not** contain the current `main` branch, including the newer System Command Center. All download options below are **previews, not permanent operating-system installers**.
+The newest **published preview** is **[v1.0.1-rc.11 (November 22, 2026)](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.1-rc.11)**. It is built from commit `63b4b63d7af104cb456a86530e43d16e8b5a699d` and includes the System Command Center. Files are **experimental live previews, not permanent OS installers**. Changes made after that commit are not inside these files.
 
-| I want to... | Pick this download | Who it is for |
+| I want to… | Correct, actually published download | Who it is for |
 | --- | --- | --- |
-| **Try Centipede from a USB** without replacing Windows or Linux | **[Download USB preview (.iso, 1.58 GiB)](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.9/centipede-os-1.0.1-live-usb-x86_64.iso)** | Intel/AMD 64-bit PCs; blank **8 GB+ USB** needed. Writing it **erases the selected USB**, not the internal drive if you choose correctly. |
-| **Try it inside a VM** | **[Download VM boot ISO (.iso, 1.58 GiB)](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.9/centipede-os-1.0.1-x86_64.iso)** | VirtualBox/VMware users; live virtual CD, **not a preinstalled disk**. |
-| **Run the web/API server in Docker** | **[Download Docker image (.tar, 391 MiB)](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.9/centipede-docker-image-1.0.1.tar)** | Developers with Docker on linux/amd64; **Kingdom not included**. |
-| **Try the experimental Android app** | **[Download preview APK (3.14 MiB)](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.9/centipede-android-1.0.1-release.apk)** | Android testers only; **not a verified, signed production remote-control companion**. |
-| **Get a permanent OS installer, Windows .exe, Mac app, or iPhone IPA** | **Not yet available** | No verified permanent install, native desktop installer, or signed device distribution is published. |
+| **Try Centipede from a USB** without replacing Windows/Linux | **[Live USB preview — .iso, 1.56 GiB](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.11/centipede-os-1.0.1-live-usb-x86_64.iso)** | Intel/AMD 64-bit PC; spare **8 GB+ USB**. Flashing **erases the chosen USB**. |
+| **Try it in a VM** | **[VM boot ISO — .iso, 1.56 GiB](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.11/centipede-os-1.0.1-x86_64.iso)** | VirtualBox/VMware users; this is a live optical boot image, **not an installed VM disk**. |
+| **Run the web/API service in Docker** | **[Docker image — .tar, 54 MiB](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.11/centipede-docker-image-1.0.1.tar)** | Developers with linux/amd64 Docker. **Kingdom not included.** |
+| **Install permanent Centipede, a native Windows/Mac app, or an iPhone/production Android app** | **Not yet available** | No verified permanent installer or supported, signed phone app is published in RC11. |
 
-**Not sure?** Use the **[download chooser](DOWNLOADS.md)**. It also covers QEMU, the developer web bundle, supported CPU types, the Ultra-light/Full/Commander/Knight/Scout profile distinction, and exactly which missing installers are blocked. **Do not download `Source code (zip)` expecting a bootable operating system.**
+**More options:** [All six real RC11 assets and supported uses](DOWNLOADS.md), including QEMU and the developer web bundle. **Do not flash GitHub's `Source code (zip)` to a USB.**
 
-### Start your USB preview — no command line
+### Boot the USB preview without commands
 
-1. Download the **USB ISO** using the first row above.
-2. Download [balenaEtcher](https://etcher.balena.io/). Insert an **8 GB or larger USB you can erase** and choose **Flash from file → Select target → Flash**. Double-check it is the removable USB.
-3. Start a compatible PC using the one-time boot menu (often F12, F9, F11, or Esc). Choose the USB and its **live/start** mode; never an install/format option.
-4. Explore **Home**, **Segmentor** and **System Command Center** where available. A separately deployed, authorized **Kingdom** service is required for real remote work. Shut down and remove the USB afterward.
+1. Download the **Live USB ISO** using the first link.
+2. Open [balenaEtcher](https://etcher.balena.io/); select the ISO, **a removable 8 GB+ USB**, then Flash. Double-check the target is **not your internal disk**.
+3. Restart a compatible PC and choose the USB from its boot menu (commonly F12, F9, F11 or Esc); select **Live/Start**, never an erase/installation option.
+4. Use Centipede's Home, Segmentor and System Command Center. Actual remote Kingdom work needs a **separately installed and authorized Kingdom**. The live session may forget work after shutdown.
 
-**[Illustrated beginner tutorial](docs/media/quick-start.svg)** · **[Step-by-step installation guide](docs/INSTALLATION_GUIDE.md)** · **[Text walkthrough](docs/VIDEO_GUIDE.md)** · **[Preview SHA-256 checksums](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.9/SHA256SUMS)**
+**[Illustrated guide](docs/media/quick-start.svg)** · **[Installation steps](docs/INSTALLATION_GUIDE.md)** · **[Video script](docs/VIDEO_GUIDE.md)** · **[RC11 SHA256SUMS](https://github.com/wests-cmd/Centipede-os/releases/download/v1.0.1-rc.11/SHA256SUMS)**
 
-### What is genuinely ready?
+### Ready vs. not ready
 
-- **GitHub source** includes the latest approved Command Center, test and security improvements, but **no new public RC** built from these changes yet.
-- **USB/ISO, QEMU and Docker** have historical published preview assets; they are **not** certified as daily-driver installs.
-- The preview **Android APK** exists, but real authenticated phone control, publisher signing continuity and store distribution are **not certified**. **iOS is blocked** until Apple distribution signing and device acceptance.
-- The downloadable ISO is **below 5 GiB** as a file, but this does not establish an installed storage requirement, Ultra-light profile, or verified 4 GiB RAM performance.
-- **[Release and physical-hardware blockers](https://github.com/wests-cmd/Centipede-os/issues/150)** remain open; do not erase an internal drive to use this preview.
+- **YES — published preview:** RC11 USB/ISO, QEMU optical-media QCOW2, Docker web/API and desktop *web bundle* passed release pipeline checks and have matching release manifest/SHA-256 entries. They are NOT permanent installers.
+- **NO — certified daily driver:** no hardware acceptance on ~4 GiB low-power PC, no verified installed-OS rollback, no sustained connected Kingdom acceptance, no verified permission-safe autonomous computer-use worker in this published image.
+- **NO — supported phone installers:** Android and iOS are **BLOCKED** in `release/targets.json`; there is no RC11 phone download. Historical RC9 APK must not be presented as the current secure phone companion.
+- **NO — no-terminal full install:** live USB is tested through virtual boot. A graphical, safely recoverable persistent-disk install still requires separate acceptance.
 
-[All releases (including older historical prototypes)](https://github.com/wests-cmd/Centipede-os/releases) · [Current release target manifest](release/targets.json) · [Platform signing/build requirements](docs/PLATFORM_BUILD_GUIDE.md)
+[All GitHub releases](https://github.com/wests-cmd/Centipede-os/releases) · [Platform target matrix](release/targets.json) · [Release blockers](https://github.com/wests-cmd/Centipede-os/issues/150)
 
 ---
 
 ## Status and roadmap
 
-The **System Command Center and new user-visibility features are implemented in GitHub source**, not in the October 2026 RC9 download. The next release milestone is to build a new preview from the current reviewed source, validate every published target and its SHA-256 checksum, and only then point this download chooser to those new files. See the [device-specific choices](DOWNLOADS.md) and [release blockers](https://github.com/wests-cmd/Centipede-os/issues/150).
+The **System Command Center is now in the published RC11 preview**. The next project milestone is an owner-supervised, isolated, persistent background browser harness plus real low-memory hardware and Kingdom acceptance. The new worker is developed separately from published RC11 until its own verified release.
 
-**Still not general-availability ready:** secure permanent graphical installation/recovery, hardware testing on low-memory PCs, signed/native phone distribution, and real multi-machine Kingdom task acceptance. A green web-build test does not close those requirements.
+**General availability remains blocked** on permanent install/recovery, hardware testing, signed distribution, dependable multi-device execution, and security evidence. A passed browser CI suite is not a physical acceptance certificate.
 
 ## Overview
 
