@@ -12,6 +12,7 @@ This navigation organizes existing source and evidence; it moves no runtime file
 | Operate services and update safely | [Operations](OPERATIONS.md) |
 | Check published versus implemented versus unverified | [Project status](PROJECT_STATUS.md) |
 | Inspect system health and what the user can actually see | [System Command Center (16 areas)](SYSTEM_COMMAND_CENTER.md) |
+| Run safe approved browser work while the GUI is closed (source preview) | [Background Work harness: setup, threat model and limits](BACKGROUND_HARNESS.md) |
 | Run measured browser/API usage benchmark | [Usage benchmark](USAGE_BENCHMARK.md) |
 
 ## Source and integration references
