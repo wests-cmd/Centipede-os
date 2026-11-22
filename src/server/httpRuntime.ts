@@ -58,7 +58,8 @@ const mime: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js
 export async function staticFile(path: string, head: boolean): Promise<Response | null> {
   try {
     if (!(await stat(path)).isFile()) return null;
-    return new Response(head ? null : await readFile(path), {
+    const content = head ? null : typeof Bun !== 'undefined' ? Bun.file(path) : await readFile(path);
+    return new Response(content, {
       headers: { 'Content-Type': mime[extname(path)] || 'application/octet-stream', 'X-Content-Type-Options': 'nosniff' },
     });
   } catch (error) {
