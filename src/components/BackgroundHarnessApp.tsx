@@ -31,6 +31,7 @@ interface WorkerStatus {
   limits: { maxConcurrent: number; maxJobSeconds: number; maxSteps: number; minIntervalSeconds: number };
   browserIsolation: string;
   machineOffPolicy: string;
+  resourceGate?: { ready: boolean; explanation: string; scope: string };
 }
 
 const shortDate = (time: number | null) =>
@@ -147,6 +148,7 @@ export const BackgroundHarnessApp: React.FC = () => {
               : 'Worker not verified'}
           </p>
           <p className="mt-1 text-xs text-slate-500">Isolated browser, one job at a time; maximum 30 seconds per run.</p>
+          <p className="mt-1 text-xs text-slate-400">{data?.resourceGate ? data.resourceGate.explanation : 'Host resource headroom not verified.'}</p>
         </div>
         <button type="button" onClick={() => void refresh()}
           className="flex items-center gap-1 rounded-lg border border-blue-800 px-3 py-2 text-sm text-blue-300 hover:text-white">
