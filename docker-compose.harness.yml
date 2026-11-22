@@ -1,7 +1,25 @@
 # OPT-IN background browser worker. Separate from Centipede web and Kingdom.
 # Set a private random secret in .centipede-harness.env first.
 services:
+  # Root is used only for this isolated, no-network volume ownership setup.
+  # The actual browser worker always remains the non-root pwuser.
+  harness-data-init:
+    image: alpine:3.22
+    network_mode: none
+    user: "0:0"
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+    command: ["sh", "-c", "chown 1000:1000 /data && chmod 0700 /data"]
+    volumes:
+      - centipede_harness_state:/data
+    restart: "no"
+
   centipede-harness:
+    depends_on:
+      harness-data-init:
+        condition: service_completed_successfully
     build:
       context: .
       dockerfile: Dockerfile.harness
