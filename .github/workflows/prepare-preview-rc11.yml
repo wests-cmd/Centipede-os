@@ -1,6 +1,6 @@
-name: Publish one verified Centipede preview (v1.0.1-rc.10)
+name: Publish one verified Centipede preview (v1.0.1-rc.11)
 
-# One-shot intent: only v1.0.1-rc.10. A successful main-branch CI run
+# One-shot intent: only v1.0.1-rc.11. A successful main-branch CI run
 # supplies its exact source SHA; CodeQL and documentation must also pass.
 # workflow_dispatch is recovery-only if the tag was created but dispatch
 # failed. The coordinator never moves tags or publishes asset bytes.
@@ -19,12 +19,12 @@ permissions:
   contents: write
 
 concurrency:
-  group: centipede-one-shot-rc10
+  group: centipede-one-shot-rc11
   cancel-in-progress: false
 
 jobs:
   qualify-and-dispatch:
-    name: Gate exact SHA and start verified RC10 build
+    name: Gate exact SHA and start verified RC11 build
     if: >-
       ${{ github.event_name == 'workflow_dispatch' ||
           (github.event.workflow_run.event == 'push' &&

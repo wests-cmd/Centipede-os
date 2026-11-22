@@ -1,12 +1,29 @@
 # Centipede OS — verified preview and stable release workflow
 
-## Single-source, pre-release v1.0.1-rc.10
+## Why v1.0.1-rc.10 was not released
+
+The pinned [RC10 build](https://github.com/wests-cmd/Centipede-os/actions/runs/44987000648)
+was started from source `d7e860d7bddfec69ffe9d228b1edeb217ef5ce1f` after green
+main CI/CodeQL/docs. Its desktop and Docker jobs passed, but the signed
+Android job started because a repository variable was enabled even though
+`release/targets.json` still marked Android `BLOCKED`. Gradle then hit
+Maven Central HTTP **429 Too Many Requests** and that job failed. The RC10
+tag is immutable and **must not be moved** to a revised source commit.
+
+RC11 fixes the *actual build-system boundary*: signed Android/iOS jobs require
+**both** their publisher-enable repository variables and a `BUILDABLE` state
+from the committed target manifest. `BLOCKED` mobile targets are skipped,
+not treated as prerequisite jobs for a PC live-image preview. The source
+manifest remains the single source of truth. A successful optional signing
+job alone does not unblock a production mobile release.
+
+## Single-source, pre-release v1.0.1-rc.11
 
 The current source version is `1.0.1`. A reviewable one-shot workflow
-[`prepare-preview-rc10.yml`](../.github/workflows/prepare-preview-rc10.yml)
+[`prepare-preview-rc11.yml`](../.github/workflows/prepare-preview-rc11.yml)
 starts when a trusted **main push** completes
 `Centipede OS Continuous Integration` with success. It refuses to create
-`v1.0.1-rc.10` unless three **same-commit**, **main-push** workflows all
+`v1.0.1-rc.11` unless three **same-commit**, **main-push** workflows all
 completed successfully:
 
 1. **Centipede OS Continuous Integration** (including Windows, Ubuntu, the local safety harness, and browser tests).
@@ -15,7 +32,7 @@ completed successfully:
 
 The coordinator requires the source commit to equal the **current `main`**
 tip, rechecks it after its bounded wait, and permits only the literal
-`v1.0.1-rc.10` tag. It creates an immutable lightweight tag at that commit;
+`v1.0.1-rc.11` tag. It creates an immutable lightweight tag at that commit;
 it **never** moves an existing tag, releases from a PR result, or enables a
 stable channel. A rerun may dispatch the existing correctly pointed tag only
 if no GitHub Release has yet been published. A partially published release
@@ -48,10 +65,10 @@ stable phone app, or turn Simulator-only iOS output into an installable iPhone I
 ### How to follow, recover or diagnose
 
 - The one-shot coordinator workflow appears under **Actions → Publish one
-  verified Centipede preview (v1.0.1-rc.10)**.
+  verified Centipede preview (v1.0.1-rc.11)**.
 - The actual build/publisher runs under **Actions → Centipede verified
   multi-platform release**. A started run is **not** a downloadable release.
-- If the coordinator created a correct RC10 tag but did not dispatch the build,
+- If the coordinator created a correct RC11 tag but did not dispatch the build,
   an operator may use its **Run workflow** control on `main` after investigating
   the failure; its exact-commit/status checks run again. Never delete and
   repoint a release tag to retry.

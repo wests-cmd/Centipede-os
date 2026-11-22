@@ -1,5 +1,7 @@
-"""No-network acceptance tests for immutable, fail-closed RC10 publication policy."""
+"""No-network acceptance tests for immutable, fail-closed RC11 publication policy."""
 import unittest
+import json
+from pathlib import Path
 from unittest.mock import patch
 
 import prepare_preview_release as release
@@ -20,12 +22,24 @@ def green_runs(sha=SHA):
 
 
 class PreviewGateTests(unittest.TestCase):
+    def test_blocked_mobile_jobs_cannot_run_from_repository_variable_alone(self):
+        root = Path(__file__).resolve().parents[1]
+        manifest = json.loads((root / "release/targets.json").read_text("utf-8"))
+        workflow = (root / ".github/workflows/platform-builds.yml").read_text("utf-8")
+        self.assertEqual(manifest["targets"]["android"]["status"], "BLOCKED")
+        self.assertEqual(manifest["targets"]["ios"]["status"], "BLOCKED")
+        self.assertIn("needs.target-policy.outputs.android == 'BUILDABLE'", workflow)
+        self.assertIn("needs.target-policy.outputs.ios == 'BUILDABLE'", workflow)
+        self.assertIn("Enforce manifest target status before optional signed mobile jobs", workflow)
+        self.assertIn("CENTIPEDE_ENABLE_SIGNED_ANDROID_RELEASE", workflow)
+        self.assertIn("CENTIPEDE_ENABLE_SIGNED_IOS_RELEASE", workflow)
+
     def test_accepted_tag_is_one_numbered_candidate_only(self):
         release.validate_candidate(SHA, "1.0.1")
         for version, tag, sha in [
             ("1.0.0", release.TAG, SHA),
             ("1.0.1", "v1.0.1", SHA),
-            ("1.0.1", "v1.0.1-rc.11", SHA),
+            ("1.0.1", "v1.0.1-rc.12", SHA),
             ("1.0.1", release.TAG, "short"),
         ]:
             with self.assertRaises(release.ReleaseError):
@@ -83,9 +97,9 @@ class PreviewGateTests(unittest.TestCase):
             release.execute(SHA, "unittest-token", "1.0.1")
         tags = [call for call in calls if call[:2] == ("POST", "git/refs")]
         dispatches = [call for call in calls if call[:2] == ("POST", "actions/workflows/release.yml/dispatches")]
-        self.assertEqual(tags, [("POST", "git/refs", {"ref": "refs/tags/v1.0.1-rc.10", "sha": SHA})])
+        self.assertEqual(tags, [("POST", "git/refs", {"ref": "refs/tags/v1.0.1-rc.11", "sha": SHA})])
         self.assertEqual(dispatches, [
-            ("POST", "actions/workflows/release.yml/dispatches", {"ref": "v1.0.1-rc.10"})
+            ("POST", "actions/workflows/release.yml/dispatches", {"ref": "v1.0.1-rc.11"})
         ])
 
     def test_existing_tag_can_never_be_moved_or_replaced(self):

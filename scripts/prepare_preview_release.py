@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""One-shot, fail-closed v1.0.1-rc.10 release coordinator.
+"""One-shot, fail-closed v1.0.1-rc.11 release coordinator.
 
 Called only by trusted GitHub Actions on main, following a real green CI run,
 or by an authorized operator via workflow_dispatch for recovery. This script
@@ -19,7 +19,7 @@ from urllib.error import HTTPError
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
-TAG = "v1.0.1-rc.10"  # Explicitly ONE candidate; future releases require a reviewed change.
+TAG = "v1.0.1-rc.11"  # Explicitly ONE candidate; future releases require a reviewed change.
 REPO = "wests-cmd/Centipede-os"
 REQUIRED = (
     "Centipede OS Continuous Integration",
@@ -38,7 +38,7 @@ def validate_candidate(source: str, version: str, tag: str = TAG) -> None:
     if not re.fullmatch(r"[0-9a-f]{40}", source):
         raise ReleaseError("An exact full 40-character source SHA is mandatory.")
     if version != "1.0.1" or tag != TAG or not tag.startswith("v" + version + "-rc."):
-        raise ReleaseError("This coordinator may create ONLY the pinned v1.0.1-rc.10 preview.")
+        raise ReleaseError("This coordinator may create ONLY the pinned v1.0.1-rc.11 preview.")
 
 
 def check_green_runs(runs: list[dict], sha: str) -> tuple[str, str]:
@@ -73,7 +73,7 @@ def api(method: str, endpoint: str, token: str, payload: dict | None = None,
             "Accept": "application/vnd.github+json",
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
-            "User-Agent": "centipede-exact-sha-rc10-release",
+            "User-Agent": "centipede-exact-sha-rc11-release",
             "X-GitHub-Api-Version": "2022-11-28",
         },
     )
