@@ -33,7 +33,10 @@ def bounded_browser_process(job: dict, state_dir: str, should_stop):
     command = [sys.executable, "-m", "harness.browser_task"]
     env = {
         "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-        "HOME": os.environ.get("HOME", "/tmp"),
+        "HOME": "/tmp",
+        "XDG_CACHE_HOME": "/tmp/.cache",
+        "TMPDIR": "/tmp",
+        "PLAYWRIGHT_BROWSERS_PATH": os.environ.get("PLAYWRIGHT_BROWSERS_PATH", "/ms-playwright"),
         "CENTIPEDE_HARNESS_DATA": state_dir,
         "PYTHONPATH": str(Path(__file__).resolve().parents[1]),
         "PYTHONUNBUFFERED": "1",
