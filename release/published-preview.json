@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "releaseTag": "v1.0.1-rc.9",
+  "releasePublishedAt": "2026-10-07T03:12:56Z",
+  "releaseChannel": "PREVIEW",
+  "catalogVerifiedAgainst": "GitHub Releases API, checked 2026-11-21",
+  "releaseUrl": "https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.1-rc.9",
+  "warning": "Pinned historical release assets, not a build of current main. The asset inventory alone does not certify signing, installed OS behavior, or pairing.",
+  "assets": {
+    "live-usb": { "fileName": "centipede-os-1.0.1-live-usb-x86_64.iso", "sizeBytes": 1691189248, "type": "LIVE_USB_PREVIEW" },
+    "iso": { "fileName": "centipede-os-1.0.1-x86_64.iso", "sizeBytes": 1691189248, "type": "LIVE_BOOT_PREVIEW" },
+    "vm": { "fileName": "centipede-os-1.0.1-x86_64.qcow2", "sizeBytes": 1690632192, "type": "OPTICAL_MEDIA_QCOW2" },
+    "docker": { "fileName": "centipede-docker-image-1.0.1.tar", "sizeBytes": 410232832, "type": "WEB_API_CONTAINER" },
+    "android": { "fileName": "centipede-android-1.0.1-release.apk", "sizeBytes": 3293403, "type": "UNVERIFIED_MOBILE_PREVIEW" },
+    "desktop": { "fileName": "centipede-os-1.0.1-desktop-web-bundle.tar.gz", "sizeBytes": 125494, "type": "DEVELOPER_WEB_BUNDLE" },
+    "checksums": { "fileName": "SHA256SUMS", "sizeBytes": 650, "type": "RELEASE_CHECKSUM_FILE" }
+  }
+}

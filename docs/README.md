@@ -4,6 +4,7 @@ This navigation organizes existing source and evidence; it moves no runtime file
 
 | Need | Guide |
 | --- | --- |
+| **Choose the correct Centipede download** | **[Beginner device/goal download chooser](../DOWNLOADS.md)** |
 | Try the published USB image | [Beginner installation guide](INSTALLATION_GUIDE.md) |
 | Watch an animated illustrated installation/use tutorial | [Quick-start animation](media/quick-start.svg), [accessible transcript](VIDEO_GUIDE.md) |
 | Understand application, image and mobile boundaries | [Architecture](ARCHITECTURE.md) |
