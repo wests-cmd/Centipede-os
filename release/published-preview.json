@@ -37,6 +37,11 @@
       "fileName": "SHA256SUMS",
       "sizeBytes": 540,
       "type": "RELEASE_CHECKSUM_FILE"
+    },
+    "manifest": {
+      "fileName": "release-manifest.json",
+      "sizeBytes": 4806,
+      "type": "RELEASE_PROVENANCE_MANIFEST"
     }
   }
 }
