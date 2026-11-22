@@ -1,5 +1,7 @@
 """No-network acceptance tests for immutable, fail-closed RC11 publication policy."""
 import unittest
+import json
+from pathlib import Path
 from unittest.mock import patch
 
 import prepare_preview_release as release
@@ -20,6 +22,18 @@ def green_runs(sha=SHA):
 
 
 class PreviewGateTests(unittest.TestCase):
+    def test_blocked_mobile_jobs_cannot_run_from_repository_variable_alone(self):
+        root = Path(__file__).resolve().parents[1]
+        manifest = json.loads((root / "release/targets.json").read_text("utf-8"))
+        workflow = (root / ".github/workflows/platform-builds.yml").read_text("utf-8")
+        self.assertEqual(manifest["targets"]["android"]["status"], "BLOCKED")
+        self.assertEqual(manifest["targets"]["ios"]["status"], "BLOCKED")
+        self.assertIn("needs.target-policy.outputs.android == 'BUILDABLE'", workflow)
+        self.assertIn("needs.target-policy.outputs.ios == 'BUILDABLE'", workflow)
+        self.assertIn("Enforce manifest target status before optional signed mobile jobs", workflow)
+        self.assertIn("CENTIPEDE_ENABLE_SIGNED_ANDROID_RELEASE", workflow)
+        self.assertIn("CENTIPEDE_ENABLE_SIGNED_IOS_RELEASE", workflow)
+
     def test_accepted_tag_is_one_numbered_candidate_only(self):
         release.validate_candidate(SHA, "1.0.1")
         for version, tag, sha in [
