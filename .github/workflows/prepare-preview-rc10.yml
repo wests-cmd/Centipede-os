@@ -1,0 +1,48 @@
+name: Publish one verified Centipede preview (v1.0.1-rc.10)
+
+# One-shot intent: only v1.0.1-rc.10. A successful main-branch CI run
+# supplies its exact source SHA; CodeQL and documentation must also pass.
+# workflow_dispatch is recovery-only if the tag was created but dispatch
+# failed. The coordinator never moves tags or publishes asset bytes.
+on:
+  workflow_run:
+    workflows:
+      - "Centipede OS Continuous Integration"
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+
+concurrency:
+  group: centipede-one-shot-rc10
+  cancel-in-progress: false
+
+jobs:
+  qualify-and-dispatch:
+    name: Gate exact SHA and start verified RC10 build
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' ||
+          (github.event.workflow_run.event == 'push' &&
+           github.event.workflow_run.head_branch == 'main' &&
+           github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.head_repository.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout ONLY the already-tested main source revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+
+      - name: Require green CI, CodeQL, docs, and immutable release tag
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: python3 scripts/prepare_preview_release.py
