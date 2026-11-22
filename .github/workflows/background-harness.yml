@@ -1,0 +1,84 @@
+name: Centipede isolated background harness verification
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'harness/**'
+      - 'Dockerfile.harness'
+      - 'docker-compose.harness.yml'
+      - 'src/server/harnessProxy.ts'
+      - 'src/components/BackgroundHarnessApp.tsx'
+      - '.github/workflows/background-harness.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'harness/**'
+      - 'Dockerfile.harness'
+      - 'docker-compose.harness.yml'
+      - 'src/server/harnessProxy.ts'
+      - '.github/workflows/background-harness.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-policy:
+    runs-on: ubuntu-latest
+    name: Persistent queue, owner auth and private-network denial
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run deterministic tests with no models or network dependency
+        run: python -m unittest discover -s tests/harness -p 'test_*.py' -v
+      - name: Compile Python worker source
+        run: python -m compileall -q harness
+
+  container-smoke:
+    needs: deterministic-policy
+    runs-on: ubuntu-24.04
+    name: Isolated headless browser container smoke
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build pinned Python/Chromium worker
+        run: docker build --pull -f Dockerfile.harness -t centipede-harness:ci .
+      - name: Start unprivileged, constrained and isolated worker
+        run: |
+          set -euo pipefail
+          docker volume create centipede-harness-ci-state
+          docker run -d --name centipede-harness-ci             --init --read-only --user 1000:1000 --cap-drop ALL             --security-opt no-new-privileges:true             --pids-limit 128 --cpus 0.75 --memory 1024m --shm-size 192m             --tmpfs /tmp:rw,nosuid,nodev,size=192m             -e CENTIPEDE_HARNESS_TOKEN="$(printf 'a%.0s' {1..64})"             -e CENTIPEDE_HARNESS_DATA=/data             -p 127.0.0.1:3011:3011             -v centipede-harness-ci-state:/data centipede-harness:ci
+          for attempt in $(seq 1 30); do
+            if docker exec centipede-harness-ci python -m harness.healthcheck; then break; fi
+            sleep 2
+          done
+          docker exec centipede-harness-ci python -m harness.healthcheck
+      - name: Verify bearer denial, default OFF and controlled persistent state
+        run: |
+          set -euo pipefail
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3011/v1/status)
+          test "$STATUS" = '401'
+          TOKEN=$(printf 'a%.0s' {1..64})
+          curl --fail -s -H "Authorization: Bearer $TOKEN"             http://127.0.0.1:3011/v1/status | python -c             'import json,sys; s=json.load(sys.stdin); assert s["enabled"] is False and s["scope"]=="isolated-headless-browser-only"'
+          curl --fail -s -X POST -H "Authorization: Bearer $TOKEN"             -H 'Content-Type: application/json' --data '{"action":"enable"}'             http://127.0.0.1:3011/v1/control | python -c             'import json,sys; assert json.load(sys.stdin)["enabled"] is True'
+          docker restart centipede-harness-ci
+          for attempt in $(seq 1 30); do
+            if docker exec centipede-harness-ci python -m harness.healthcheck; then break; fi
+            sleep 2
+          done
+          curl --fail -s -H "Authorization: Bearer $TOKEN"             http://127.0.0.1:3011/v1/status | python -c             'import json,sys; assert json.load(sys.stdin)["enabled"] is True'
+          curl --fail -s -X POST -H "Authorization: Bearer $TOKEN"             -H 'Content-Type: application/json' --data '{"action":"disable"}'             http://127.0.0.1:3011/v1/control > /dev/null
+      - name: Smoke Chromium launch WITH sandbox inside the container
+        run: |
+          docker exec centipede-harness-ci python -c             "from playwright.sync_api import sync_playwright; p=sync_playwright().start(); b=p.chromium.launch(headless=True, chromium_sandbox=True); page=b.new_page(); page.goto('about:blank'); assert page.url=='about:blank'; b.close(); p.stop()"
+      - name: Collect redacted worker logs if verification fails
+        if: failure()
+        run: docker logs centipede-harness-ci 2>&1 | tail -80 || true
+      - name: Remove test container and state
+        if: always()
+        run: |
+          docker rm -f centipede-harness-ci || true
+          docker volume rm -f centipede-harness-ci-state || true
