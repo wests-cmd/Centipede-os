@@ -4,6 +4,13 @@ on:
   push:
     tags:
       - 'v*'
+  # GITHUB_TOKEN-created tags do not produce new push-triggered Actions runs.
+  # The exact-tag coordinator invokes this through workflow_dispatch instead.
+  workflow_dispatch:
+
+concurrency:
+  group: centipede-release-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
