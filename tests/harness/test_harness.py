@@ -150,7 +150,10 @@ class DatabaseTests(unittest.TestCase):
     def test_fixed_api_does_not_expose_arbitrary_worker_operations(self):
         self.assertEqual(handle_api("GET", "/v1/status", None, self.store)[0], 200)
         self.assertEqual(handle_api("POST", "/v1/control", {"action": "enable"}, self.store)[0], 200)
-        self.assertEqual(handle_api("POST", "/v1/routines", SAMPLE, self.store)[0], 201)
+        with patch("harness.core.socket.getaddrinfo", return_value=[
+            (2, 1, 6, "", ("93.184.216.34", 443))
+        ]):
+            self.assertEqual(handle_api("POST", "/v1/routines", SAMPLE, self.store)[0], 201)
         self.assertEqual(handle_api("POST", "/v1/routines/delete", {"id": "bad"}, self.store)[0], 200)
         self.assertEqual(handle_api("POST", "/v1/run-shell", {}, self.store)[0], 404)
         with self.assertRaises(PolicyError):
