@@ -11,6 +11,7 @@ services:
       - ALL
     cap_add:
       - CHOWN
+      - FOWNER
     command: ["sh", "-c", "chmod 0700 /data && chown 1000:1000 /data"]
     volumes:
       - centipede_harness_state:/data
