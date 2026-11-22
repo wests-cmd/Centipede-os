@@ -43,6 +43,12 @@ The newest **published preview**, [v1.0.1-rc.9](https://github.com/wests-cmd/Cen
 
 ---
 
+## Status and roadmap
+
+The **System Command Center and new user-visibility features are implemented in GitHub source**, not in the October 2026 RC9 download. The next release milestone is to build a new preview from the current reviewed source, validate every published target and its SHA-256 checksum, and only then point this download chooser to those new files. See the [device-specific choices](DOWNLOADS.md) and [release blockers](https://github.com/wests-cmd/Centipede-os/issues/150).
+
+**Still not general-availability ready:** secure permanent graphical installation/recovery, hardware testing on low-memory PCs, signed/native phone distribution, and real multi-machine Kingdom task acceptance. A green web-build test does not close those requirements.
+
 ## Overview
 
 Centipede provides the user-facing desktop and assistant. Kingdom supplies the separately deployed task and security authority. The default local-admin Kingdom proxy allows only read operations. Actions require a separately authenticated, owner-authorized connection; connecting to a read proxy does not grant write privileges.
