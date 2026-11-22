@@ -2,6 +2,8 @@
 
 This guide is for trying Centipede OS from a USB drive. It uses buttons and menus; you do not need to type commands.
 
+**Not sure which download is correct for your computer?** Start with the **[simple Centipede download chooser](../DOWNLOADS.md)**. It explains USB vs VM vs Docker vs Android, the real download sizes and which installations are not available. For an ordinary Intel/AMD 64-bit PC, the **Live USB ISO** below is the preview to choose.
+
 ## Before you start
 
 - A Windows, Mac, or Linux computer with internet access.
