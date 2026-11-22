@@ -18,6 +18,32 @@ permissions:
   contents: read
 
 jobs:
+  target-policy:
+    name: Enforce manifest target status before optional signed mobile jobs
+    runs-on: ubuntu-latest
+    outputs:
+      android: ${{ steps.manifest.outputs.android }}
+      ios: ${{ steps.manifest.outputs.ios }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read source-controlled release target gate
+        id: manifest
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          with open('release/targets.json', encoding='utf-8') as source:
+              targets = json.load(source)['targets']
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
+              for name in ('android', 'ios'):
+                  state = targets[name]['status']
+                  if state not in ('BUILDABLE', 'BLOCKED'):
+                      raise SystemExit(f'Unknown release target state for {name}: {state}')
+                  out.write(f'{name}={state}\n')
+                  print(f'{name} distribution status: {state}')
+          PY
+
   android-debug:
     name: Android debug APK (branch validation)
     if: github.ref_type != 'tag'
@@ -59,7 +85,8 @@ jobs:
 
   android-release:
     name: Signed Android release APK
-    if: github.ref_type == 'tag' && vars.CENTIPEDE_ENABLE_SIGNED_ANDROID_RELEASE == 'true'
+    needs: target-policy
+    if: github.ref_type == 'tag' && needs.target-policy.outputs.android == 'BUILDABLE' && vars.CENTIPEDE_ENABLE_SIGNED_ANDROID_RELEASE == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -153,7 +180,8 @@ jobs:
 
   ios-device:
     name: Signed iOS device IPA
-    if: github.ref_type == 'tag' && vars.CENTIPEDE_ENABLE_SIGNED_IOS_RELEASE == 'true'
+    needs: target-policy
+    if: github.ref_type == 'tag' && needs.target-policy.outputs.ios == 'BUILDABLE' && vars.CENTIPEDE_ENABLE_SIGNED_IOS_RELEASE == 'true'
     runs-on: macos-15
     timeout-minutes: 60
     steps:
