@@ -34,7 +34,7 @@ describe('beginner download chooser truth contract', () => {
   it('maps all currently published RC11 files and checksums to real URLs', () => {
     const guide = read('DOWNLOADS.md');
     expect(Object.keys(catalog.assets).sort()).toEqual(
-      ['checksums', 'desktop', 'docker', 'iso', 'live-usb', 'vm'].sort(),
+      ['checksums', 'desktop', 'docker', 'iso', 'live-usb', 'manifest', 'vm'].sort(),
     );
     for (const asset of Object.values(catalog.assets)) {
       expect(asset.sizeBytes).toBeGreaterThan(100);
