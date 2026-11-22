@@ -65,6 +65,31 @@ def bounded_browser_process(job: dict, state_dir: str, should_stop):
     return result["summary"], result["sha256"], result["screenshot"]
 
 
+def host_headroom() -> tuple[bool, str]:
+    """Conservative host-level hints to avoid competing with a human.
+
+    Linux /proc and loadavg are host/kernel views, not exact cgroup accounting.
+    Container CPU and memory caps remain separate hard deployment limits.
+    """
+    try:
+        available_kib = None
+        for line in Path("/proc/meminfo").read_text("utf-8").splitlines():
+            if line.startswith("MemAvailable:"):
+                available_kib = int(line.split()[1])
+                break
+        if available_kib is None:
+            return False, "Available host memory cannot be measured."
+        if available_kib < 1024 * 1024:
+            return False, "Host available memory is below 1 GiB; background work deferred."
+        cpus = max(1, os.cpu_count() or 1)
+        load = os.getloadavg()[0]
+        if load > max(0.5, cpus * 0.5):
+            return False, "Host CPU load is elevated; background work deferred."
+        return True, "Host memory and load hint permit one bounded background job."
+    except (OSError, ValueError):
+        return False, "Host resource budget could not be checked; deferring work."
+
+
 class Harness:
     def __init__(self, state_dir: str, *, runner=bounded_browser_process):
         self.state_dir = state_dir
@@ -85,7 +110,9 @@ class Harness:
         while not self.stopping.is_set():
             job = None
             try:
-                job = self.store.claim_due()
+                ready, _ = host_headroom()
+                if ready:
+                    job = self.store.claim_due()
                 if job:
                     summary, digest, screenshot = self.runner(
                         job, self.state_dir,
@@ -177,6 +204,9 @@ class Handler(BaseHTTPRequestHandler):
             body = None
         try:
             code, output = handle_api(method, url.path, body, self.server.harness.store)
+            if code == 200 and method == "GET" and url.path == "/v1/status":
+                ready, reason = host_headroom()
+                output["resourceGate"] = {"ready": ready, "explanation": reason, "scope": "Linux host kernel hint; not total system assurance."}
         except PolicyError as error:
             code, output = 422, {"error": str(error)}
         except Exception:
