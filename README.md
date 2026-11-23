@@ -162,7 +162,7 @@ Configure Kingdom in the first-run wizard. The default local server's `/api/v1/k
 ## Security FAQ
 
 ### Q: Can this application delete my files or execute system commands?
-The browser UI has no unrestricted host file or shell access. The newly merged local-only Files broker supports limited operations in a dedicated folder after owner unlock; the older published v1.0.0 image does not contain that feature. Kingdom-backed actions are handled by the separately deployed Kingdom service; review that deployment's authorization and policy configuration independently.
+The browser UI has no unrestricted host file or shell access. The local-only Files broker supports limited operations in a dedicated folder after owner unlock; it is not a general-purpose file manager and does not grant arbitrary host access. Kingdom-backed actions are handled by the separately deployed Kingdom service; review that deployment's authorization and policy configuration independently. The published RC11 preview is pinned to its original tag; later merged source work does not automatically appear in those released binaries.
 
 ### Q: Does this release certify prompt-injection or host security protections?
 No. The UI contains security-related demonstrations, but this release does not certify system-wide isolation, prompt-injection resistance, or Kingdom deployment security.
