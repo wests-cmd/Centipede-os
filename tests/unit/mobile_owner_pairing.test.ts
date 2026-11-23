@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DeviceTrustManager } from '../../src/security/deviceTrust';
 import { apiRouter } from '../../src/server/routes';
 import { resetOwnerActionSessionsForTests } from '../../src/server/kingdomAction';
 
@@ -64,6 +65,42 @@ describe('mobile pairing owner authorization', () => {
     })).status).toBe(200);
     expect((await ask('devices', 'GET', undefined, true, h)).status).toBe(401);
     expect((await ask('pair/initiate', 'POST', {deviceName:'Phone'}, true, h)).status).toBe(401);
+  });
+
+  it('issues high-entropy expiring device sessions with no authority to approve or upload', () => {
+    const manager = new DeviceTrustManager();
+    const originalNow = Date.now();
+    const pairing = manager.initiatePairing('Personal phone', 'MOBILE_APP');
+    const confirmed = manager.confirmPairing(pairing.pairingCode);
+    expect(confirmed.success).toBe(true);
+    expect(confirmed.sessionToken).toMatch(/^tok_[a-f0-9]{64}$/);
+    const token = confirmed.sessionToken!;
+    const authorized = manager.validateSessionToken(token);
+    expect(authorized.valid).toBe(true);
+    expect(authorized.device?.allowedCapabilities).toEqual(['status.view']);
+    expect(authorized.device?.sessionExpiresAt).toBeGreaterThan(originalNow);
+    const expiry = authorized.device!.sessionExpiresAt!;
+    const dateSpy = vi.spyOn(Date, 'now').mockReturnValue(expiry + 1);
+    try {
+      const expired = manager.validateSessionToken(token);
+      expect(expired.valid).toBe(false);
+      expect(expired.error).toContain('SESSION_EXPIRED');
+      expect(manager.validateSessionToken(token).valid).toBe(false);
+    } finally {
+      dateSpy.mockRestore();
+    }
+  });
+
+  it('rejects malformed or oversized device names before issuing pairing codes', async () => {
+    const session = await unlock();
+    const headers = ownerHeaders(session);
+    for (const deviceName of [null, 24, '', '   ', 'x'.repeat(81), 'Phone\nHost']) {
+      const result = await ask('pair/initiate', 'POST', { deviceName }, true, headers);
+      expect(result.status).toBe(422);
+    }
+    const manager = new DeviceTrustManager();
+    expect(() => manager.initiatePairing('\t', 'MOBILE_APP')).toThrow('Invalid device name');
+    expect(() => manager.initiatePairing('x'.repeat(81), 'MOBILE_APP')).toThrow('Invalid device name');
   });
 
   it('preserves self-revocation for a paired device reaching the service via localhost', async () => {
