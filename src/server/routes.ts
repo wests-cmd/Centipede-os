@@ -84,7 +84,19 @@ export class ApiRouter {
       // Do not let a caller place an arbitrary phishing URL into pairing QR data.
       // The verified HTTP adapter, never body.endpoint or a forwarded header,
       // supplies the server address to be shared with the phone.
-      const pairing = deviceTrustManager.initiatePairing(name.trim(), 'MOBILE_APP', req.serverPairingEndpoint);
+      let trustedEndpoint: string | undefined;
+      if (req.serverPairingEndpoint !== undefined) {
+        try {
+          const candidate = new URL(req.serverPairingEndpoint);
+          if (!['http:', 'https:'].includes(candidate.protocol) || !candidate.hostname ||
+              candidate.username || candidate.password || candidate.search || candidate.hash ||
+              candidate.pathname !== '/') throw new Error('Invalid pairing server origin');
+          trustedEndpoint = candidate.origin;
+        } catch {
+          return { status: 503, error: 'Configured pairing server address must be a valid HTTP(S) origin.' };
+        }
+      }
+      const pairing = deviceTrustManager.initiatePairing(name.trim(), 'MOBILE_APP', trustedEndpoint);
       return { status: 200, data: pairing };
     }
 
