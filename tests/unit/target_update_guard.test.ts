@@ -80,6 +80,22 @@ describe('platform update metadata is not permission to downgrade or claim OS ac
     expect(TargetUpdateChecker.verifyCompatibilityGate({ ...metadata, architecture: 'x86_64' }, '1.0.1', 'v1.0+', 'any', sha).allowed).toBe(false);
     expect(TargetUpdateChecker.verifyCompatibilityGate({ ...metadata, architecture: 'arm64' }, '1.0.1', 'v1.0+', 'x86_64', sha).allowed).toBe(false);
   });
+  it('negotiates Kingdom protocol vMAJOR.MINOR+ as a same-major minimum, not a fabricated exact string', () => {
+    const metadata: TargetUpdateMetadata = {
+      target: 'iso', currentVersion: '1.0.1+iso.1', latestRevision: 2,
+      latestArtifactVersion: '1.0.1+iso.2', artifact: 'centipede-os.iso',
+      sha256: sha, downloadLocation: '', minCoreVersion: '1.0.1',
+      requiredKingdomProtocol: 'v1.0+', architecture: 'x86_64', releaseDate: '',
+    };
+    for (const observed of ['v1.0', 'v1.1', 'v1.10'])
+      expect(TargetUpdateChecker.verifyCompatibilityGate(metadata, '1.0.1', observed, 'x86_64', sha).allowed).toBe(true);
+    for (const observed of ['v0.99', 'v2.0', 'v1.1+', 'v1.x', 'v1.00'])
+      expect(TargetUpdateChecker.verifyCompatibilityGate(metadata, '1.0.1', observed, 'x86_64', sha).allowed).toBe(false);
+    expect(TargetUpdateChecker.verifyCompatibilityGate({ ...metadata, requiredKingdomProtocol: 'v1.2+' },
+      '1.0.1', 'v1.1', 'x86_64', sha).allowed).toBe(false);
+    expect(TargetUpdateChecker.verifyCompatibilityGate({ ...metadata, requiredKingdomProtocol: 'v1.2' },
+      '1.0.1', 'v1.3', 'x86_64', sha).allowed).toBe(false);
+  });
   it('rejects malformed semver and digest values in compatibility checks', () => {
     const metadata: TargetUpdateMetadata = {
       target: 'iso', currentVersion: '1.0.1+iso.1', latestRevision: 2,
