@@ -3,6 +3,7 @@ import json
 import signal
 import subprocess
 import tempfile
+import time
 import threading
 import unittest
 from pathlib import Path
@@ -177,7 +178,7 @@ class DatabaseTests(unittest.TestCase):
         self.assertEqual(claimed["routineId"], added["id"])
         self.assertIsNone(self.store.claim_due(now=9999999999))
         self.store.complete_run(claimed["runId"], outcome="completed",
-                                summary="Public page changed", sha256=SHA, screenshot="safe.png")
+                                summary="Public page changed", sha256=SHA, screenshot=claimed["runId"] + ".png")
         self.assertEqual(self.store.status()["runs"][0]["state"], "completed")
         with self.assertRaises(PolicyError):
             self.store.complete_run(claimed["runId"], outcome="completed")
@@ -201,6 +202,42 @@ class DatabaseTests(unittest.TestCase):
         self.assertIsNone(self.store.claim_due(now=9999999999))
         self.store.control("disable")
         self.assertFalse(self.store.status()["enabled"])
+
+    def test_screenshots_are_bounded_without_deleting_unrelated_files(self):
+        self.add()
+        self.store.control("enable")
+        shots = Path(self.database).parent / "screenshots"
+        shots.mkdir()
+        (shots / "owner-notes.txt").write_text("preserve me", encoding="utf-8")
+        names = []
+        base = int(time.time()) + 10
+        for index in range(25):
+            claimed = self.store.claim_due(now=base + index * 900)
+            self.assertIsNotNone(claimed)
+            filename = claimed["runId"] + ".png"
+            names.append(filename)
+            (shots / filename).write_bytes(b"approved screenshot fixture")
+            self.store.complete_run(
+                claimed["runId"], outcome="completed", summary="Observed public page",
+                sha256=SHA, screenshot=filename,
+            )
+        kept = list(shots.glob("run_*.png"))
+        self.assertEqual(len(kept), 20)
+        self.assertFalse((shots / names[0]).exists())
+        self.assertTrue((shots / names[-1]).exists())
+        self.assertEqual((shots / "owner-notes.txt").read_text(), "preserve me")
+        self.assertEqual(self.store.status()["limits"]["maxStoredScreenshots"], 20)
+
+    def test_screenshot_receipt_cannot_select_other_paths(self):
+        self.add()
+        self.store.control("enable")
+        claimed = self.store.claim_due(now=int(time.time()) + 10)
+        for value in ("../other-file", "safe.png", "run_" + "b" * 24 + ".png"):
+            with self.subTest(value=value):
+                with self.assertRaises(PolicyError):
+                    self.store.complete_run(claimed["runId"], outcome="completed", screenshot=value)
+        self.store.complete_run(claimed["runId"], outcome="completed",
+                                screenshot=claimed["runId"] + ".png")
 
     def test_delete_stops_future_work_but_preserves_audit_receipts(self):
         added = self.add()
