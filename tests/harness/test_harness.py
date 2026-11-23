@@ -203,6 +203,18 @@ class PackagingTests(unittest.TestCase):
         self.assertIn("cap_drop:", compose)
         self.assertIn("mem_limit: 1024m", compose)
         self.assertIn("USER pwuser", dockerfile)
+        worker_parts = compose.split("  centipede-harness:\n", 1)
+        self.assertEqual(len(worker_parts), 2, "Missing independently confined worker")
+        worker = worker_parts[1].split("\nvolumes:", 1)[0]
+        self.assertIn("- ALL", worker)
+        self.assertIn("- SYS_CHROOT", worker)
+        self.assertNotIn("- SYS_ADMIN", worker)
+        self.assertNotIn("privileged: true", worker)
+        self.assertNotIn("seccomp:unconfined", worker)
+        workflow = (root / ".github/workflows/background-harness.yml").read_text("utf-8")
+        self.assertIn("--cap-drop ALL --cap-add SYS_CHROOT", workflow)
+        self.assertIn("--security-opt seccomp=harness/seccomp_profile.json", workflow)
+        self.assertIn("chromium_sandbox=True", (root / "harness/browser.py").read_text("utf-8"))
         for bad in ["/var/run/docker.sock", "/tmp/.X11-unix", "DISPLAY=", "/home/your-user"]:
             self.assertNotIn(bad, compose)
             self.assertNotIn(bad, dockerfile)
