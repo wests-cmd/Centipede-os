@@ -72,6 +72,10 @@ def bounded_browser_process(job: dict, state_dir: str, should_stop):
         except subprocess.TimeoutExpired:
             pending_input = None
             continue
+    # A pause/disable can race with the final browser reply. Even if the child
+    # exited normally, do not certify completion after owner revocation.
+    if should_stop():
+        raise PolicyError("Browser finished after owner cancellation; outcome unknown.")
     if process.returncode != 0 or len(output) > 4096:
         raise PolicyError("Browser task failed or produced an invalid receipt.")
     try:
