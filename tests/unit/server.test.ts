@@ -1,21 +1,49 @@
 import packageJson from '../../package.json';
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { centipedeServer } from '../../src/server/server';
+import { resetOwnerActionSessionsForTests } from '../../src/server/kingdomAction';
 
 describe('Centipede API Server & Transport Test Suite', () => {
   const TEST_PORT = 3099;
+  const ownerCode = 'mobile-api-test-owner-credential-with-more-than-thirty-two-characters';
+  const priorURL = process.env.KINGDOM_API_URL;
+  const priorToken = process.env.KINGDOM_API_TOKEN;
 
   beforeAll(() => {
+    process.env.KINGDOM_API_URL = 'http://127.0.0.1:8000';
+    process.env.KINGDOM_API_TOKEN = ownerCode;
     centipedeServer.start(TEST_PORT);
   });
 
   beforeEach(() => {
     centipedeServer.resetRateLimits();
+    resetOwnerActionSessionsForTests();
   });
 
   afterAll(() => {
     centipedeServer.stop();
+    resetOwnerActionSessionsForTests();
+    if (priorURL === undefined) delete process.env.KINGDOM_API_URL;
+    else process.env.KINGDOM_API_URL = priorURL;
+    if (priorToken === undefined) delete process.env.KINGDOM_API_TOKEN;
+    else process.env.KINGDOM_API_TOKEN = priorToken;
   });
+
+  async function ownerHeaders(): Promise<Record<string, string>> {
+    const response = await fetch(`http://localhost:${TEST_PORT}/api/v1/kingdom/actions/unlock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Centipede-Owner-Intent': '1' },
+      body: JSON.stringify({ ownerCode }),
+    });
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data.sessionToken).toMatch(/^[a-f0-9]{64}$/);
+    return {
+      'Content-Type': 'application/json',
+      'X-Centipede-Owner-Intent': '1',
+      'X-Centipede-Action-Session': data.sessionToken,
+    };
+  }
 
   it('1. Verifies server mode is REAL_HTTP_SERVER in Node/Bun environment', () => {
     expect(centipedeServer.getMode()).toBe('REAL_HTTP_SERVER');
@@ -107,10 +135,16 @@ describe('Centipede API Server & Transport Test Suite', () => {
   });
 
   it('4. Executes complete Mobile Pairing & Session Auth flow over real HTTP', async () => {
-    // Initiate pairing
+    // The host owner explicitly unlocks before minting a pairing code.
+    const headers = await ownerHeaders();
+    const anonymous = await fetch(`http://localhost:${TEST_PORT}/api/v1/mobile/pair/initiate`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deviceName: 'Unapproved client' }),
+    });
+    expect(anonymous.status).toBe(401);
     const initRes = await fetch(`http://localhost:${TEST_PORT}/api/v1/mobile/pair/initiate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ deviceName: 'Pixel 8 Pro Test' }),
     });
     expect(initRes.status).toBe(200);
@@ -150,11 +184,13 @@ describe('Centipede API Server & Transport Test Suite', () => {
       { name: 'iOS Companion', token: '', deviceId: '' },
     ];
 
-    // Pair each client against the same server, as two separately installed apps would.
+    // Owner unlock is shared for code issuance. Each phone receives only its own
+    // single-use pairing code, never the owner action session credential.
+    const headers = await ownerHeaders();
     for (const client of clients) {
       const initRes = await fetch(`${baseUrl}/api/v1/mobile/pair/initiate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ deviceName: client.name }),
       });
       expect(initRes.status).toBe(200);
