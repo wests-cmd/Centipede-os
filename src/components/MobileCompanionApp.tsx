@@ -57,7 +57,10 @@ export const MobileCompanionApp: React.FC = () => {
       setStatusMessage('This phone is paired with the Centipede service.');
       setPairingData(null);
       setConfirmCode('');
-      await refreshDevices();
+      // A paired phone is NOT a local owner: do not request the privileged
+      // inventory after successfully confirming a single-use pairing code.
+      // Keep the success receipt visible instead of replacing it with a 401.
+      if (kingdomActions.isUnlocked()) await refreshDevices();
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : 'Could not reach the Centipede pairing service.');
     }
