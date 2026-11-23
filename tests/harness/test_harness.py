@@ -208,11 +208,14 @@ class PackagingTests(unittest.TestCase):
         worker = worker_parts[1].split("\nvolumes:", 1)[0]
         self.assertIn("- ALL", worker)
         self.assertIn("- SYS_CHROOT", worker)
+        self.assertIn("cpu_shares: 128", worker)
+        self.assertIn("oom_score_adj: 500", worker)
         self.assertNotIn("- SYS_ADMIN", worker)
         self.assertNotIn("privileged: true", worker)
         self.assertNotIn("seccomp:unconfined", worker)
         workflow = (root / ".github/workflows/background-harness.yml").read_text("utf-8")
         self.assertIn("--cap-drop ALL --cap-add SYS_CHROOT", workflow)
+        self.assertIn("--cpu-shares 128 --oom-score-adj 500", workflow)
         self.assertIn("--security-opt seccomp=harness/seccomp_profile.json", workflow)
         self.assertIn("chromium_sandbox=True", (root / "harness/browser.py").read_text("utf-8"))
         for bad in ["/var/run/docker.sock", "/tmp/.X11-unix", "DISPLAY=", "/home/your-user"]:
