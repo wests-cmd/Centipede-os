@@ -36,6 +36,10 @@ services:
     shm_size: 192mb
     cap_drop:
       - ALL
+    # Chromium's sandbox needs chroot inside its isolated process namespace.
+    # Grant this one capability, never SYS_ADMIN or an unconfined seccomp policy.
+    cap_add:
+      - SYS_CHROOT
     security_opt:
       - no-new-privileges:true
       - seccomp:./harness/seccomp_profile.json
