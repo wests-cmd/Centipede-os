@@ -148,7 +148,8 @@ export async function handleHostFiles(req: ApiRequest): Promise<ApiResponse | nu
         targetHandle = undefined;
         try { await link(temporary, target); }
         catch (error: any) {
-          if (error?.code === 'EEXIST') throw new FileError(409, 'Destination exists. No file was overwritten.');
+          if (error?.code === 'EEXIST' || error?.code === 'EISDIR')
+            throw new FileError(409, 'Destination exists. No file was overwritten.');
           throw error;
         }
       } finally {
