@@ -44,6 +44,15 @@ describe('Centipede local Files security', () => {
     } else await chmod(root, 0o777);
     expect((await request('list',{directory:''})).status).toBe(503);
   }, 30_000);
+  it('rejects group/other-readable POSIX workspace roots, not only writable ones', async () => {
+    if (process.platform === 'win32') return; // Windows requires its ACL-specific checker.
+    for (const mode of [0o755, 0o750, 0o705, 0o644]) {
+      await chmod(root, mode);
+      expect((await request('list', {directory: ''})).status).toBe(503);
+    }
+    await chmod(root, 0o700);
+    expect((await request('list', {directory: ''})).status).toBe(200);
+  }, 30_000);
   it('persists and reads a real on-disk text file', async () => {
     expect((await request('list',{directory:''})).data.entries).toEqual([]);
     expect((await request('mkdir',{directory:'',name:'Projects'})).status).toBe(201);
