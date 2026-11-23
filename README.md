@@ -45,6 +45,8 @@ The newest **published preview** is **[v1.0.1-rc.11 (November 22, 2026)](https:/
 
 **[Full Centipede OS master specification](docs/CENTIPEDE_OS_MASTER.md)** — architecture, daily-driver acceptance gates, user flows and the long-term roadmap. Its historical snapshots are not certification of this branch or the published RC11 binaries.
 
+**[Daily-driver + isolated AI harness release plan](docs/DAILY_DRIVER_AUTONOMOUS_RELEASE_PLAN.md)** — actual code milestones, autonomy/Kingdom authority boundaries, no-interference benchmarks and GA gates. The [experimental worker](docs/BACKGROUND_HARNESS.md) is **source-only on this branch** and is **not inside the published RC11 files**.
+
 
 The **System Command Center is now in the published RC11 preview**. The next project milestone is an owner-supervised, isolated, persistent background browser harness plus real low-memory hardware and Kingdom acceptance. The new worker is developed separately from published RC11 until its own verified release.
 

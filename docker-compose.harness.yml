@@ -1,0 +1,58 @@
+# OPT-IN background browser worker. Separate from Centipede web and Kingdom.
+# Set a private random secret in .centipede-harness.env first.
+services:
+  # Root is used only for this isolated, no-network volume ownership setup.
+  # The actual browser worker always remains the non-root pwuser.
+  harness-data-init:
+    image: alpine:3.22
+    network_mode: none
+    user: "0:0"
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - FOWNER
+    command: ["sh", "-c", "chmod 0700 /data && chown 1001:1001 /data"]
+    volumes:
+      - centipede_harness_state:/data
+    restart: "no"
+
+  centipede-harness:
+    depends_on:
+      harness-data-init:
+        condition: service_completed_successfully
+    build:
+      context: .
+      dockerfile: Dockerfile.harness
+    env_file:
+      - .centipede-harness.env
+    ports:
+      - "127.0.0.1:3011:3011"
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=192m
+    shm_size: 192mb
+    cap_drop:
+      - ALL
+    # Chromium's sandbox needs chroot inside its isolated process namespace.
+    # Grant this one capability, never SYS_ADMIN or an unconfined seccomp policy.
+    cap_add:
+      - SYS_CHROOT
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:./harness/seccomp_profile.json
+    pids_limit: 128
+    cpus: "0.75"
+    # Yield CPU to interactive work under contention; prefer reclaiming this
+    # expendable worker before essential desktop services under OOM pressure.
+    cpu_shares: 128
+    oom_score_adj: 500
+    mem_limit: 1024m
+    volumes:
+      - centipede_harness_state:/data
+    stop_grace_period: 40s
+
+volumes:
+  centipede_harness_state:
