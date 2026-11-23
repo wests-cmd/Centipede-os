@@ -45,15 +45,33 @@ def bounded_browser_process(job: dict, state_dir: str, should_stop):
         command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL, text=True, start_new_session=True, env=env,
     )
-    try:
-        output, _ = process.communicate(json.dumps(job, separators=(",", ":")), timeout=MAX_DURATION)
-    except subprocess.TimeoutExpired as error:
+    # communicate() may be retried after TimeoutExpired; Python preserves the
+    # buffered stdin/output. Polling at most once per second lets owner pause or
+    # disable stop the *running* browser group, not merely future jobs.
+    started = time.monotonic()
+    pending_input = json.dumps(job, separators=(",", ":"))
+    while True:
+        if should_stop():
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.communicate()
+            raise PolicyError("Browser interrupted by owner pause, disable or worker shutdown.")
+        remaining = MAX_DURATION - (time.monotonic() - started)
+        if remaining <= 0:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.communicate()
+            raise PolicyError("Browser exceeded the 30-second wall-clock limit; process group stopped.")
         try:
-            os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-        process.communicate()
-        raise PolicyError("Browser exceeded the 30-second wall-clock limit; process group stopped.") from error
+            output, _ = process.communicate(pending_input, timeout=min(1, remaining))
+            break
+        except subprocess.TimeoutExpired:
+            pending_input = None
+            continue
     if process.returncode != 0 or len(output) > 4096:
         raise PolicyError("Browser task failed or produced an invalid receipt.")
     try:
@@ -131,9 +149,13 @@ class Harness:
                 # instructions. Avoid logging visited URL, selectors or secrets.
                 if job:
                     try:
+                        current = self.store.status()
+                        interrupted = (
+                            self.stopping.is_set() or not current["enabled"] or current["paused"]
+                        )
                         self.store.complete_run(
-                            job["runId"], outcome="failed",
-                            summary="Browser run failed or was interrupted; no remote outcome is assumed.",
+                            job["runId"], outcome="interrupted" if interrupted else "failed",
+                            summary="Browser run stopped or failed; remote outcome unknown, no automatic replay.",
                         )
                     except Exception:
                         pass
