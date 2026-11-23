@@ -1,5 +1,7 @@
 """Offline security and persistence tests; require no Playwright or internet access."""
 import json
+import signal
+import subprocess
 import tempfile
 import threading
 import unittest
@@ -10,7 +12,7 @@ from unittest.mock import patch
 
 from harness.browser import allowed_request, approved_link
 from harness.core import HarnessStore, PolicyError, validate_public_url, validate_routine
-from harness.service import Handler, Harness, HarnessHTTPServer, handle_api
+from harness.service import Handler, Harness, HarnessHTTPServer, handle_api, bounded_browser_process
 
 SHA = "a" * 64
 SAMPLE = {
@@ -84,6 +86,68 @@ class PolicyTests(unittest.TestCase):
         for href in ["javascript:alert(1)", "https://other.example.com", "http://example.com", "#anchor"]:
             with self.assertRaises(PolicyError):
                 approved_link(href, root, root, resolve_dns=False)
+
+
+class ProcessCancellationTests(unittest.TestCase):
+    def test_owner_pause_interrupts_active_child_not_only_next_job(self):
+        class Child:
+            pid = 424242
+            returncode = -9
+            calls = 0
+
+            def communicate(self, input=None, timeout=None):
+                self.calls += 1
+                if self.calls == 1:
+                    raise subprocess.TimeoutExpired(cmd="browser fixture", timeout=timeout)
+                return "", None
+
+        child = Child()
+        job = {"runId": "run_" + "a" * 24}
+        with patch("harness.service.subprocess.Popen", return_value=child):
+            with patch("harness.service.os.killpg") as kill:
+                with self.assertRaisesRegex(PolicyError, "interrupted"):
+                    bounded_browser_process(job, "/tmp", lambda: child.calls > 0)
+                kill.assert_called_once_with(child.pid, signal.SIGKILL)
+        self.assertEqual(child.calls, 2)
+
+    def test_browser_receipt_still_returns_on_normal_completion(self):
+        class Child:
+            pid = 424243
+            returncode = 0
+
+            def communicate(self, input=None, timeout=None):
+                return json.dumps({
+                    "summary": "Read-only public page check",
+                    "sha256": SHA,
+                    "screenshot": None,
+                }), None
+
+        with patch("harness.service.subprocess.Popen", return_value=Child()):
+            result = bounded_browser_process(
+                {"runId": "run_" + "b" * 24}, "/tmp", lambda: False
+            )
+        self.assertEqual(result, ("Read-only public page check", SHA, None))
+
+    def test_timed_out_browser_group_is_killed(self):
+        class Child:
+            pid = 424244
+            returncode = -9
+            calls = 0
+
+            def communicate(self, input=None, timeout=None):
+                self.calls += 1
+                if self.calls == 1:
+                    raise subprocess.TimeoutExpired(cmd="browser fixture", timeout=timeout)
+                return "", None
+
+        with patch("harness.service.subprocess.Popen", return_value=Child()):
+            with patch("harness.service.time.monotonic", side_effect=[0, 0, 31]):
+                with patch("harness.service.os.killpg") as kill:
+                    with self.assertRaisesRegex(PolicyError, "30-second"):
+                        bounded_browser_process(
+                            {"runId": "run_" + "c" * 24}, "/tmp", lambda: False
+                        )
+                    kill.assert_called_once_with(424244, signal.SIGKILL)
 
 
 class DatabaseTests(unittest.TestCase):
