@@ -68,7 +68,26 @@ USER-VISIBLE RESULT
 
 The supplied project materials represent work and assessments from different stages. Earlier material describes a **desktop web bundle with a planned bootable ISO**; a later supplied status report describes **Debian ISO/USB/VM and Docker build jobs passing**. Those statements are not necessarily contradictory: a build job passing is not proof that a physical installation, permanent boot, upgrade/rollback, or daily-driver acceptance test passed.
 
-### Latest status snapshot found in the supplied material
+### Current live repository verification (November 22, 2026)
+
+The following facts were checked directly against GitHub in the current work session. They supersede historical states below **only for the specific objects checked**; they do not certify runtime behavior on physical machines.
+
+| Object checked | Evidence-based current state | Limitation |
+|---|---|---|
+| Repository `main` | `173ac838f2a2ff04a2b1f5cecfef25ec1698150b` | Branch may advance; record SHA for each release or validation |
+| Current package version | `1.0.1` in `package.json` | Source version is not evidence of a stable GA release |
+| Published preview | [`v1.0.1-rc.11`](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.1-rc.11), published November 22 | Experimental prerelease, not a certified installed daily-driver OS |
+| RC11 tagged source | `63b4b63d7af104cb456a86530e43d16e8b5a699d` | Tag is older than current `main`, so later changes are not in these published assets |
+| Published preview assets | GitHub Release API lists desktop web bundle, Debian ISO/live USB, QEMU QCOW2, Docker tar, SHA256SUMS and release manifest | Asset listing does not establish physical-machine acceptance or permanent installation |
+| Mobile targets | Android and iOS `BLOCKED` in `release/targets.json` | No supported signed RC11 APK/IPA |
+| PR #161 / #162 | Both merged | Their former open states in historical reports are obsolete |
+| Open work | [#163](https://github.com/wests-cmd/Centipede-os/pull/163) release-source validation; [#165](https://github.com/wests-cmd/Centipede-os/pull/165) update metadata; [#171](https://github.com/wests-cmd/Centipede-os/pull/171) desktop window fit; [#175](https://github.com/wests-cmd/Centipede-os/pull/175) background worker | Do not merge based only on PR descriptions; verify checks, changes and merge compatibility |
+| `main` branch protection | GitHub branch metadata currently reports `protected: false` | Governance improvement still required |
+| Release-readiness issue | [#150](https://github.com/wests-cmd/Centipede-os/issues/150) remains open | Physical and permanent-install acceptance not certified |
+
+**Source links:** [current main](https://github.com/wests-cmd/Centipede-os/commit/173ac838f2a2ff04a2b1f5cecfef25ec1698150b), [RC11 release](https://github.com/wests-cmd/Centipede-os/releases/tag/v1.0.1-rc.11), [beginner downloads](../DOWNLOADS.md), [published asset inventory](../release/published-preview.json). Information is a dated snapshot; before any future build/release, re-query the relevant objects.
+
+### Historical latest status snapshot found in the supplied material
 
 The document `centipede-os.txt` reports the following at its time of writing:
 
