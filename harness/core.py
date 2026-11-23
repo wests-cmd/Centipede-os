@@ -152,7 +152,7 @@ class HarnessStore:
             raise PolicyError("Private screenshot directory has unsafe filesystem type.")
         rows = self.connection.execute(
             "SELECT screenshot FROM runs WHERE state='completed' AND screenshot IS NOT NULL "
-            "ORDER BY completed DESC, id DESC LIMIT ?", (MAX_SCREENSHOTS,)
+            "ORDER BY started DESC, id DESC LIMIT ?", (MAX_SCREENSHOTS,)
         ).fetchall()
         allowed = {row["screenshot"] for row in rows}
         for entry in folder.iterdir():
@@ -188,7 +188,8 @@ class HarnessStore:
                 "paused": self._setting("paused"),
                 "capabilities": ["public_https_read", "click_same_site_link", "fill_without_submit", "screenshot"],
                 "limits": {"maxConcurrent": 1, "maxSteps": MAX_STEPS,
-                           "maxJobSeconds": MAX_DURATION, "minIntervalSeconds": MIN_INTERVAL},
+                           "maxJobSeconds": MAX_DURATION, "minIntervalSeconds": MIN_INTERVAL,
+                           "maxStoredScreenshots": MAX_SCREENSHOTS},
                 "routines": [dict(r) for r in rows],
                 "runs": [dict(r) for r in runs],
                 "browserIsolation": "New browser context per run; no host desktop or login profile.",
