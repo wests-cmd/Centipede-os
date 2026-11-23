@@ -49,7 +49,7 @@ export class DeviceTrustManager {
   public initiatePairing(deviceName: string, deviceType: DeviceType, endpoint = 'http://localhost:3000'): { deviceId: string; pairingCode: string; qrData: string } {
     this.cleanupExpired();
     if (typeof deviceName !== 'string' || !deviceName.trim() || deviceName.length > 80 ||
-        /[\\x00-\\x1f\\x7f]/.test(deviceName)) throw new Error('Invalid device name.');
+        /[\x00-\x1f\x7f]/.test(deviceName)) throw new Error('Invalid device name.');
     if (this.pendingPairingCodes.size >= DeviceTrustManager.MAX_PENDING_CODES)
       throw new Error('Too many outstanding pairing requests.');
     const deviceId = `dev_${Date.now()}_${generateSecureRandomHex(16)}`;
