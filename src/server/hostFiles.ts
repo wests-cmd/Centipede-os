@@ -1,5 +1,6 @@
 import { constants } from 'node:fs';
-import { lstat, mkdir, open, opendir, realpath, unlink } from 'node:fs/promises';
+import { lstat, mkdir, open, opendir, realpath, unlink, link } from 'node:fs/promises';
+import { randomBytes } from 'node:crypto';
 import { join, resolve, isAbsolute } from 'node:path';
 import type { ApiRequest, ApiResponse } from './routes';
 import { isLocalOwnerActionAuthorized } from './kingdomAction';
@@ -106,20 +107,23 @@ export async function handleHostFiles(req: ApiRequest): Promise<ApiResponse | nu
       const name = segments(req.body?.name, false);
       if (name.length !== 1) throw new FileError(422, 'Provide a single destination filename.');
       const target = join(directory, name[0]);
+      // Publish only a fully synced copy. An interrupted operation must not
+      // leave a destination that looks complete. A hard-link publish refuses
+      // an existing name, unlike rename() which may silently overwrite it.
+      const temporary = join(directory, '.centipede-copy-' + randomBytes(16).toString('hex'));
       const sourceHandle = await open(source, constants.O_RDONLY | (constants.O_NOFOLLOW || 0));
       let targetHandle: Awaited<ReturnType<typeof open>> | undefined;
-      let complete = false;
       let bytesCopied = 0;
       try {
         const before = await sourceHandle.stat();
         if (!before.isFile()) throw new FileError(422, 'Only regular files can be copied.');
         if (before.size > MAX_COPY) throw new FileError(413, 'Copy limit is 32 MiB per file.');
         try {
-          targetHandle = await open(target,
+          targetHandle = await open(temporary,
             constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | (constants.O_NOFOLLOW || 0), 0o600);
         } catch (error: any) {
-          if (error?.code === 'EEXIST' || error?.code === 'EISDIR')
-            throw new FileError(409, 'Destination exists. No file was overwritten.');
+          if (error?.code === 'EEXIST')
+            throw new FileError(503, 'Temporary copy name collision; retry after inspecting workspace.');
           throw error;
         }
         const buffer = Buffer.allocUnsafe(64 * 1024);
@@ -140,11 +144,17 @@ export async function handleHostFiles(req: ApiRequest): Promise<ApiResponse | nu
             before.mtimeMs !== after.mtimeMs)
           throw new FileError(409, 'Source changed during copy; no destination was retained.');
         await targetHandle.sync();
-        complete = true;
+        await targetHandle.close();
+        targetHandle = undefined;
+        try { await link(temporary, target); }
+        catch (error: any) {
+          if (error?.code === 'EEXIST') throw new FileError(409, 'Destination exists. No file was overwritten.');
+          throw error;
+        }
       } finally {
         try { await targetHandle?.close(); }
         finally {
-          if (targetHandle && !complete) await unlink(target).catch(() => {});
+          await unlink(temporary).catch(() => {});
           await sourceHandle.close();
         }
       }
