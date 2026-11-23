@@ -12,7 +12,10 @@ const ownerHeaders = (session: string) => ({
 });
 const ask = (path: string, method: 'GET' | 'POST', body?: object,
              local = true, headers: Record<string, string> = {}) =>
-  apiRouter.handleRequest({ path: '/api/v1/mobile/' + path, method, body, isLocalAdmin: local, headers });
+  apiRouter.handleRequest({ path: '/api/v1/mobile/' + path, method, body, isLocalAdmin: local,
+    // Remote fixtures model verified HTTPS; real HTTP adapters derive this
+    // from the underlying socket, not from an attacker-controlled header.
+    isSecureTransport: !local, headers });
 
 async function unlock(): Promise<string> {
   const response = await apiRouter.handleRequest({
@@ -117,6 +120,49 @@ describe('mobile pairing owner authorization', () => {
     expect(revoked.status).toBe(200);
     expect(revoked.data.revoked).toBe(true);
     expect((await ask('revoke', 'POST', {deviceId: paired.data.deviceId}, true, ownHeaders)).status).toBe(403);
+  });
+
+  it('refuses remote pairing tokens and bearer actions over cleartext LAN HTTP', async () => {
+    const session = await unlock();
+    const pending = await ask('pair/initiate', 'POST', { deviceName: 'Secure phone' }, true, ownerHeaders(session));
+    expect(pending.status).toBe(200);
+    const insecure = await apiRouter.handleRequest({
+      path: '/api/v1/mobile/pair/confirm', method: 'POST', isLocalAdmin: false,
+      isSecureTransport: false, body: { pairingCode: pending.data.pairingCode },
+      headers: { host: 'localhost:3000', 'x-forwarded-proto': 'https' },
+    });
+    expect(insecure.status).toBe(403);
+    const secure = await ask('pair/confirm', 'POST', { pairingCode: pending.data.pairingCode }, false);
+    expect(secure.status).toBe(200);
+    const revokedViaHttp = await apiRouter.handleRequest({
+      path: '/api/v1/mobile/revoke', method: 'POST', isLocalAdmin: false,
+      isSecureTransport: false,
+      body: { deviceId: secure.data.deviceId },
+      headers: { authorization: 'Bearer ' + secure.data.sessionToken, 'x-forwarded-proto': 'https' },
+    });
+    expect(revokedViaHttp.status).toBe(403);
+    // A genuinely encrypted remote request can still revoke only itself.
+    const legitimate = await ask('revoke', 'POST', { deviceId: secure.data.deviceId }, false,
+      { authorization: 'Bearer ' + secure.data.sessionToken });
+    expect(legitimate.status).toBe(200);
+  });
+
+  it('ignores caller-supplied pairing QR endpoints and accepts only adapter-generated addresses', async () => {
+    const session = await unlock();
+    const maliciousBody = { deviceName: 'Phone', endpoint: 'https://attacker.example/collect' };
+    const request = await apiRouter.handleRequest({
+      path: '/api/v1/mobile/pair/initiate', method: 'POST', isLocalAdmin: true,
+      headers: ownerHeaders(session), body: maliciousBody,
+      serverPairingEndpoint: 'https://trusted.centipede.example',
+    });
+    expect(request.status).toBe(200);
+    expect(JSON.parse(request.data.qrData).centipedeEndpoint).toBe('https://trusted.centipede.example');
+    const legacy = await apiRouter.handleRequest({
+      path: '/api/v1/mobile/pair/initiate', method: 'POST', isLocalAdmin: true,
+      headers: ownerHeaders(session), body: maliciousBody,
+    });
+    expect(legacy.status).toBe(200);
+    expect(JSON.parse(legacy.data.qrData).centipedeEndpoint).toBe('http://localhost:3000');
   });
 
   it('still allows a remote phone to confirm a single-use code without seeing owner-only device lists', async () => {
