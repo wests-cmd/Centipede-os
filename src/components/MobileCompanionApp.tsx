@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { TrustedDevice } from '../security/deviceTrust';
+import { kingdomActions } from '../api/kingdomActions';
+import { KingdomActionUnlock } from './KingdomActionUnlock';
 import { contentIngestionPipeline, IngestedContent } from '../ingest/pipeline';
 import { QrCode, Smartphone, ShieldCheck, Key, UploadCloud, Camera, RefreshCw, AlertTriangle } from 'lucide-react';
 
@@ -9,17 +11,17 @@ export const MobileCompanionApp: React.FC = () => {
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [pairedDevices, setPairedDevices] = useState<TrustedDevice[]>([]);
   const [canManageDevices, setCanManageDevices] = useState(false);
+  const [ownerUnlocked, setOwnerUnlocked] = useState(kingdomActions.isUnlocked());
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [pasteText, setPasteText] = useState<string>('');
   const [ingestionResult, setIngestionResult] = useState<IngestedContent | null>(null);
 
   const refreshDevices = async () => {
     try {
-      const response = await fetch('/api/v1/mobile/devices');
-      if (!response.ok) throw new Error('Device management is available only when Centipede confirms this connection comes from the host computer.');
-      const data = await response.json();
+      const data = await kingdomActions.listPairedDevices();
       setPairedDevices(data.devices || []);
       setCanManageDevices(true);
+      setStatusMessage('');
     } catch (error) {
       setCanManageDevices(false);
       setPairedDevices([]);
@@ -27,18 +29,15 @@ export const MobileCompanionApp: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    refreshDevices();
-  }, []);
+  useEffect(() => kingdomActions.subscribe(unlocked => {
+    setOwnerUnlocked(unlocked);
+    if (unlocked) void refreshDevices();
+    else { setCanManageDevices(false); setPairedDevices([]); }
+  }), []);
 
   const handleInitiatePairing = async () => {
     try {
-      const response = await fetch('/api/v1/mobile/pair/initiate', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deviceName: 'Mobile Companion', endpoint: window.location.origin }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Could not start pairing.');
+      const data = await kingdomActions.createMobilePairingCode();
       setPairingData(data);
       setStatusMessage('Pairing code created by the Centipede service. On your phone, open its address and enter this code.');
     } catch (error) {
@@ -65,11 +64,11 @@ export const MobileCompanionApp: React.FC = () => {
   };
 
   const handleRevokeDevice = async (deviceId: string) => {
-    const response = await fetch('/api/v1/mobile/revoke', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ deviceId }),
-    });
-    if (!response.ok) {
-      setStatusMessage('Could not revoke this device. Open Centipede on the desktop to manage trusted devices.');
+    try {
+      const revoked = await kingdomActions.revokeMobileDevice(deviceId);
+      if (!revoked) throw new Error('Device revocation was not confirmed.');
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Device revocation was rejected.');
       return;
     }
     setStatusMessage(`Device "${deviceId}" access revoked.`);
@@ -118,6 +117,12 @@ export const MobileCompanionApp: React.FC = () => {
           </button>
         )}
       </div>
+
+      <section aria-label="Desktop device administration" className="rounded-xl border border-slate-700 bg-slate-900/80 p-4 space-y-2">
+        <p className="text-sm text-slate-200">Creating pairing codes, viewing devices and revoking them requires an unlocked owner session on the Centipede host. A phone only needs the one-time pairing code to connect.</p>
+        <KingdomActionUnlock />
+        {!ownerUnlocked && <p role="status" className="text-xs text-amber-300">Owner administration locked. Unlock on the host computer before creating a pairing code.</p>}
+      </section>
 
       {statusMessage && (
         <div className="bg-blue-950/80 border border-blue-500/40 text-blue-200 px-4 py-3 rounded-xl text-xs flex items-center justify-between">
