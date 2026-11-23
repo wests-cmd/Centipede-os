@@ -26,8 +26,14 @@ async function rootDirectory(): Promise<string> {
   const stat = await lstat(root);
   if (!stat.isDirectory() || stat.isSymbolicLink() || await realpath(root) !== root)
     throw new FileError(503, 'Files root must be a private real directory.');
+  // A directory writable only by its owner may still be readable/traversable
+  // by every account (0755). The Files workspace is private user data: all
+  // group/other permission bits must be absent, and POSIX ownership must
+  // belong to the current unprivileged service account.
   const privateDirectory = process.platform === 'win32'
-    ? await isPrivateWindowsDirectory(root) : (stat.mode & 0o022) === 0;
+    ? await isPrivateWindowsDirectory(root)
+    : (stat.mode & 0o077) === 0 &&
+      (typeof process.getuid !== 'function' || stat.uid === process.getuid());
   if (!privateDirectory) throw new FileError(503, 'Files root must be a private real directory.');
   return root;
 }
