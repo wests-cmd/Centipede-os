@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
-import { readFile, stat } from 'node:fs/promises';
-import { extname } from 'node:path';
+import { readFile, realpath, stat } from 'node:fs/promises';
+import { extname, relative, isAbsolute, sep } from 'node:path';
 
 interface Peer { requestIP(request: Request): { address: string } | null }
 export interface ServerOptions {
