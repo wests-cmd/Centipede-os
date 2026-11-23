@@ -262,6 +262,74 @@ class DatabaseTests(unittest.TestCase):
         self.store.complete_run(claimed["runId"], outcome="completed",
                                 screenshot=claimed["runId"] + ".png")
 
+    def test_changed_public_page_creates_one_durable_hash_only_alert(self):
+        added = self.add()
+        self.store.control("enable")
+        now = int(time.time()) + 10
+        first = self.store.claim_due(now=now)
+        self.assertIsNotNone(first)
+        self.store.complete_run(first["runId"], outcome="completed", sha256="a" * 64)
+        self.assertEqual(self.store.status()["needsAttention"], [])
+        second = self.store.claim_due(now=now + 900)
+        self.assertEqual(second["previousDigest"], "a" * 64)
+        self.store.complete_run(second["runId"], outcome="completed", sha256="b" * 64)
+        result = self.store.status()
+        self.assertEqual(result["attentionCount"], 1)
+        self.assertEqual(len(result["needsAttention"]), 1)
+        alert = result["needsAttention"][0]
+        self.assertEqual(alert["run_id"], second["runId"])
+        self.assertEqual(alert["routine_id"], added["id"])
+        self.assertEqual(alert["previous_digest"], "a" * 64)
+        self.assertEqual(alert["current_digest"], "b" * 64)
+        self.assertNotIn("url", alert)
+        self.store.close()
+        self.store = HarnessStore(self.database)
+        self.assertEqual(self.store.status()["attentionCount"], 1)
+        self.store.delete_routine(added["id"])
+        self.assertEqual(self.store.status()["attentionCount"], 1)
+        response = handle_api("POST", "/v1/alerts/ack", {"runId": second["runId"]}, self.store)
+        self.assertEqual(response, (200, {"acknowledged": True, "runId": second["runId"]}))
+        self.assertEqual(self.store.status()["attentionCount"], 0)
+        self.assertEqual(self.store.status()["needsAttention"], [])
+        with self.assertRaises(PolicyError):
+            self.store.acknowledge_alert(second["runId"])
+
+    def test_unchanged_or_failed_page_does_not_create_false_alert(self):
+        self.add()
+        self.store.control("enable")
+        now = int(time.time()) + 100
+        baseline = self.store.claim_due(now=now)
+        self.store.complete_run(baseline["runId"], outcome="completed", sha256="a" * 64)
+        unchanged = self.store.claim_due(now=now + 900)
+        self.store.complete_run(unchanged["runId"], outcome="completed", sha256="a" * 64)
+        failed = self.store.claim_due(now=now + 1800)
+        self.store.complete_run(failed["runId"], outcome="failed", sha256="b" * 64)
+        self.assertEqual(self.store.status()["attentionCount"], 0)
+        changed = self.store.claim_due(now=now + 2700)
+        self.assertEqual(changed["previousDigest"], "a" * 64)
+        self.store.complete_run(changed["runId"], outcome="completed", sha256="b" * 64)
+        self.assertEqual(self.store.status()["attentionCount"], 1)
+        for body in [{"runId": "../escape"}, {"runId": changed["runId"], "action": "approve"}, {}]:
+            if set(body) == {"runId"}:
+                with self.assertRaises(PolicyError):
+                    handle_api("POST", "/v1/alerts/ack", body, self.store)
+            else:
+                self.assertEqual(handle_api("POST", "/v1/alerts/ack", body, self.store)[0], 422)
+        self.assertEqual(self.store.status()["attentionCount"], 1)
+
+    def test_change_alert_retention_is_bounded_to_100(self):
+        self.add()
+        self.store.control("enable")
+        now = int(time.time()) + 30
+        for index in range(105):
+            run = self.store.claim_due(now=now + index * 900)
+            self.assertIsNotNone(run)
+            digest = ("a" if index % 2 else "b") * 64
+            self.store.complete_run(run["runId"], outcome="completed", sha256=digest)
+        status = self.store.status()
+        self.assertEqual(status["attentionCount"], 100)
+        self.assertEqual(len(status["needsAttention"]), 20)
+
     def test_delete_stops_future_work_but_preserves_audit_receipts(self):
         added = self.add()
         self.store.control("enable")
@@ -279,6 +347,8 @@ class DatabaseTests(unittest.TestCase):
         ]):
             self.assertEqual(handle_api("POST", "/v1/routines", SAMPLE, self.store)[0], 201)
         self.assertEqual(handle_api("POST", "/v1/routines/delete", {"id": "bad"}, self.store)[0], 200)
+        with self.assertRaises(PolicyError):
+            handle_api("POST", "/v1/alerts/ack", {"runId": "bad"}, self.store)
         self.assertEqual(handle_api("POST", "/v1/run-shell", {}, self.store)[0], 404)
         with self.assertRaises(PolicyError):
             handle_api("POST", "/v1/control", {"action": "run_untrusted_command"}, self.store)
