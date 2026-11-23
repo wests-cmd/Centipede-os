@@ -146,8 +146,8 @@ export class TargetUpdateChecker {
  * or an exact vMAJOR.MINOR. An observed runtime version is NEVER a range. */
 function kingdomProtocolCompatible(required: string, observed: string): boolean {
   if (typeof required !== 'string' || typeof observed !== 'string') return false;
-  const expected = /^v(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(\\+)?$/.exec(required);
-  const actual = /^v(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$/.exec(observed);
+  const expected = /^v(0|[1-9]\d*)\.(0|[1-9]\d*)(\+)?$/.exec(required);
+  const actual = /^v(0|[1-9]\d*)\.(0|[1-9]\d*)$/.exec(observed);
   if (!expected || !actual) return false;
   const [requiredMajor, requiredMinor, actualMajor, actualMinor] = [
     Number(expected[1]), Number(expected[2]), Number(actual[1]), Number(actual[2]),
