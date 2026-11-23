@@ -99,7 +99,7 @@ export class KingdomActions {
   }
   public async createMobilePairingCode(): Promise<{ deviceId: string; pairingCode: string; qrData: string }> {
     const data = await this.mobileOwnerRequest('pair/initiate', 'POST', { deviceName: 'Mobile Companion' });
-    if (typeof data?.deviceId !== 'string' || !/^\\d{6}$/.test(data.pairingCode) ||
+    if (typeof data?.deviceId !== 'string' || !/^\d{6}$/.test(data.pairingCode) ||
         typeof data?.qrData !== 'string') throw new Error('Pairing service returned an invalid code.');
     return data;
   }
