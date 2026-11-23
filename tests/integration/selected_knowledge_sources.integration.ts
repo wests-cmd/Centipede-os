@@ -16,10 +16,13 @@ await new Promise<void>(resolve => reservation.listen(0, '127.0.0.1', resolve));
 const port = (reservation.address() as { port: number }).port;
 await new Promise<void>(resolve => reservation.close(() => resolve()));
 const endpoint = `http://127.0.0.1:${port}`;
+const ownerCode = 'integration-owner-credential-over-thirty-two-characters';
+let session = '';
 let child: ChildProcess | undefined;
 async function start() {
   child = spawn(process.execPath, [fileURLToPath(new URL('../../src/server/production.ts', import.meta.url))], {
-    env: { ...process.env, HOST: '127.0.0.1', PORT: String(port), CENTIPEDE_KNOWLEDGE_HOME: join(temporary, 'state') },
+    env: { ...process.env, HOST: '127.0.0.1', PORT: String(port), CENTIPEDE_KNOWLEDGE_HOME: join(temporary, 'state'),
+      KINGDOM_API_URL: 'http://127.0.0.1:8000', KINGDOM_API_TOKEN: ownerCode },
     stdio: 'ignore',
   });
   for (let attempt = 0; attempt < 100; attempt++) {
@@ -35,12 +38,29 @@ async function stop() {
     child.kill('SIGTERM'); await exited;
   }
 }
+async function unlock() {
+  const response = await fetch(endpoint + '/api/v1/kingdom/actions/unlock', {
+    method: 'POST', headers: { 'content-type': 'application/json', 'x-centipede-owner-intent': '1' },
+    body: JSON.stringify({ ownerCode }),
+  });
+  assert.equal(response.status, 200, 'Local owner session unlock must be accepted');
+  const details = await response.json() as { sessionToken: string };
+  assert.match(details.sessionToken, /^[a-f0-9]{64}$/);
+  session = details.sessionToken;
+}
 const request = (path: string, body?: object, headers: Record<string, string> = {}) => fetch(endpoint + '/api/v1/knowledge/' + path, {
-  method: body ? 'POST' : 'GET', headers: { 'content-type': 'application/json', ...headers },
+  method: body ? 'POST' : 'GET', headers: {
+    'content-type': 'application/json',
+    ...(session ? { 'x-centipede-owner-intent': '1', 'x-centipede-action-session': session } : {}),
+    ...headers,
+  },
   body: body ? JSON.stringify(body) : undefined,
 });
 try {
   await start();
+  assert.equal((await request('sources')).status, 401, 'localhost alone is not permission');
+  assert.equal((await request('sources', { root: selected, label: 'Synthetic' })).status, 401);
+  await unlock();
   assert.deepEqual(await (await request('sources')).json(), { sources: [] });
   assert.equal((await request('sources', { root: selected, label: 'Synthetic' }, { origin: 'https://attacker.invalid' })).status, 403);
   assert.equal((await request('sources', undefined, { 'sec-fetch-site': 'cross-site' })).status, 403);
@@ -53,11 +73,13 @@ try {
   const first = await (await request('extract', { id, path: 'notes.md' })).json();
   assert.equal(first.kind, 'UNTRUSTED_SOURCE_EXCERPT'); assert.match(first.markdown, /Synthetic source fixture/);
   await stop(); await start();
+  assert.equal((await request('sources')).status, 401, 'pre-restart session must not survive');
+  await unlock();
   assert.deepEqual(await (await request('extract', { id, path: 'notes.md' })).json(), first);
   assert.equal((await (await request('scan', { id, paths: ['notes.md'] })).json()).unchanged, 1);
   assert.equal((await request('revoke', { id })).status, 200);
   assert.equal((await request('extract', { id, path: 'notes.md' })).status, 403);
   assert.equal((await request('scan', { id, paths: ['notes.md'] })).status, 403);
   assert.equal((await (await request('sources')).json()).sources[0].files, 0);
-  console.log('PASS actual Bun production HTTP: opt-in selection, origin/host/CSRF gates, bounded scan, restart, hash reuse and revocation.');
+  console.log('PASS actual Bun HTTP: owner unlock, localhost denial, CSRF guards, selection, scan, restart and revoked sources.');
 } finally { await stop(); rmSync(temporary, { recursive: true, force: true }); }
