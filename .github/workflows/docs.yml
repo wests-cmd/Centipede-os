@@ -9,6 +9,7 @@ on:
       - 'docs/**'
       - 'scripts/check_docs.py'
       - 'scripts/check-download-assets.py'
+      - 'scripts/test_check_download_assets.py'
       - '.github/workflows/docs.yml'
   push:
     branches: ['main']
@@ -19,6 +20,7 @@ on:
       - 'docs/**'
       - 'scripts/check_docs.py'
       - 'scripts/check-download-assets.py'
+      - 'scripts/test_check_download_assets.py'
       - '.github/workflows/docs.yml'
 
 permissions:
@@ -34,6 +36,8 @@ jobs:
         with:
           python-version: '3.12'
       - run: python scripts/check_docs.py
+      - name: Test pinned preview tag, published assets and link integrity offline
+        run: python -m unittest discover -s scripts -p 'test_check_download_assets.py' -v
       - name: Confirm every recommended preview download exists at the pinned release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
