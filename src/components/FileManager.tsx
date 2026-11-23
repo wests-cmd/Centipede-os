@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { kingdomActions, type HostFileItem } from '../api/kingdomActions';
 import { KingdomActionUnlock } from './KingdomActionUnlock';
-import { Folder, FileText, ArrowUp, RefreshCw, FolderPlus, FilePlus } from 'lucide-react';
+import { Folder, FileText, ArrowUp, RefreshCw, FolderPlus, FilePlus, Copy } from 'lucide-react';
 
 /** A real private on-disk workspace, not a full-disk or browser-simulated file manager. */
 export const FileManager: React.FC = () => {
@@ -13,6 +13,7 @@ export const FileManager: React.FC = () => {
   const [newName, setNewName] = useState('');
   const [newText, setNewText] = useState('');
   const [newFolder, setNewFolder] = useState('');
+  const [copyName, setCopyName] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
@@ -34,6 +35,7 @@ export const FileManager: React.FC = () => {
     setItems([]);
     setSelected('');
     setText('');
+    setCopyName('');
     if (unlocked) void refresh(directory);
   }, [unlocked, directory]);
 
@@ -41,6 +43,10 @@ export const FileManager: React.FC = () => {
     const path = [directory, item.name].filter(Boolean).join('/');
     if (item.kind === 'directory') { setDirectory(path); return; }
     setSelected(path); setText(''); setBusy(true); setError('');
+    const extension = item.name.lastIndexOf('.');
+    setCopyName(extension > 0
+      ? item.name.slice(0, extension) + '-copy' + item.name.slice(extension)
+      : item.name + '-copy');
     try { const file = await kingdomActions.readHostFile(path); setText(file.content); }
     catch (err) { setError(err instanceof Error ? err.message : 'File preview unavailable.'); }
     finally { setBusy(false); }
@@ -52,6 +58,16 @@ export const FileManager: React.FC = () => {
       setNewName(''); setNewText(''); setMessage('New text file saved to the local workspace.');
       await refresh();
     } catch (err) { setError(err instanceof Error ? err.message : 'File creation failed.'); }
+    finally { setBusy(false); }
+  };
+  const copySelected = async (event: React.FormEvent) => {
+    event.preventDefault(); if (!selected || !unlocked || busy) return;
+    setBusy(true); setError(''); setMessage('');
+    try {
+      const result = await kingdomActions.copyHostFile(selected, directory, copyName);
+      setMessage(`Copied to ${result.path} (${result.size} bytes) without overwriting the original.`);
+      setCopyName(''); await refresh();
+    } catch (err) { setError(err instanceof Error ? err.message : 'File copy failed.'); }
     finally { setBusy(false); }
   };
   const createFolder = async (event: React.FormEvent) => {
@@ -66,7 +82,7 @@ export const FileManager: React.FC = () => {
   return <div className="p-6 max-w-5xl mx-auto space-y-5">
     <header className="p-5 rounded-2xl bg-slate-900 border border-slate-700">
       <h2 className="text-xl font-semibold text-white flex gap-2 items-center"><Folder className="text-blue-400"/>Centipede Files — Local Workspace</h2>
-      <p className="text-slate-300 text-sm mt-2">Real folders and text files on this computer in one restricted Centipede directory. This is not a full-system file manager: deleting, editing, copying, external disks and binary previews are not enabled.</p>
+      <p className="text-slate-300 text-sm mt-2">Real folders and text files on this computer in one restricted Centipede directory. This is not a full-system file manager: moving, deleting, editing, external disks and binary previews are not enabled. Copying a regular file inside this private workspace is available with a 32 MiB limit.</p>
     </header>
     <KingdomActionUnlock/>
     {!unlocked && <p role="status" className="p-3 bg-slate-900 border border-blue-800 rounded-xl text-slate-200 text-sm">Files are locked. Unlock on this computer to browse or create real files; no sample files are shown as real data.</p>}
@@ -90,6 +106,18 @@ export const FileManager: React.FC = () => {
         <div><h3 className="text-slate-200 font-semibold">{selected || 'Text preview'}</h3>
           <pre className="mt-2 bg-slate-950 border border-slate-800 p-3 min-h-32 rounded-xl text-xs text-slate-200 whitespace-pre-wrap break-all overflow-auto">{selected ? (text || '(Empty text or preview unavailable)') : 'Choose a text file to inspect.'}</pre>
         </div>
+        <form onSubmit={copySelected} className="border-t border-slate-800 pt-3 space-y-2">
+          <label htmlFor="copy-workspace-file" className="text-slate-200 text-sm flex items-center gap-2">
+            <Copy className="w-4 h-4 text-blue-400"/>Copy selected file (max 32 MiB)
+          </label>
+          <input id="copy-workspace-file" placeholder="filename-copy.txt" value={copyName}
+            onChange={event => setCopyName(event.target.value)} disabled={!unlocked || !selected || busy}
+            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"/>
+          <button type="submit" disabled={!unlocked || busy || !selected || !copyName.trim()}
+            className="px-3 py-2 rounded-lg border border-blue-800 text-blue-300 text-sm disabled:opacity-40">
+            Copy file (no overwrite)
+          </button>
+        </form>
         <form onSubmit={createFile} className="border-t border-slate-800 pt-3 space-y-2">
           <label htmlFor="new-text-file" className="text-slate-200 text-sm flex items-center gap-2"><FilePlus className="w-4 h-4 text-blue-400"/>New text file</label>
           <input id="new-text-file" placeholder="notes.txt" value={newName} onChange={e => setNewName(e.target.value)} disabled={!unlocked} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200"/>
