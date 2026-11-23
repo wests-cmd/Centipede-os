@@ -123,6 +123,10 @@ export class CentipedeServer {
             headers: req.headers,
             body,
             query: requestUrl.search,
+            // Never read a pairing endpoint or TLS claim from request JSON
+            // or X-Forwarded-Proto. This legacy Node transport is plain HTTP.
+            serverPairingEndpoint: process.env.PUBLIC_URL || 'http://localhost:' + this.activePort,
+            isSecureTransport: Boolean(req.socket?.encrypted),
             isLocalAdmin: isLocalAdminRequest(
               req.socket?.remoteAddress,
               req.headers,
