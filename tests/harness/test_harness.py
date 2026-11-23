@@ -129,6 +129,29 @@ class ProcessCancellationTests(unittest.TestCase):
             )
         self.assertEqual(result, ("Read-only public page check", SHA, None))
 
+    def test_pause_racing_with_completion_is_not_reported_successful(self):
+        class Child:
+            pid = 424245
+            returncode = 0
+
+            def communicate(self, input=None, timeout=None):
+                return json.dumps({
+                    "summary": "Public page changed", "sha256": SHA, "screenshot": None
+                }), None
+
+        checks = 0
+
+        def cancel_after_completion():
+            nonlocal checks
+            checks += 1
+            return checks >= 3
+
+        with patch("harness.service.subprocess.Popen", return_value=Child()):
+            with self.assertRaisesRegex(PolicyError, "outcome unknown"):
+                bounded_browser_process(
+                    {"runId": "run_" + "d" * 24}, "/tmp", cancel_after_completion
+                )
+
     def test_timed_out_browser_group_is_killed(self):
         class Child:
             pid = 424244
