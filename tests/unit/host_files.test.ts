@@ -20,6 +20,15 @@ beforeEach(async () => {
   // Windows hosted runners can expose TEMP through an 8.3 alias. Use the real
   // path so this fixture exercises ACL enforcement, not alias rejection.
   root = await realpath(await mkdtemp(join(tmpdir(), 'centipede-files-test-')));
+  if (process.platform === 'win32') {
+    // A Windows temp directory normally inherits Users/Everyone read rights.
+    // Create the explicitly private ACL an installer must set on its workspace.
+    const script = `$ErrorActionPreference='Stop'; $p=$env:CENTIPEDE_ACL_TEST_ROOT; $a=[System.IO.Directory]::GetAccessControl($p); $sid=[System.Security.Principal.WindowsIdentity]::GetCurrent().User; $a.SetAccessRuleProtection($true,$false); $rule=[System.Security.AccessControl.FileSystemAccessRule]::new($sid,'FullControl','ContainerInherit,ObjectInherit','None','Allow'); $a.AddAccessRule($rule); [System.IO.Directory]::SetAccessControl($p,$a)`;
+    execFileSync(join(process.env.SystemRoot || 'C:\\\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
+      ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')],
+      { env: { SystemRoot: process.env.SystemRoot, WINDIR: process.env.WINDIR, CENTIPEDE_ACL_TEST_ROOT: root },
+        windowsHide: true, timeout: 10_000 });
+  }
   process.env.CENTIPEDE_FILES_ROOT = root;
   process.env.KINGDOM_API_URL = 'http://127.0.0.1:8000';
   process.env.KINGDOM_API_TOKEN = secret;
@@ -43,6 +52,15 @@ describe('Centipede local Files security', () => {
         { env: { SystemRoot:process.env.SystemRoot, WINDIR:process.env.WINDIR, CENTIPEDE_ACL_TEST_ROOT: root }, windowsHide: true, timeout:10_000 });
     } else await chmod(root, 0o777);
     expect((await request('list',{directory:''})).status).toBe(503);
+  }, 30_000);
+  it('rejects a Windows workspace readable by Everyone even without write rights', async () => {
+    if (process.platform !== 'win32') return;
+    const script = `$ErrorActionPreference='Stop'; $p=$env:CENTIPEDE_ACL_TEST_ROOT; $a=[System.IO.Directory]::GetAccessControl($p); $sid=[System.Security.Principal.SecurityIdentifier]::new('S-1-1-0'); $rule=[System.Security.AccessControl.FileSystemAccessRule]::new($sid,'Read','Allow'); $a.AddAccessRule($rule); [System.IO.Directory]::SetAccessControl($p,$a)`;
+    execFileSync(join(process.env.SystemRoot || 'C:\\\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
+      ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script,'utf16le').toString('base64')],
+      { env: { SystemRoot: process.env.SystemRoot, WINDIR: process.env.WINDIR, CENTIPEDE_ACL_TEST_ROOT: root },
+        windowsHide: true, timeout: 10_000 });
+    expect((await request('list', {directory: ''})).status).toBe(503);
   }, 30_000);
   it('rejects group/other-readable POSIX workspace roots, not only writable ones', async () => {
     if (process.platform === 'win32') return; // Windows requires its ACL-specific checker.
