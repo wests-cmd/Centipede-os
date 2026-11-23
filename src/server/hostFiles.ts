@@ -1,5 +1,5 @@
 import { constants } from 'node:fs';
-import { lstat, mkdir, open, opendir, realpath } from 'node:fs/promises';
+import { lstat, mkdir, open, opendir, realpath, unlink } from 'node:fs/promises';
 import { join, resolve, isAbsolute } from 'node:path';
 import type { ApiRequest, ApiResponse } from './routes';
 import { isLocalOwnerActionAuthorized } from './kingdomAction';
@@ -7,6 +7,7 @@ import { isPrivateWindowsDirectory } from './windowsFilesAcl';
 
 const PREFIX = '/api/v1/host-files';
 const MAX_TEXT = 128 * 1024;
+const MAX_COPY = 32 * 1024 * 1024; // streamed binary copy, no large in-memory buffers
 class FileError extends Error {
   constructor(readonly code: number, message: string) { super(message); }
 }
@@ -95,6 +96,61 @@ export async function handleHostFiles(req: ApiRequest): Promise<ApiResponse | nu
         return { status: 200, data: { path: parts.join('/'), size: bytesRead, content } };
       } finally { await handle.close(); }
     }
+    if (req.path === `${PREFIX}/copy`) {
+      // Only read and write under the authorized private Files root.
+      // No symlink traversal, source deletion or destination overwrite.
+      const parts = segments(req.body?.path, false);
+      const source = await checked(root, parts, 'file');
+      const parents = segments(req.body?.directory);
+      const directory = await checked(root, parents, 'dir');
+      const name = segments(req.body?.name, false);
+      if (name.length !== 1) throw new FileError(422, 'Provide a single destination filename.');
+      const target = join(directory, name[0]);
+      const sourceHandle = await open(source, constants.O_RDONLY | (constants.O_NOFOLLOW || 0));
+      let targetHandle: Awaited<ReturnType<typeof open>> | undefined;
+      let complete = false;
+      let bytesCopied = 0;
+      try {
+        const before = await sourceHandle.stat();
+        if (!before.isFile()) throw new FileError(422, 'Only regular files can be copied.');
+        if (before.size > MAX_COPY) throw new FileError(413, 'Copy limit is 32 MiB per file.');
+        try {
+          targetHandle = await open(target,
+            constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | (constants.O_NOFOLLOW || 0), 0o600);
+        } catch (error: any) {
+          if (error?.code === 'EEXIST') throw new FileError(409, 'Destination exists. No file was overwritten.');
+          throw error;
+        }
+        const buffer = Buffer.allocUnsafe(64 * 1024);
+        while (true) {
+          const { bytesRead } = await sourceHandle.read(buffer, 0, buffer.length, null);
+          if (!bytesRead) break;
+          bytesCopied += bytesRead;
+          if (bytesCopied > MAX_COPY) throw new FileError(413, 'Source grew beyond 32 MiB while copying.');
+          let offset = 0;
+          while (offset < bytesRead) {
+            const { bytesWritten } = await targetHandle.write(buffer, offset, bytesRead - offset, null);
+            if (!bytesWritten) throw new FileError(500, 'File copy was interrupted.');
+            offset += bytesWritten;
+          }
+        }
+        const after = await sourceHandle.stat();
+        if (before.size !== bytesCopied || after.size !== bytesCopied ||
+            before.mtimeMs !== after.mtimeMs)
+          throw new FileError(409, 'Source changed during copy; no destination was retained.');
+        await targetHandle.sync();
+        complete = true;
+      } finally {
+        await targetHandle?.close();
+        if (targetHandle && !complete) await unlink(target).catch(() => {});
+        await sourceHandle.close();
+      }
+      return { status: 201, data: {
+        copied: true, source: parts.join('/'), path: [...parents, name[0]].join('/'),
+        size: bytesCopied,
+      } };
+    }
+
     if (req.path === `${PREFIX}/create` || req.path === `${PREFIX}/mkdir`) {
       const parents = segments(req.body?.directory);
       const directory = await checked(root, parents, 'dir');
