@@ -9,6 +9,7 @@ const ROUTES: Record<string, { method: 'GET' | 'POST'; workerPath: string }> = {
   [BASE + '/control']: { method: 'POST', workerPath: '/v1/control' },
   [BASE + '/routines']: { method: 'POST', workerPath: '/v1/routines' },
   [BASE + '/routines/delete']: { method: 'POST', workerPath: '/v1/routines/delete' },
+  [BASE + '/alerts/ack']: { method: 'POST', workerPath: '/v1/alerts/ack' },
 };
 
 /**
