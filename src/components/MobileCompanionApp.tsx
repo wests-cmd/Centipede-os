@@ -39,13 +39,25 @@ export const MobileCompanionApp: React.FC = () => {
     try {
       const data = await kingdomActions.createMobilePairingCode();
       setPairingData(data);
-      setStatusMessage('Pairing code created by the Centipede service. On your phone, open its address and enter this code.');
+      const advertised = JSON.parse(data.qrData).centipedeEndpoint as string;
+      const remoteInsecure = advertised.startsWith('http://') &&
+        !/^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?\/?$/i.test(advertised);
+      setStatusMessage(remoteInsecure
+        ? 'Pairing code is local-preview only. Remote phone pairing over plaintext HTTP is blocked; configure authenticated HTTPS before using this address.'
+        : 'Pairing code created. Open the secure Centipede address on your phone and enter this code.');
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : 'Could not reach the Centipede pairing service.');
     }
   };
 
   const handleConfirmPairing = async () => {
+    // Do not send a pairing PIN or request its bearer token from an insecure
+    // off-device web page. The server independently enforces this boundary.
+    if (window.location.protocol !== 'https:' &&
+        !['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)) {
+      setStatusMessage('Remote phone pairing requires authenticated HTTPS. Plain HTTP is only permitted on the Centipede host.');
+      return;
+    }
     try {
       const response = await fetch('/api/v1/mobile/pair/confirm', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -105,7 +117,7 @@ export const MobileCompanionApp: React.FC = () => {
           <div>
             <h2 className="text-xl font-bold text-white sm:text-2xl">Mobile Companion</h2>
             <p className="text-xs text-slate-400 mt-1">
-              Connect a phone browser to this Centipede service on the same trusted network. Native Android and iOS apps are not included yet.
+              Connect a phone browser to this Centipede service only through authenticated HTTPS. Plain HTTP is a localhost-only preview; same-Wi-Fi networking does not make token exchange secure. Native Android and iOS apps are not included yet.
             </p>
           </div>
         </div>
@@ -169,7 +181,7 @@ export const MobileCompanionApp: React.FC = () => {
 
       <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-5">
         <label className="text-sm font-semibold text-white">Join this Centipede from your phone</label>
-        <p className="mt-1 text-xs text-slate-400">Create a code on the desktop, open the address shown there on your phone, then enter that code here.</p>
+        <p className="mt-1 text-xs text-slate-400">Create a code on the desktop. On a different phone, use a verified HTTPS address; ordinary LAN HTTP pairing is blocked to protect your identity token.</p>
         <div className="mt-3 flex gap-2">
           <input type="text" inputMode="numeric" maxLength={6} value={confirmCode} onChange={(e) => setConfirmCode(e.target.value.replace(/\D/g, ''))} placeholder="6-digit code" aria-label="Pairing code" className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-white focus:border-cyan-500 focus:outline-none" />
           <button onClick={() => void handleConfirmPairing()} disabled={confirmCode.length !== 6} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">Connect</button>
