@@ -25,7 +25,6 @@ const pruneRateWindows = (now: number) => {
 let knowledgeSources: SelectedKnowledgeSources | undefined;
 const selectedSources = () => knowledgeSources ??= new SelectedKnowledgeSources(
   process.env.CENTIPEDE_KNOWLEDGE_HOME || join(root, 'data', 'selected-knowledge'));
-const hostnameFromHeader = (host: string) => host.startsWith('[') ? host.slice(1, host.indexOf(']')) : host.split(':')[0];
 
 const serverOptions: ServerOptions = {
   port,
@@ -43,21 +42,16 @@ const serverOptions: ServerOptions = {
         try { body = await request.json(); }
         catch { return Response.json({ error: 'Invalid JSON body.' }, { status: 400 }); }
       }
-      if (url.pathname === '/api/v1/mobile/pair/initiate' && body && typeof body === 'object') {
-        // Never trust a client-supplied endpoint; share the service's reachable address.
-        const requestHost = request.headers.get('host') || '';
-        const hostName = hostnameFromHeader(requestHost);
-        const hostIsLoopback = ['localhost', '127.0.0.1', '::1'].includes(hostName);
-        (body as Record<string, unknown>).endpoint = !hostIsLoopback && /^[a-zA-Z0-9.\-\[\]:]+$/.test(requestHost)
-          ? `http://${requestHost}`
-          : publicUrl;
-      }
       const apiRequest: ApiRequest = {
         path: url.pathname,
         method: request.method as ApiRequest['method'],
         headers: Object.fromEntries(request.headers.entries()),
         body,
         query: url.search,
+        // Transport-verifiable fields: neither user JSON nor Host headers
+        // may override the endpoint or claim encrypted TLS protection.
+        serverPairingEndpoint: publicUrl,
+        isSecureTransport: url.protocol === 'https:',
         isLocalAdmin: isLocalAdminRequest(
           server.requestIP(request)?.address,
           Object.fromEntries(request.headers.entries()),
