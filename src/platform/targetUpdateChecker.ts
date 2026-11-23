@@ -48,7 +48,7 @@ export class TargetUpdateChecker {
     }
 
     // 3. Kingdom Protocol Compatibility Check
-    if (targetMeta.requiredKingdomProtocol !== currentKingdomProtocol) {
+    if (!kingdomProtocolCompatible(targetMeta.requiredKingdomProtocol, currentKingdomProtocol)) {
       return { allowed: false, reason: `KINGDOM_PROTOCOL_INCOMPATIBLE: Update requires Kingdom protocol ${targetMeta.requiredKingdomProtocol}, current is ${currentKingdomProtocol}` };
     }
 
@@ -140,6 +140,21 @@ export class TargetUpdateChecker {
       metadata,
     };
   }
+}
+
+/** A release manifest may specify vMAJOR.MINOR+ (same major, at least MINOR)
+ * or an exact vMAJOR.MINOR. An observed runtime version is NEVER a range. */
+function kingdomProtocolCompatible(required: string, observed: string): boolean {
+  if (typeof required !== 'string' || typeof observed !== 'string') return false;
+  const expected = /^v(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(\\+)?$/.exec(required);
+  const actual = /^v(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$/.exec(observed);
+  if (!expected || !actual) return false;
+  const [requiredMajor, requiredMinor, actualMajor, actualMinor] = [
+    Number(expected[1]), Number(expected[2]), Number(actual[1]), Number(actual[2]),
+  ];
+  if (![requiredMajor, requiredMinor, actualMajor, actualMinor].every(Number.isSafeInteger)) return false;
+  return requiredMajor === actualMajor &&
+    (expected[3] ? actualMinor >= requiredMinor : actualMinor === requiredMinor);
 }
 
 function parseSemver(v: string): [number, number, number] | null {
