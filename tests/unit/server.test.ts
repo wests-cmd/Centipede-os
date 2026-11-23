@@ -49,6 +49,21 @@ describe('Centipede API Server & Transport Test Suite', () => {
     expect(centipedeServer.getMode()).toBe('REAL_HTTP_SERVER');
   });
 
+  it('does not put a client-supplied URL into an issued pairing QR when using legacy Node HTTP', async () => {
+    const headers = await ownerHeaders();
+    const response = await fetch(`http://localhost:${TEST_PORT}/api/v1/mobile/pair/initiate`, {
+      method: 'POST', headers,
+      body: JSON.stringify({
+        deviceName: 'Trusted phone', endpoint: 'https://impostor.example/steal-code',
+      }),
+    });
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    const qr = JSON.parse(data.qrData);
+    expect(qr.centipedeEndpoint).toBe(`http://localhost:${TEST_PORT}`);
+    expect(data.qrData).not.toContain('impostor.example');
+  });
+
   it('denies pairing-code creation when local-admin authority is absent, regardless of spoofed request headers', async () => {
     const response = await centipedeServer.dispatch({
       path: '/api/v1/mobile/pair/initiate',
