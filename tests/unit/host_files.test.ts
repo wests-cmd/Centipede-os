@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { mkdtemp, readFile, rm, symlink, chmod, realpath } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, symlink, chmod, realpath, writeFile, truncate } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -80,6 +80,39 @@ describe('Centipede local Files security', () => {
     expect((await request('read',{path:'Projects/notes.txt'})).data.content).toBe('real data');
     expect(await readFile(join(root,'Projects','notes.txt'),'utf8')).toBe('real data');
   }, 30_000);
+  it('copies real binary files without touching or overwriting the source', async () => {
+    const source = Buffer.from([0, 1, 255, 2, 3, 42]);
+    await writeFile(join(root, 'photo.bin'), source);
+    const copied = await request('copy', { path: 'photo.bin', directory: '', name: 'photo-copy.bin' });
+    expect(copied.status).toBe(201);
+    expect(copied.data).toMatchObject({ copied: true, source: 'photo.bin', path: 'photo-copy.bin', size: 6 });
+    expect(await readFile(join(root, 'photo-copy.bin'))).toEqual(source);
+    expect(await readFile(join(root, 'photo.bin'))).toEqual(source);
+    expect((await request('copy', { path: 'photo.bin', directory: '', name: 'photo-copy.bin' })).status).toBe(409);
+    expect(await readFile(join(root, 'photo-copy.bin'))).toEqual(source);
+  }, 30_000);
+
+  it('copies into approved nested folders but rejects traversal, symlinks and oversized files', async () => {
+    await writeFile(join(root, 'notes.txt'), 'copied notes');
+    expect((await request('mkdir', { directory: '', name: 'Documents' })).status).toBe(201);
+    const copied = await request('copy', { path: 'notes.txt', directory: 'Documents', name: 'backup.txt' });
+    expect(copied.status).toBe(201);
+    expect(await readFile(join(root, 'Documents', 'backup.txt'), 'utf8')).toBe('copied notes');
+    for (const candidate of [
+      { path: '../notes.txt', directory: '', name: 'escape.txt' },
+      { path: 'notes.txt', directory: '../', name: 'escape.txt' },
+      { path: 'notes.txt', directory: '', name: '.hidden' },
+      { path: 'notes.txt', directory: '', name: 'Documents/backup.txt' },
+    ]) expect((await request('copy', candidate)).status).toBe(422);
+    await symlink(tmpdir(), join(root, 'escape-dir'), process.platform === 'win32' ? 'junction' : undefined);
+    expect((await request('copy', { path: 'notes.txt', directory: 'escape-dir', name: 'secret.txt' })).status).toBe(403);
+    expect((await request('copy', { path: 'escape-dir/anything', directory: '', name: 'test.txt' })).status).toBe(403);
+    await writeFile(join(root, 'big.bin'), '0');
+    await truncate(join(root, 'big.bin'), 32 * 1024 * 1024 + 1);
+    expect((await request('copy', { path: 'big.bin', directory: '', name: 'not-copied.bin' })).status).toBe(413);
+    expect((await request('list', { directory: '' })).data.entries.some((entry: any) => entry.name === 'not-copied.bin')).toBe(false);
+  }, 30_000);
+
   it('blocks remote clients, missing sessions, wrong method and owner intent', async () => {
     expect((await request('list',{directory:''}, false)).status).toBe(403);
     expect((await request('list',{directory:''}, true, '')).status).toBe(401);
@@ -103,5 +136,6 @@ describe('Centipede local Files security', () => {
     expect((await apiRouter.handleRequest({path:'/api/v1/kingdom/actions/lock',method:'POST',isLocalAdmin:true,
       headers:{'x-centipede-owner-intent':'1','x-centipede-action-session':session},body:{}})).status).toBe(200);
     expect((await request('list',{directory:''})).status).toBe(401);
+    expect((await request('copy', { path: 'existing.txt', directory: '', name: 'copy.txt' })).status).toBe(401);
   }, 30_000);
 });
