@@ -22,6 +22,7 @@ MIN_INTERVAL = 900
 MAX_INTERVAL = 604800
 MAX_STEPS = 5
 MAX_RUNS = 200
+MAX_SCREENSHOTS = 20  # 20 * 2 MiB max browser screenshot = at most 40 MiB
 MAX_ROUTINES = 20
 MAX_SELECTOR = 180
 MAX_FILL = 200
@@ -114,6 +115,7 @@ class HarnessStore:
     def __init__(self, db_path: str):
         self.lock = threading.RLock()
         path = Path(db_path).resolve()
+        self.state_dir = path.parent
         path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
         self.connection = sqlite3.connect(path, timeout=15, check_same_thread=False)
         self.connection.row_factory = sqlite3.Row
@@ -139,6 +141,27 @@ class HarnessStore:
             self.connection.execute("UPDATE runs SET state='interrupted', completed=?, summary=? WHERE state='running'",
                                     (int(time.time()), "Interrupted by restart; outcome unknown, no automatic replay."))
         self._closed = False
+        self._prune_screenshots()
+
+    def _prune_screenshots(self) -> None:
+        """Delete stale worker-created screenshots; never traverse external paths."""
+        folder = self.state_dir / "screenshots"
+        if not folder.exists() and not folder.is_symlink():
+            return
+        if folder.is_symlink() or not folder.is_dir():
+            raise PolicyError("Private screenshot directory has unsafe filesystem type.")
+        rows = self.connection.execute(
+            "SELECT screenshot FROM runs WHERE state='completed' AND screenshot IS NOT NULL "
+            "ORDER BY completed DESC, id DESC LIMIT ?", (MAX_SCREENSHOTS,)
+        ).fetchall()
+        allowed = {row["screenshot"] for row in rows}
+        for entry in folder.iterdir():
+            # Files the owner put here with unknown names are not ours to remove.
+            if not re.fullmatch(r"run_[0-9a-f]{24}\.png", entry.name):
+                continue
+            # Deleting the symlink itself is safe; never follow it.
+            if entry.is_symlink() or entry.name not in allowed:
+                entry.unlink()
 
     def close(self):
         with self.lock:
@@ -234,6 +257,8 @@ class HarnessStore:
             raise PolicyError("Invalid run outcome.")
         if len(summary) > 400:
             summary = summary[:400]
+        if screenshot is not None and screenshot != run_id + ".png":
+            raise PolicyError("Screenshot receipt filename must match its run ID.")
         with self.lock, self.connection:
             current = self.connection.execute(
                 "SELECT routine_id FROM runs WHERE id=? AND state='running'", (run_id,)
@@ -248,8 +273,9 @@ class HarnessStore:
                 self.connection.execute(
                     "UPDATE routines SET last_digest=? WHERE id=?", (sha256, current["routine_id"])
                 )
-            # Keep a bounded audit history of observed work only.
+            # Keep a bounded audit history and explicitly prune old images.
             self.connection.execute(
                 "DELETE FROM runs WHERE id NOT IN (SELECT id FROM runs ORDER BY started DESC,id DESC LIMIT ?)",
                 (MAX_RUNS,),
             )
+            self._prune_screenshots()
