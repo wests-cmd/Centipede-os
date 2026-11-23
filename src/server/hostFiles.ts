@@ -141,9 +141,11 @@ export async function handleHostFiles(req: ApiRequest): Promise<ApiResponse | nu
         await targetHandle.sync();
         complete = true;
       } finally {
-        await targetHandle?.close();
-        if (targetHandle && !complete) await unlink(target).catch(() => {});
-        await sourceHandle.close();
+        try { await targetHandle?.close(); }
+        finally {
+          if (targetHandle && !complete) await unlink(target).catch(() => {});
+          await sourceHandle.close();
+        }
       }
       return { status: 201, data: {
         copied: true, source: parts.join('/'), path: [...parents, name[0]].join('/'),
