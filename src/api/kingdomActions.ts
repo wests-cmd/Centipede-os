@@ -22,8 +22,8 @@ export class KingdomActions {
   private notify(): void {
     for (const fn of this.listeners) fn(this.isUnlocked());
   }
-  private async request(path: string, payload: object, scope: 'kingdom' | 'files' = 'kingdom'): Promise<any> {
-    const base = scope === 'files' ? '/api/v1/host-files' : '/api/v1/kingdom/actions';
+  private async request(path: string, payload: object, scope: 'kingdom' | 'files' | 'harness' = 'kingdom'): Promise<any> {
+    const base = scope === 'files' ? '/api/v1/host-files' : scope === 'harness' ? '/api/v1/harness' : '/api/v1/kingdom/actions';
     const response = await fetch(`${base}/${path}`, {
       method: 'POST',
       headers: {
@@ -93,6 +93,23 @@ export class KingdomActions {
   public async createHostDirectory(directory: string, name: string): Promise<void> {
     if (!this.isUnlocked()) throw new Error('Unlock owner actions to create local folders.');
     await this.request('mkdir', { directory, name }, 'files');
+  }
+  /** Existing expiring host-owner authorization gates every background action. */
+  public async harnessControl(action: 'enable' | 'disable' | 'pause' | 'resume'): Promise<void> {
+    if (!this.isUnlocked()) throw new Error('Unlock the local owner session before enabling background work.');
+    await this.request('control', { action }, 'harness');
+  }
+  public async harnessAddRoutine(routine: {
+    name: string; url: string; intervalSeconds: number;
+    steps: Array<{ action: 'click_link' | 'fill' | 'screenshot'; selector?: string; value?: string }>;
+  }): Promise<void> {
+    if (!this.isUnlocked()) throw new Error('Unlock the local owner session before adding a recurring browser routine.');
+    await this.request('routines', routine, 'harness');
+  }
+  public async harnessDeleteRoutine(id: string): Promise<void> {
+    if (!this.isUnlocked()) throw new Error('Unlock the local owner session before deleting browser routines.');
+    if (!/^web_[a-f0-9]{16}$/.test(id)) throw new Error('Invalid browser routine ID.');
+    await this.request('routines/delete', { id }, 'harness');
   }
   public async cancelTask(id: string): Promise<TaskItem> {
     if (!this.isUnlocked()) throw new Error('Unlock the Kingdom owner session to cancel a task.');

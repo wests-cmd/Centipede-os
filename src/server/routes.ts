@@ -7,6 +7,7 @@ import { handleKingdomAction } from './kingdomAction';
 import { handleHostFiles } from './hostFiles';
 import { handleLocalInference } from './localInference';
 import { handleHostTelemetry } from './hostTelemetry';
+import { handleHarnessProxy } from './harnessProxy';
 
 export interface ApiRequest {
   path: string;
@@ -47,6 +48,9 @@ export class ApiRouter {
       const runtimeInfo = await platformDetector.detectRuntimeInfo();
       return { status: 200, data: runtimeInfo };
     }
+
+    const harness = await handleHarnessProxy(req);
+    if (harness) return harness;
 
     const hostTelemetry = handleHostTelemetry(req);
     if (hostTelemetry) return hostTelemetry;

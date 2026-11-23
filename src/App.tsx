@@ -29,6 +29,8 @@ const SkillsApp = React.lazy(() => import('./components/SkillsApp').then((module
 const DoctorApp = React.lazy(() => import('./components/DoctorApp').then((module) => ({ default: module.DoctorApp })));
 const MapsApp = React.lazy(() => import('./components/MapsApp').then((module) => ({ default: module.MapsApp })));
 const SystemCommandCenter = React.lazy(() => import('./components/SystemCommandCenter').then((module) => ({ default: module.SystemCommandCenter })));
+const BackgroundHarnessApp = React.lazy(() => import('./components/BackgroundHarnessApp').then((module) => ({ default: module.BackgroundHarnessApp })));
+
 
 export const App: React.FC = () => {
   const [activeAppId, setActiveAppId] = useState<string>('launcher');
@@ -111,6 +113,10 @@ export const App: React.FC = () => {
       case 'command':
         return <Window id="win_command" title="System Command Center" icon={BarChart3} isOpen={true} onClose={() => setActiveAppId('launcher')}>
           <SystemCommandCenter adapter={kingdomAdapter} onNavigate={setActiveAppId} />
+        </Window>;
+      case 'background':
+        return <Window id="win_background" title="Background Work — Isolated Browser" icon={Cpu} isOpen={true} onClose={() => setActiveAppId('launcher')}>
+          <BackgroundHarnessApp />
         </Window>;
       case 'perception':
         return <Window id="win_perception" title="Camera, screen and microphone" icon={Bot} isOpen={true} onClose={() => setActiveAppId('launcher')}><PerceptionPanel /></Window>;
