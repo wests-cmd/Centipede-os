@@ -91,10 +91,14 @@ export class ApiRouter {
       const devices = deviceTrustManager.getPairedDevices().map(({ sessionToken: _token, pairingCode: _code, ...device }) => device);
       return { status: 200, data: { devices } };
     }
-    if (req.isLocalAdmin && req.path === '/api/v1/mobile/revoke' && req.method === 'POST') {
-      if (!isLocalOwnerActionAuthorized(req)) return { status: 401, error: 'Unlock the local owner session to revoke a device.' };
+    if (req.isLocalAdmin && req.path === '/api/v1/mobile/revoke' && req.method === 'POST'
+        && isLocalOwnerActionAuthorized(req)) {
+      // Only an unlocked owner may revoke another device administratively.
       return { status: 200, data: { revoked: deviceTrustManager.revokeDevice(req.body?.deviceId || '') } };
     }
+    // A paired companion may revoke only its OWN session even when its socket
+    // happens to be loopback. Fall through to the device bearer/session check
+    // below; neither a localhost address nor an owner-intent header suffices.
 
     // 2. Session Authenticated Endpoints
     if (!sessionToken) {
