@@ -38,7 +38,7 @@ export class TargetUpdateChecker {
     providedSha256: string
   ): CompatibilityGateResult {
     // 1. Architecture Check
-    if (targetMeta.architecture !== currentArchitecture && currentArchitecture !== 'any') {
+    if (targetMeta.architecture !== currentArchitecture && targetMeta.architecture !== 'any') {
       return { allowed: false, reason: `ARCHITECTURE_MISMATCH: Target artifact built for ${targetMeta.architecture}, current system is ${currentArchitecture}` };
     }
 
@@ -83,6 +83,19 @@ export class TargetUpdateChecker {
     }
     const latestRevision = targetInfo.revision;
     const latestCoreVersion = latestManifest.coreVersion;
+    // The canonical release manifest declares Kingdom compatibility under
+    // "kingdom.protocol"; never invent a fallback protocol for an untrusted
+    // or incomplete release manifest.
+    const protocol = latestManifest.kingdom?.protocol;
+    const architecture = targetInfo.architecture;
+    const expectedArtifact = typeof targetInfo.artifact === 'string'
+      ? targetInfo.artifact.replaceAll('{version}', latestCoreVersion) : null;
+    if (typeof protocol !== 'string' || !/^v[0-9]+\.[0-9]+\+?$/.test(protocol) ||
+        typeof architecture !== 'string' || !/^[A-Za-z0-9_/-]{1,32}$/.test(architecture) ||
+        targetArtifact.filename !== expectedArtifact ||
+        (targetArtifact.architecture !== undefined && targetArtifact.architecture !== architecture)) {
+      return { updateAvailable: false, isCoreUpdate: false, metadata: null };
+    }
     const latest = parseSemver(latestCoreVersion);
     const installed = parseSemver(parsedCurrent.coreVersion);
     if (!Number.isSafeInteger(latestRevision) || latestRevision < 1 || !latest || !installed) {
@@ -94,6 +107,17 @@ export class TargetUpdateChecker {
     const comparison = compareSemver(latest, installed);
     const isCoreUpdate = comparison > 0;
     const isTargetUpdate = comparison === 0 && latestRevision > parsedCurrent.revision;
+    if (!isCoreUpdate && !isTargetUpdate) {
+      return { updateAvailable: false, isCoreUpdate: false, metadata: null };
+    }
+    // A cross-core upgrade must explicitly declare the oldest supported
+    // *installed* core. Using the new core version as a default wrongly
+    // rejects all real upgrades (or tempts a caller to bypass the gate).
+    const minCoreVersion = isCoreUpdate ? targetInfo.minCoreVersion : latestCoreVersion;
+    const minCore = parseSemver(minCoreVersion);
+    if (!minCore || compareSemver(installed, minCore) < 0 || compareSemver(latest, minCore) < 0) {
+      return { updateAvailable: false, isCoreUpdate: false, metadata: null };
+    }
 
     const metadata: TargetUpdateMetadata = {
       target,
@@ -103,9 +127,9 @@ export class TargetUpdateChecker {
       artifact: targetArtifact.filename,
       sha256: targetArtifact.sha256,
       downloadLocation: `/release/${target}/${targetArtifact.filename}`,
-      minCoreVersion: latestCoreVersion,
-      requiredKingdomProtocol: latestManifest.protocol || 'v1.0+',
-      architecture: targetMetaArch(target),
+      minCoreVersion,
+      requiredKingdomProtocol: protocol,
+      architecture,
       releaseDate: latestManifest.buildTimestamp || new Date().toISOString(),
       mobileStoreUpdateRequired: target === 'android' || target === 'ios',
     };
@@ -115,17 +139,6 @@ export class TargetUpdateChecker {
       isCoreUpdate,
       metadata,
     };
-  }
-}
-
-function targetMetaArch(target: TargetName): string {
-  switch (target) {
-    case 'android':
-      return 'arm64-v8a';
-    case 'ios':
-      return 'arm64';
-    default:
-      return 'x86_64';
   }
 }
 
