@@ -3,7 +3,7 @@ import { platformDetector } from '../platform/detector';
 import { configManager } from '../config';
 import { CENTIPEDE_VERSION } from '../version';
 import { proxyKingdomRead } from './kingdomReadProxy';
-import { handleKingdomAction } from './kingdomAction';
+import { handleKingdomAction, isLocalOwnerActionAuthorized } from './kingdomAction';
 import { handleHostFiles } from './hostFiles';
 import { handleLocalInference } from './localInference';
 import { handleHostTelemetry } from './hostTelemetry';
@@ -67,6 +67,11 @@ export class ApiRouter {
       if (!req.isLocalAdmin) {
         return { status: 403, error: 'FORBIDDEN: Pairing codes can only be created from the Centipede host.' };
       }
+      // Loopback proves proximity, not identity. A resident process must not
+      // silently pair a remote device or mint its own pairing code.
+      if (!isLocalOwnerActionAuthorized(req)) {
+        return { status: 401, error: 'Unlock the local owner session before creating a device pairing code.' };
+      }
       const name = req.body?.deviceName || 'Mobile Companion';
       const pairing = deviceTrustManager.initiatePairing(name, 'MOBILE_APP', req.body?.endpoint);
       return { status: 200, data: pairing };
@@ -80,11 +85,14 @@ export class ApiRouter {
     // Device administration is available only through a loopback connection.
     // A LAN client can complete a short-lived pairing but cannot enumerate or
     // revoke other devices. Headers such as Host and Sec-Fetch-Site are not authority.
-    if (req.isLocalAdmin && req.path === '/api/v1/mobile/devices' && req.method === 'GET') {
+    if (req.path === '/api/v1/mobile/devices' && req.method === 'GET') {
+      if (!req.isLocalAdmin) return { status: 403, error: 'Only the local owner can list devices.' };
+      if (!isLocalOwnerActionAuthorized(req)) return { status: 401, error: 'Unlock the local owner session to list devices.' };
       const devices = deviceTrustManager.getPairedDevices().map(({ sessionToken: _token, pairingCode: _code, ...device }) => device);
       return { status: 200, data: { devices } };
     }
     if (req.isLocalAdmin && req.path === '/api/v1/mobile/revoke' && req.method === 'POST') {
+      if (!isLocalOwnerActionAuthorized(req)) return { status: 401, error: 'Unlock the local owner session to revoke a device.' };
       return { status: 200, data: { revoked: deviceTrustManager.revokeDevice(req.body?.deviceId || '') } };
     }
 
