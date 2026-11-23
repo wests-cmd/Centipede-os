@@ -181,6 +181,10 @@ def handle_api(method: str, path: str, body: object, store: HarnessStore) -> tup
             return 422, {"error": "Only a routine ID may be supplied."}
         store.delete_routine(body["id"])
         return 200, {"deleted": True}
+    if method == "POST" and path == "/v1/alerts/ack":
+        if not isinstance(body, dict) or set(body) != {"runId"}:
+            return 422, {"error": "Only the verified alert receipt ID may be acknowledged."}
+        return 200, store.acknowledge_alert(body["runId"])
     return 404, {"error": "Unknown harness endpoint."}
 
 
