@@ -90,7 +90,7 @@ export const BackgroundHarnessApp: React.FC = () => {
       setMessage(action === 'enable'
         ? 'Autonomy enabled for explicitly approved recurring routines only. Active desktop input remains untouched.'
         : action === 'pause'
-          ? 'Pause requested. An in-progress step may finish before work stops.'
+          ? 'Pause requested. The active browser child will be interrupted; its outcome may be unknown.'
           : 'Owner control accepted; checking the durable worker state.');
       await refresh();
     } catch (cause) {
