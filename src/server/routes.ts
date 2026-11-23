@@ -72,8 +72,11 @@ export class ApiRouter {
       if (!isLocalOwnerActionAuthorized(req)) {
         return { status: 401, error: 'Unlock the local owner session before creating a device pairing code.' };
       }
-      const name = req.body?.deviceName || 'Mobile Companion';
-      const pairing = deviceTrustManager.initiatePairing(name, 'MOBILE_APP', req.body?.endpoint);
+      const name = req.body?.deviceName ?? 'Mobile Companion';
+      if (typeof name !== 'string' || !name.trim() || name.length > 80 ||
+          /[\x00-\x1f\x7f]/.test(name))
+        return { status: 422, error: 'Device name must be 1–80 printable characters.' };
+      const pairing = deviceTrustManager.initiatePairing(name.trim(), 'MOBILE_APP', req.body?.endpoint);
       return { status: 200, data: pairing };
     }
 
