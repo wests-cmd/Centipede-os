@@ -70,7 +70,7 @@ class PublishedPreviewIntegrityTests(unittest.TestCase):
 
     def test_asset_wrong_download_url_is_rejected(self):
         changed = copy.deepcopy(self.remote)
-        changed["assets"][0]["browser_download_url"] = "https://example.org/fake.tar"
+        changed["assets"][0]["browser_download_url"] = "https://example.org/incorrect-asset.tar"
         with self.assertRaises(AssertionError):
             checker.validate(self.local, changed)
 
