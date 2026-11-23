@@ -45,6 +45,10 @@ services:
       - seccomp:./harness/seccomp_profile.json
     pids_limit: 128
     cpus: "0.75"
+    # Yield CPU to interactive work under contention; prefer reclaiming this
+    # expendable worker before essential desktop services under OOM pressure.
+    cpu_shares: 128
+    oom_score_adj: 500
     mem_limit: 1024m
     volumes:
       - centipede_harness_state:/data
