@@ -163,6 +163,17 @@ describe('mobile pairing owner authorization', () => {
     });
     expect(legacy.status).toBe(200);
     expect(JSON.parse(legacy.data.qrData).centipedeEndpoint).toBe('http://localhost:3000');
+    for (const badOrigin of [
+      'file:///etc/hosts', 'https://victim.example/steal', 'https://user:pass@example.com',
+      'https://example.com/?token=secret', 'javascript:alert(1)',
+    ]) {
+      const response = await apiRouter.handleRequest({
+        path: '/api/v1/mobile/pair/initiate', method: 'POST', isLocalAdmin: true,
+        headers: ownerHeaders(session), body: { deviceName: 'Phone' },
+        serverPairingEndpoint: badOrigin,
+      });
+      expect(response.status).toBe(503);
+    }
   });
 
   it('still allows a remote phone to confirm a single-use code without seeing owner-only device lists', async () => {
