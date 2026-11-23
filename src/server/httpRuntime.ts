@@ -55,8 +55,17 @@ const mime: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js
   '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png',
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon', '.woff2': 'font/woff2' };
 
-export async function staticFile(path: string, head: boolean): Promise<Response | null> {
+export async function staticFile(path: string, head: boolean, webRoot?: string): Promise<Response | null> {
   try {
+    if (webRoot) {
+      // Lexical normalization is insufficient: a symlink under the compiled
+      // web bundle could otherwise expose files outside the intended root.
+      // In the live image the web bundle is root-owned and immutable to the
+      // unprivileged service, preventing local swaps between this check/read.
+      const [canonicalRoot, canonicalPath] = await Promise.all([realpath(webRoot), realpath(path)]);
+      const inside = relative(canonicalRoot, canonicalPath);
+      if (inside === '..' || inside.startsWith('..' + sep) || isAbsolute(inside)) return null;
+    }
     if (!(await stat(path)).isFile()) return null;
     const content = head ? null : typeof Bun !== 'undefined' ? Bun.file(path) : await readFile(path);
     return new Response(content, {
