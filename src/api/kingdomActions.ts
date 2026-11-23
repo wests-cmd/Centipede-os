@@ -32,7 +32,9 @@ export class KingdomActions {
         ...(this.token ? { 'X-Centipede-Action-Session': this.token } : {}),
       },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(12_000),
+      // A 32 MiB private-workspace copy can exceed the normal action timeout
+      // on older USB/SD storage. Never automatically retry an unknown copy.
+      signal: AbortSignal.timeout(scope === 'files' && path === 'copy' ? 60_000 : 12_000),
     });
     let data: any;
     try { data = await response.json(); } catch { data = {}; }
