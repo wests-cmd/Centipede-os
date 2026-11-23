@@ -34,7 +34,7 @@ describe('isolated background worker proxy trust boundary', () => {
   });
 
   it('does not make worker state or controls accessible to remote clients', async () => {
-    for (const path of ['/api/v1/harness/status', '/api/v1/harness/control', '/api/v1/harness/routines']) {
+    for (const path of ['/api/v1/harness/status', '/api/v1/harness/control', '/api/v1/harness/routines', '/api/v1/harness/alerts/ack']) {
       const result = await req(path, path.endsWith('status') ? 'GET' : 'POST', false, { action: 'enable' });
       expect(result.status).toBe(403);
       expect(result.data).toBeUndefined();
@@ -42,7 +42,7 @@ describe('isolated background worker proxy trust boundary', () => {
   });
 
   it('requires the existing expiring owner session for all mutating worker actions', async () => {
-    for (const path of ['/api/v1/harness/control', '/api/v1/harness/routines', '/api/v1/harness/routines/delete']) {
+    for (const path of ['/api/v1/harness/control', '/api/v1/harness/routines', '/api/v1/harness/routines/delete', '/api/v1/harness/alerts/ack']) {
       const result = await req(path, 'POST', true, { action: 'enable' });
       expect(result.status).toBe(401);
     }
@@ -83,6 +83,25 @@ describe('isolated background worker proxy trust boundary', () => {
       new Response(JSON.stringify({ blob: 'x'.repeat(70000) }), {status:200})
     ) as unknown as typeof fetch;
     expect((await req('/api/v1/harness/status')).status).toBe(502);
+  });
+
+  it('brokers only a real owner-acknowledged change receipt to the fixed worker URL', async () => {
+    const runId = 'run_' + 'a'.repeat(24);
+    const login = await req('/api/v1/kingdom/actions/unlock', 'POST', true,
+      { ownerCode: OWNER }, { 'x-centipede-owner-intent': '1' });
+    expect(login.status).toBe(200);
+    const session = login.data.sessionToken;
+    const fetcher = vi.fn().mockResolvedValue(Response.json({ acknowledged: true, runId }));
+    globalThis.fetch = fetcher as unknown as typeof fetch;
+    const result = await req('/api/v1/harness/alerts/ack', 'POST', true, { runId }, {
+      'x-centipede-owner-intent': '1', 'x-centipede-action-session': session,
+    });
+    expect(result.status).toBe(200);
+    expect(result.data).toEqual({ acknowledged: true, runId });
+    expect(fetcher.mock.calls[0][0]).toBe('http://127.0.0.1:3011/v1/alerts/ack');
+    expect(fetcher.mock.calls[0][1].body).toBe(JSON.stringify({ runId }));
+    expect(fetcher.mock.calls[0][1].headers.Authorization).toBe('Bearer ' + HARNESS);
+    expect(fetcher.mock.calls[0][1].headers).not.toHaveProperty('X-Centipede-Action-Session');
   });
 
   it('permits only a valid local owner control through the fixed authenticated worker endpoint', async () => {
