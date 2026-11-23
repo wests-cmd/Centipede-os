@@ -18,7 +18,7 @@ Prerequisites: an Intel/AMD 64-bit Linux/Windows Docker host, Docker Compose, an
 2. Start the isolated worker explicitly: `docker compose -f docker-compose.harness.yml up --build -d`. Its HTTP port is published to the host's **loopback only** on 127.0.0.1:3011.
 3. Configure the **Centipede web/API server**, not the browser, with `CENTIPEDE_HARNESS_URL=http://127.0.0.1:3011` and the same `CENTIPEDE_HARNESS_TOKEN` from the private file. For local developer testing, one option is to load the environment into your existing shell with `set -a; . ./.centipede-harness.env; set +a` before running `bun start`. Do **not** put the secret in an HTML file, browser storage, README, screenshots or Git. A containerized web server requires a separately verified internal service-network connection instead of `127.0.0.1`.
 4. If the server has an authorized Kingdom owner code configured, unlock the normal local owner action session. Open **Home → Background Work**. Add a public HTTPS routine; leave it disabled until you review it.
-5. Choose **Enable approved work**. The worker picks due routines itself while the desktop is closed; the **Status and Receipts** panels are read-only observations. **Pause**, **Disable** and **Remove** are owner-gated. Pause/disable prevents new claims immediately, and the running browser subprocess polls the owner stop state at most once per second and is then killed as a process group. An already completed external observation cannot be undone; interrupted outcomes are recorded as unknown and not automatically replayed. The 30-second watchdog remains a separate upper bound.
+5. Choose **Enable approved work**. The worker picks due routines itself while the desktop is closed; the **Status, Needs Attention and Receipts** panels are read-only observations. Verified page digest changes after a baseline create a durable owner-reviewed Needs Attention item; **Acknowledge**, **Pause**, **Disable** and **Remove** are owner-gated. Pause/disable prevents new claims immediately, and the running browser subprocess polls the owner stop state at most once per second and is then killed as a process group. An already completed external observation cannot be undone; interrupted outcomes are recorded as unknown and not automatically replayed. The 30-second watchdog remains a separate upper bound.
 
 **If no Kingdom owner credential is configured, the current GUI cannot unlock its owner-action session**, even if the worker is up. That no-terminal onboarding gap must be closed before this qualifies as an ordinary beginner-ready installer. Do not bypass the security check.
 
@@ -27,7 +27,7 @@ Prerequisites: an Intel/AMD 64-bit Linux/Windows Docker host, Docker Compose, an
 | Component | Authority | Explicitly denied |
 | --- | --- | --- |
 | Centipede local UI | Local owner may view real worker receipts; write operations use the existing short-lived owner session | Direct access to worker token, arbitrary worker URL or host process execution |
-| Centipede API broker (`src/server/harnessProxy.ts`) | Fixed GET status and owner-gated POST control/add/remove only, on authenticated loopback; token remains server-side | LAN/phone callers, unverified owner writes, arbitrary HTTP proxy, unbounded response |
+| Centipede API broker (`src/server/harnessProxy.ts`) | Fixed GET status and owner-gated POST control/add/remove/acknowledge only, on authenticated loopback; token remains server-side | LAN/phone callers, unverified owner writes, arbitrary HTTP proxy, unbounded response |
 | Separate harness service (`harness/service.py`) | Bearer-authenticated fixed API; one active browser job, private SQLite store and bounded receipt history | Unauthenticated commands, shells, site-supplied task instructions, unapproved routine schemas |
 | Browser child (`harness/browser_task.py`) | Temporary Chromium context; same-site HTTPS GET, link click/field fill/screenshot only | Host display input, forms, POST, cross-domain requests, local/metadata/private IP and file access |
 | Kingdom | Remains independent task, permission, trust and remote-node authority | No implicit trust granted by a Centipede worker status or browser receipt |
@@ -40,7 +40,7 @@ Browser sandboxing: the code **requires** `chromium_sandbox=True`; it must fail 
 
 Resource/UX coexistence: it uses a separate browser with **no active-session input at all**. Before claiming jobs, it defers on less than **1 GiB Linux host MemAvailable**, above roughly half a CPU-core of 1-minute load per logical CPU, or missing resource metrics. This is a *host kernel hint*, not a verified cgroup/interactive-user idleness measurement. Even a container limited to 0.75 CPU and 1 GiB RAM may affect performance on a 4-GiB dual-core PC. Running it on a separate always-on machine is preferable. No guarantee of zero resource interference is claimed.
 
-Data retention: one SQLite queue, up to 20 routines and 200 recent run receipts; each receipt stores a timestamp, run state, error category, and page-body digest, not a full page transcript. An explicitly requested screenshot is written only into the worker's private volume and limited to 2 MiB. Only the 20 newest completed-run screenshots are kept (at most 40 MiB from approved captures); older worker-created screenshot files are pruned on completion and restart, without deleting unrelated filenames. It is not silently uploaded to Kingdom. There is no GUI screenshot preview or screenshot export yet. Protected work requires explicit owner action.
+Data retention: one SQLite queue, up to 20 routines, 200 recent run receipts and 100 bounded hash-only change alerts (up to 20 shown per status response). First observation creates no alert; only a verified completed run with a changed page digest does. Acknowledgment never runs a new task or grants authority. Alerts survive worker restart and are pruned oldest-first; each receipt stores a timestamp, run state, error category, and page-body digest, not a full page transcript. An explicitly requested screenshot is written only into the worker's private volume and limited to 2 MiB. Only the 20 newest completed-run screenshots are kept (at most 40 MiB from approved captures); older worker-created screenshot files are pruned on completion and restart, without deleting unrelated filenames. It is not silently uploaded to Kingdom. There is no GUI screenshot preview or screenshot export yet. Protected work requires explicit owner action.
 
 ## Architecture: where code is and what connects to it
 
@@ -48,7 +48,7 @@ Data retention: one SQLite queue, up to 20 routines and 200 recent run receipts;
 Centipede Home / Sidebar
   └── BackgroundHarnessApp.tsx
         ├── GET /api/v1/harness/status (loopback only)
-        └── POST /api/v1/harness/{control,routines,routines/delete}
+        └── POST /api/v1/harness/{control,routines,routines/delete,alerts/ack}
              (existing expiring owner unlock + intent header)
               └── src/server/routes.ts
                    └── src/server/harnessProxy.ts (fixed origin + secret)
