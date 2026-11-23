@@ -1,10 +1,16 @@
 import type { ApiRequest, ApiResponse } from './routes';
 import { KnowledgeSourceError, SelectedKnowledgeSources } from './selectedKnowledgeSources';
+import { isLocalOwnerActionAuthorized } from './kingdomAction';
 
 /** Native adapter only: isLocalAdmin must come from requestTrust, never JSON/headers. */
 export function handleSelectedKnowledgeRequest(req: ApiRequest, service: () => SelectedKnowledgeSources): ApiResponse | null {
   if (!req.path.startsWith('/api/v1/knowledge/')) return null;
   if (req.isLocalAdmin !== true) return { status: 403, error: 'Local administration required.' };
+  // Folder selection, extracted content and the source index are sensitive.
+  // Loopback alone is not consent: reuse the same expiring owner session as
+  // Files and Background Work. Do not create a second bearer-token store.
+  if (!isLocalOwnerActionAuthorized(req))
+    return { status: 401, error: 'Unlock the local owner session to manage knowledge sources.' };
   const exact = (keys: string[]) => req.body && typeof req.body === 'object' && !Array.isArray(req.body)
     && Object.keys(req.body).length === keys.length && keys.every(k => Object.hasOwn(req.body, k));
   try {
