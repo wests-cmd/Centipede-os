@@ -8,14 +8,25 @@ on:
         description: Build a publisher-signed Android APK for validation
         type: boolean
         default: false
+  # Every pull request targeting main must validate packaged platform images;
+  # branch-only jobs remain available prior to opening a pull request.
+  pull_request:
+    branches:
+      - main
+  # Tag releases run through release.yml only, so the release-gate executes
+  # before a signed mobile build or expensive OS-image job can start.
   push:
     branches:
       - 'codex/**'
-    tags:
-      - 'v*'
 
 permissions:
   contents: read
+
+# Avoid running two expensive 120-minute builds of the same commit when
+# codex branch pushes and pull_request hooks overlap.
+concurrency:
+  group: centipede-platform-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   target-policy:
