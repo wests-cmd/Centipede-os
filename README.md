@@ -43,6 +43,9 @@ The newest **published preview** is **[v1.0.1-rc.11 (November 22, 2026)](https:/
 
 ## Status and roadmap
 
+**[Full Centipede OS master specification](docs/CENTIPEDE_OS_MASTER.md)** — architecture, daily-driver acceptance gates, user flows and the long-term roadmap. Its historical snapshots are not certification of this branch or the published RC11 binaries.
+
+
 The **System Command Center is now in the published RC11 preview**. The next project milestone is an owner-supervised, isolated, persistent background browser harness plus real low-memory hardware and Kingdom acceptance. The new worker is developed separately from published RC11 until its own verified release.
 
 **General availability remains blocked** on permanent install/recovery, hardware testing, signed distribution, dependable multi-device execution, and security evidence. A passed browser CI suite is not a physical acceptance certificate.
