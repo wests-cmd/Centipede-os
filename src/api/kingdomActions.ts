@@ -94,6 +94,15 @@ export class KingdomActions {
     if (!this.isUnlocked()) throw new Error('Unlock owner actions to create local folders.');
     await this.request('mkdir', { directory, name }, 'files');
   }
+  /** Copies an existing regular file inside the confined, owner-only workspace. */
+  public async copyHostFile(path: string, directory: string, name: string): Promise<{ path: string; size: number }> {
+    if (!this.isUnlocked()) throw new Error('Unlock owner actions to copy local files.');
+    const result = await this.request('copy', { path, directory, name }, 'files');
+    if (result?.copied !== true || typeof result.path !== 'string' ||
+        typeof result.size !== 'number' || !Number.isSafeInteger(result.size))
+      throw new Error('File copy did not return a verified copy receipt.');
+    return { path: result.path, size: result.size };
+  }
   public async cancelTask(id: string): Promise<TaskItem> {
     if (!this.isUnlocked()) throw new Error('Unlock the Kingdom owner session to cancel a task.');
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(id)) throw new Error('Invalid Kingdom task ID.');
