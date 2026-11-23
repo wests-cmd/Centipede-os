@@ -66,6 +66,22 @@ describe('mobile pairing owner authorization', () => {
     expect((await ask('pair/initiate', 'POST', {deviceName:'Phone'}, true, h)).status).toBe(401);
   });
 
+  it('preserves self-revocation for a paired device reaching the service via localhost', async () => {
+    const session = await unlock();
+    const pending = await ask('pair/initiate', 'POST', {deviceName: 'On-host phone client'},
+      true, ownerHeaders(session));
+    expect(pending.status).toBe(200);
+    const paired = await ask('pair/confirm', 'POST', {pairingCode: pending.data.pairingCode}, false);
+    expect(paired.status).toBe(200);
+    const ownHeaders = { authorization: 'Bearer ' + paired.data.sessionToken };
+    expect((await ask('revoke', 'POST', {deviceId: 'dev_another'}, true, ownHeaders)).status).toBe(403);
+    expect((await ask('devices', 'GET', undefined, true, ownHeaders)).status).toBe(401);
+    const revoked = await ask('revoke', 'POST', {deviceId: paired.data.deviceId}, true, ownHeaders);
+    expect(revoked.status).toBe(200);
+    expect(revoked.data.revoked).toBe(true);
+    expect((await ask('revoke', 'POST', {deviceId: paired.data.deviceId}, true, ownHeaders)).status).toBe(403);
+  });
+
   it('still allows a remote phone to confirm a single-use code without seeing owner-only device lists', async () => {
     const session = await unlock();
     const pending = await ask('pair/initiate', 'POST', {deviceName:'Phone'}, true, ownerHeaders(session));
