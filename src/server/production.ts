@@ -1,5 +1,6 @@
 import { join, normalize, resolve } from 'node:path';
 import { discoverLanAddress } from './networkDiscovery';
+import { listenerHosts } from './listenerPolicy';
 import { apiRouter, ApiRequest } from './routes';
 import { isLocalAdminRequest } from './requestTrust';
 import { SelectedKnowledgeSources } from './selectedKnowledgeSources';
@@ -12,9 +13,7 @@ const port = Number(process.env.PORT || 3000);
 const lanAddress = discoverLanAddress(process.env.HOST);
 // Fail closed: a local desktop should not expose its application and API
 // to Wi-Fi/LAN devices without a deliberate operator-supplied HOST binding.
-const hostnames = process.env.HOST
-  ? process.env.HOST.split(',').map((host) => host.trim()).filter(Boolean)
-  : ['127.0.0.1'];
+const hostnames = listenerHosts(process.env.HOST);
 const publicUrl = process.env.PUBLIC_URL ||
   (process.env.HOST && lanAddress ? `http://${lanAddress}:${port}` : `http://localhost:${port}`);
 const rateWindows = new Map<string, { startsAt: number; count: number }>();
