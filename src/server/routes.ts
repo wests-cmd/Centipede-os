@@ -16,6 +16,10 @@ export interface ApiRequest {
   query?: string;
   /** Set only by the HTTP adapter after checking the socket peer address. */
   isLocalAdmin?: boolean;
+  /** Observed TLS on the inbound socket/transport; never inferred from proxy headers. */
+  isSecureTransport?: boolean;
+  /** Network URL produced by the trusted HTTP adapter, not a request body field. */
+  serverPairingEndpoint?: string;
 }
 
 export interface ApiResponse {
@@ -77,11 +81,18 @@ export class ApiRouter {
       if (typeof name !== 'string' || !name.trim() || name.length > 80 ||
           /[\x00-\x1f\x7f]/.test(name))
         return { status: 422, error: 'Device name must be 1–80 printable characters.' };
-      const pairing = deviceTrustManager.initiatePairing(name.trim(), 'MOBILE_APP', req.body?.endpoint);
+      // Do not let a caller place an arbitrary phishing URL into pairing QR data.
+      // The verified HTTP adapter, never body.endpoint or a forwarded header,
+      // supplies the server address to be shared with the phone.
+      const pairing = deviceTrustManager.initiatePairing(name.trim(), 'MOBILE_APP', req.serverPairingEndpoint);
       return { status: 200, data: pairing };
     }
 
     if (req.path === '/api/v1/mobile/pair/confirm' && req.method === 'POST') {
+      // Confirmation returns a bearer token; do not issue one over plaintext
+      // off-device HTTP. Loopback is still permitted for local development.
+      if (!req.isLocalAdmin && req.isSecureTransport !== true)
+        return { status: 403, error: 'Secure HTTPS transport is required for remote phone pairing.' };
       const result = deviceTrustManager.confirmPairing(req.body?.pairingCode || '');
       return result.success ? { status: 200, data: result } : { status: 401, error: result.error };
     }
@@ -105,6 +116,10 @@ export class ApiRouter {
     // below; neither a localhost address nor an owner-intent header suffices.
 
     // 2. Session Authenticated Endpoints
+    // Remote bearer tokens must not travel over unencrypted LAN HTTP; never
+    // trust Host or X-Forwarded-Proto as evidence of TLS termination.
+    if (!req.isLocalAdmin && req.isSecureTransport !== true)
+      return { status: 403, error: 'Secure HTTPS transport is required for remote device actions.' };
     if (!sessionToken) {
       return { status: 401, error: 'UNAUTHORIZED: Missing session token.' };
     }
