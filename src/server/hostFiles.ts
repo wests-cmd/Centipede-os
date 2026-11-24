@@ -19,6 +19,10 @@ function segments(input: unknown, rootAllowed = true): string[] {
   const parts = input.split('/');
   if (parts.length > 8 || parts.some(p => p.length < 1 || p.length > 120 || p.startsWith('.') || p.endsWith(' ') || p.endsWith('.') || p.includes(':')))
     throw new FileError(422, 'Invalid Files path.');
+  // Reject Windows device names and nonportable special characters on every OS.
+  // This prevents a file created on Linux from becoming a device path on Windows.
+  if (parts.some(p => /[<>"|?*]/.test(p) || /^(?:con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])(?:\.|$)/i.test(p)))
+    throw new FileError(422, 'Reserved or nonportable Files name.');
   return parts;
 }
 async function rootDirectory(): Promise<string> {
@@ -85,7 +89,7 @@ export async function handleHostFiles(req: ApiRequest): Promise<ApiResponse | nu
       const handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW || 0));
       try {
         const stat = await handle.stat();
-        if (!stat.isFile()) throw new FileError(422, 'Only regular files may be previewed.');
+        if (!stat.isFile() || stat.nlink !== 1) throw new FileError(403, 'Only independent regular files may be previewed.');
         if (stat.size > MAX_TEXT) throw new FileError(413, 'Text preview limit is 128 KiB.');
         const buffer = Buffer.alloc(MAX_TEXT + 1);
         const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
@@ -114,13 +118,15 @@ export async function handleHostFiles(req: ApiRequest): Promise<ApiResponse | nu
       const sourceHandle = await open(source, constants.O_RDONLY | (constants.O_NOFOLLOW || 0));
       let targetHandle: Awaited<ReturnType<typeof open>> | undefined;
       let bytesCopied = 0;
+      let temporaryOwned = false;
       try {
         const before = await sourceHandle.stat();
-        if (!before.isFile()) throw new FileError(422, 'Only regular files can be copied.');
+        if (!before.isFile() || before.nlink !== 1) throw new FileError(403, 'Only independent regular files can be copied.');
         if (before.size > MAX_COPY) throw new FileError(413, 'Copy limit is 32 MiB per file.');
         try {
           targetHandle = await open(temporary,
             constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | (constants.O_NOFOLLOW || 0), 0o600);
+          temporaryOwned = true;
         } catch (error: any) {
           if (error?.code === 'EEXIST')
             throw new FileError(503, 'Temporary copy name collision; retry after inspecting workspace.');
@@ -140,7 +146,7 @@ export async function handleHostFiles(req: ApiRequest): Promise<ApiResponse | nu
           }
         }
         const after = await sourceHandle.stat();
-        if (before.size !== bytesCopied || after.size !== bytesCopied ||
+        if (before.size !== bytesCopied || after.size !== bytesCopied || after.nlink !== 1 ||
             before.mtimeMs !== after.mtimeMs)
           throw new FileError(409, 'Source changed during copy; no destination was retained.');
         await targetHandle.sync();
@@ -155,7 +161,7 @@ export async function handleHostFiles(req: ApiRequest): Promise<ApiResponse | nu
       } finally {
         try { await targetHandle?.close(); }
         finally {
-          await unlink(temporary).catch(() => {});
+          if (temporaryOwned) await unlink(temporary).catch(() => {});
           await sourceHandle.close();
         }
       }
@@ -179,11 +185,27 @@ export async function handleHostFiles(req: ApiRequest): Promise<ApiResponse | nu
       const content = req.body?.content;
       if (typeof content !== 'string' || Buffer.byteLength(content, 'utf8') > MAX_TEXT)
         throw new FileError(413, 'New text content must be at most 128 KiB.');
-      let handle;
-      try { handle = await open(target, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | (constants.O_NOFOLLOW || 0), 0o600); }
-      catch (e: any) { if (e?.code === 'EEXIST') throw new FileError(409, 'Overwriting files is not allowed.'); throw e; }
-      try { await handle.writeFile(content, 'utf8'); await handle.sync(); }
-      finally { await handle.close(); }
+      // Write and fsync a private staging file before publishing its name.
+      // Never expose a partial text file or replace another operation's target.
+      const temporary = join(directory, '.centipede-create-' + randomBytes(16).toString('hex'));
+      let handle: Awaited<ReturnType<typeof open>> | undefined;
+      let temporaryOwned = false;
+      try {
+        handle = await open(temporary, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | (constants.O_NOFOLLOW || 0), 0o600);
+        temporaryOwned = true;
+        await handle.writeFile(content, 'utf8');
+        await handle.sync();
+        await handle.close();
+        handle = undefined;
+        try { await link(temporary, target); }
+        catch (e: any) {
+          if (e?.code === 'EEXIST' || e?.code === 'EISDIR') throw new FileError(409, 'Overwriting files is not allowed.');
+          throw e;
+        }
+      } finally {
+        try { await handle?.close(); }
+        finally { if (temporaryOwned) await unlink(temporary).catch(() => {}); }
+      }
       return { status: 201, data: { created: true, path: [...parents, name[0]].join('/') } };
     }
     return { status: 404, error: 'Unsupported Files operation.' };
