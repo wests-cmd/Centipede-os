@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { mkdtemp, readFile, rm, symlink, chmod, realpath, writeFile, truncate } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, symlink, chmod, realpath, writeFile, truncate, link, readdir } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -131,6 +131,31 @@ describe('Centipede local Files security', () => {
     expect((await request('create',{directory:'',name:'safe.txt',content:'override'})).status).toBe(409);
     expect(await readFile(join(root,'safe.txt'),'utf8')).toBe('original');
     expect((await request('create',{directory:'',name:'huge.txt',content:'x'.repeat(128*1024+1)})).status).toBe(413);
+  }, 30_000);
+  it('publishes one complete text file under simultaneous same-name creation', async () => {
+    const first = 'a'.repeat(12000);
+    const second = 'b'.repeat(12000);
+    const outcomes = await Promise.all([
+      request('create', {directory:'',name:'race.txt',content:first}),
+      request('create', {directory:'',name:'race.txt',content:second}),
+    ]);
+    expect(outcomes.map(x=>x.status).sort()).toEqual([201,409]);
+    expect(await readFile(join(root,'race.txt'),'utf8')).toBe(outcomes[0].status===201?first:second);
+    expect((await readdir(root)).sort()).toEqual(['race.txt']);
+  }, 30_000);
+  it('rejects reserved device paths and nonportable file names before disk access', async () => {
+    for (const name of ['CON','nul.txt','COM1','LPT9.log','COM¹.txt','bad?.txt','bad*.txt','bad|name','bad"name','bad<name']) {
+      expect((await request('create',{directory:'',name,content:'data'})).status).toBe(422);
+      expect((await request('mkdir',{directory:'',name})).status).toBe(422);
+    }
+    expect(await readdir(root)).toEqual([]);
+  }, 30_000);
+  it('refuses reading or copying multiply linked files with uncertain provenance', async () => {
+    await writeFile(join(root,'original.txt'),'private fixture');
+    await link(join(root,'original.txt'),join(root,'alias.txt'));
+    expect((await request('read',{path:'alias.txt'})).status).toBe(403);
+    expect((await request('copy',{path:'alias.txt',directory:'',name:'copy.txt'})).status).toBe(403);
+    expect((await readdir(root)).sort()).toEqual(['alias.txt','original.txt']);
   }, 30_000);
   it('revokes Files access immediately after owner locks', async () => {
     expect((await apiRouter.handleRequest({path:'/api/v1/kingdom/actions/lock',method:'POST',isLocalAdmin:true,
