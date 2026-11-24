@@ -38,7 +38,7 @@ export class TargetUpdateChecker {
     providedSha256: string
   ): CompatibilityGateResult {
     // 1. Architecture Check
-    if (targetMeta.architecture !== currentArchitecture && currentArchitecture !== 'any') {
+    if (targetMeta.architecture !== currentArchitecture && targetMeta.architecture !== 'any') {
       return { allowed: false, reason: `ARCHITECTURE_MISMATCH: Target artifact built for ${targetMeta.architecture}, current system is ${currentArchitecture}` };
     }
 
@@ -48,7 +48,7 @@ export class TargetUpdateChecker {
     }
 
     // 3. Kingdom Protocol Compatibility Check
-    if (targetMeta.requiredKingdomProtocol !== currentKingdomProtocol) {
+    if (!kingdomProtocolCompatible(targetMeta.requiredKingdomProtocol, currentKingdomProtocol)) {
       return { allowed: false, reason: `KINGDOM_PROTOCOL_INCOMPATIBLE: Update requires Kingdom protocol ${targetMeta.requiredKingdomProtocol}, current is ${currentKingdomProtocol}` };
     }
 
@@ -83,6 +83,19 @@ export class TargetUpdateChecker {
     }
     const latestRevision = targetInfo.revision;
     const latestCoreVersion = latestManifest.coreVersion;
+    // The canonical release manifest declares Kingdom compatibility under
+    // "kingdom.protocol"; never invent a fallback protocol for an untrusted
+    // or incomplete release manifest.
+    const protocol = latestManifest.kingdom?.protocol;
+    const architecture = targetInfo.architecture;
+    const expectedArtifact = typeof targetInfo.artifact === 'string'
+      ? targetInfo.artifact.replaceAll('{version}', latestCoreVersion) : null;
+    if (typeof protocol !== 'string' || !/^v[0-9]+\.[0-9]+\+?$/.test(protocol) ||
+        typeof architecture !== 'string' || !/^[A-Za-z0-9_/-]{1,32}$/.test(architecture) ||
+        targetArtifact.filename !== expectedArtifact ||
+        (targetArtifact.architecture !== undefined && targetArtifact.architecture !== architecture)) {
+      return { updateAvailable: false, isCoreUpdate: false, metadata: null };
+    }
     const latest = parseSemver(latestCoreVersion);
     const installed = parseSemver(parsedCurrent.coreVersion);
     if (!Number.isSafeInteger(latestRevision) || latestRevision < 1 || !latest || !installed) {
@@ -94,6 +107,17 @@ export class TargetUpdateChecker {
     const comparison = compareSemver(latest, installed);
     const isCoreUpdate = comparison > 0;
     const isTargetUpdate = comparison === 0 && latestRevision > parsedCurrent.revision;
+    if (!isCoreUpdate && !isTargetUpdate) {
+      return { updateAvailable: false, isCoreUpdate: false, metadata: null };
+    }
+    // A cross-core upgrade must explicitly declare the oldest supported
+    // *installed* core. Using the new core version as a default wrongly
+    // rejects all real upgrades (or tempts a caller to bypass the gate).
+    const minCoreVersion = isCoreUpdate ? targetInfo.minCoreVersion : latestCoreVersion;
+    const minCore = parseSemver(minCoreVersion);
+    if (!minCore || compareSemver(installed, minCore) < 0 || compareSemver(latest, minCore) < 0) {
+      return { updateAvailable: false, isCoreUpdate: false, metadata: null };
+    }
 
     const metadata: TargetUpdateMetadata = {
       target,
@@ -103,9 +127,9 @@ export class TargetUpdateChecker {
       artifact: targetArtifact.filename,
       sha256: targetArtifact.sha256,
       downloadLocation: `/release/${target}/${targetArtifact.filename}`,
-      minCoreVersion: latestCoreVersion,
-      requiredKingdomProtocol: latestManifest.protocol || 'v1.0+',
-      architecture: targetMetaArch(target),
+      minCoreVersion,
+      requiredKingdomProtocol: protocol,
+      architecture,
       releaseDate: latestManifest.buildTimestamp || new Date().toISOString(),
       mobileStoreUpdateRequired: target === 'android' || target === 'ios',
     };
@@ -118,15 +142,19 @@ export class TargetUpdateChecker {
   }
 }
 
-function targetMetaArch(target: TargetName): string {
-  switch (target) {
-    case 'android':
-      return 'arm64-v8a';
-    case 'ios':
-      return 'arm64';
-    default:
-      return 'x86_64';
-  }
+/** A release manifest may specify vMAJOR.MINOR+ (same major, at least MINOR)
+ * or an exact vMAJOR.MINOR. An observed runtime version is NEVER a range. */
+function kingdomProtocolCompatible(required: string, observed: string): boolean {
+  if (typeof required !== 'string' || typeof observed !== 'string') return false;
+  const expected = /^v(0|[1-9]\d*)\.(0|[1-9]\d*)(\+)?$/.exec(required);
+  const actual = /^v(0|[1-9]\d*)\.(0|[1-9]\d*)$/.exec(observed);
+  if (!expected || !actual) return false;
+  const [requiredMajor, requiredMinor, actualMajor, actualMinor] = [
+    Number(expected[1]), Number(expected[2]), Number(actual[1]), Number(actual[2]),
+  ];
+  if (![requiredMajor, requiredMinor, actualMajor, actualMinor].every(Number.isSafeInteger)) return false;
+  return requiredMajor === actualMajor &&
+    (expected[3] ? actualMinor >= requiredMinor : actualMinor === requiredMinor);
 }
 
 function parseSemver(v: string): [number, number, number] | null {

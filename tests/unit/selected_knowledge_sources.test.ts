@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { SelectedKnowledgeSources } from '../../src/server/selectedKnowledgeSources';
 import { handleSelectedKnowledgeRequest } from '../../src/server/selectedKnowledgeRoutes';
+import { handleKingdomAction, resetOwnerActionSessionsForTests } from '../../src/server/kingdomAction';
 
 const temporary: string[] = [];
 function fixture() {
@@ -12,21 +13,47 @@ function fixture() {
   const folder = join(root, 'selected'); mkdirSync(folder);
   return { folder, home: join(root, 'state') };
 }
-afterEach(() => temporary.splice(0).forEach(path => rmSync(path, { recursive: true, force: true })));
+const originalOwnerToken = process.env.KINGDOM_API_TOKEN;
+const originalKingdomURL = process.env.KINGDOM_API_URL;
+afterEach(() => {
+  temporary.splice(0).forEach(path => rmSync(path, { recursive: true, force: true }));
+  if (originalOwnerToken === undefined) delete process.env.KINGDOM_API_TOKEN;
+  else process.env.KINGDOM_API_TOKEN = originalOwnerToken;
+  if (originalKingdomURL === undefined) delete process.env.KINGDOM_API_URL;
+  else process.env.KINGDOM_API_URL = originalKingdomURL;
+  resetOwnerActionSessionsForTests();
+});
 
 describe('owner-selected knowledge sources', () => {
-  it('requires adapter-verified local administration before reading or changing sources', () => {
+  it('requires adapter-verified loopback AND an expiring owner session for all selected knowledge', async () => {
     const { folder, home } = fixture(); const sources = new SelectedKnowledgeSources(home);
     expect(handleSelectedKnowledgeRequest({ path: '/api/v1/knowledge/sources', method: 'POST',
       body: { root: folder, label: 'Notes' }, headers: { host: 'localhost', authorization: 'Bearer untrusted' },
       isLocalAdmin: false }, () => sources)).toMatchObject({ status: 403 });
-    expect(sources.list()).toEqual([]);
     expect(handleSelectedKnowledgeRequest({ path: '/api/v1/knowledge/sources', method: 'POST',
-      body: { root: folder, label: 'Notes', enabled: true }, isLocalAdmin: true }, () => sources)).toMatchObject({ status: 400 });
-    expect(handleSelectedKnowledgeRequest({ path: '/api/v1/knowledge/sources', method: 'POST',
-      body: { root: folder, label: 'Notes' }, isLocalAdmin: true }, () => sources)).toMatchObject({ status: 201 });
+      body: { root: folder, label: 'Notes' }, isLocalAdmin: true }, () => sources)).toMatchObject({ status: 401 });
     expect(handleSelectedKnowledgeRequest({ path: '/api/v1/knowledge/sources', method: 'GET',
-      isLocalAdmin: true }, () => sources)).toMatchObject({ status: 200, data: { sources: [{ label: 'Notes' }] } });
+      isLocalAdmin: true }, () => sources)).toMatchObject({ status: 401 });
+    expect(sources.list()).toEqual([]);
+    const ownerCode = 'selected-knowledge-owner-credential-over-thirty-two-characters';
+    process.env.KINGDOM_API_URL = 'http://127.0.0.1:8000';
+    process.env.KINGDOM_API_TOKEN = ownerCode;
+    const login = await handleKingdomAction({ path: '/api/v1/kingdom/actions/unlock',
+      method: 'POST', isLocalAdmin: true, body: { ownerCode },
+      headers: { 'x-centipede-owner-intent': '1' } });
+    expect(login?.status).toBe(200);
+    const headers = { 'x-centipede-owner-intent': '1',
+      'x-centipede-action-session': login?.data.sessionToken as string };
+    expect(handleSelectedKnowledgeRequest({ path: '/api/v1/knowledge/sources', method: 'POST',
+      body: { root: folder, label: 'Notes', enabled: true }, headers, isLocalAdmin: true }, () => sources)).toMatchObject({ status: 400 });
+    expect(handleSelectedKnowledgeRequest({ path: '/api/v1/knowledge/sources', method: 'POST',
+      body: { root: folder, label: 'Notes' }, headers, isLocalAdmin: true }, () => sources)).toMatchObject({ status: 201 });
+    expect(handleSelectedKnowledgeRequest({ path: '/api/v1/knowledge/sources', method: 'GET',
+      headers, isLocalAdmin: true }, () => sources)).toMatchObject({ status: 200, data: { sources: [{ label: 'Notes' }] } });
+    expect((await handleKingdomAction({ path: '/api/v1/kingdom/actions/lock', method: 'POST',
+      isLocalAdmin: true, headers, body: {} }))?.status).toBe(200);
+    expect(handleSelectedKnowledgeRequest({ path: '/api/v1/knowledge/sources', method: 'GET',
+      headers, isLocalAdmin: true }, () => sources)).toMatchObject({ status: 401 });
   });
   it('starts empty and resumes unchanged files with the same provenance after restart', () => {
     const { folder, home } = fixture(); writeFileSync(join(folder, 'note.md'), 'hello');

@@ -88,8 +88,8 @@ const serverOptions: ServerOptions = {
     const safePath = normalize(relativePath || 'index.html');
     if (safePath.startsWith('..') || safePath.includes(':')) return new Response('Not found', { status: 404 });
     const head = request.method === 'HEAD';
-    return await staticFile(join(webRoot, safePath), head)
-      || await staticFile(join(webRoot, 'index.html'), head)
+    return await staticFile(join(webRoot, safePath), head, webRoot)
+      || await staticFile(join(webRoot, 'index.html'), head, webRoot)
       || new Response('Centipede web build is missing. Run `bun run build` first.', { status: 503 });
   },
 };

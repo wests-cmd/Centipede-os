@@ -111,6 +111,15 @@ export class KingdomActions {
     if (!/^web_[a-f0-9]{16}$/.test(id)) throw new Error('Invalid browser routine ID.');
     await this.request('routines/delete', { id }, 'harness');
   }
+  /** Copies an existing regular file inside the confined, owner-only workspace. */
+  public async copyHostFile(path: string, directory: string, name: string): Promise<{ path: string; size: number }> {
+    if (!this.isUnlocked()) throw new Error('Unlock owner actions to copy local files.');
+    const result = await this.request('copy', { path, directory, name }, 'files');
+    if (result?.copied !== true || typeof result.path !== 'string' ||
+        typeof result.size !== 'number' || !Number.isSafeInteger(result.size))
+      throw new Error('File copy did not return a verified copy receipt.');
+    return { path: result.path, size: result.size };
+  }
   /** Acknowledge one verified hash-change alert; never starts another task. */
   public async harnessAcknowledgeAlert(runId: string): Promise<void> {
     if (!this.isUnlocked()) throw new Error('Unlock the local owner session to acknowledge background alerts.');
