@@ -86,6 +86,27 @@ describe('owner-verified local Kingdom task channel', () => {
     process.env.KINGDOM_API_TOKEN = 'rotated-secret-this-is-at-least-32-characters';
     expect((await request('tasks', { prompt: 'audit' }, h)).status).toBe(401);
   });
+  it('invalidates owner sessions on Kingdom endpoint changes, including other owner brokers', async () => {
+    const login = await unlock();
+    const headers = { 'x-centipede-action-session': login.data.sessionToken };
+    const upstream = vi.fn();
+    globalThis.fetch = upstream as typeof fetch;
+    process.env.KINGDOM_API_URL = 'https://other-kingdom.internal:8000';
+    expect((await request('tasks', {prompt:'audit'}, headers)).status).toBe(401);
+    expect((await apiRouter.handleRequest({path:'/api/v1/host-files/list',method:'POST',isLocalAdmin:true,
+      body:{directory:''},headers:{...headers,'x-centipede-owner-intent':'1'}})).status).toBe(401);
+    expect(upstream).not.toHaveBeenCalled();
+  });
+  it('rejects mismatched cancellation receipts and invalid task status values', async () => {
+    const login = await unlock();
+    const h = { 'x-centipede-action-session': login.data.sessionToken };
+    for (const receipt of [{id:'other',status:'cancelled'}, {id:'target',status:'invented'}]) {
+      globalThis.fetch = vi.fn(async () => Response.json(receipt)) as typeof fetch;
+      expect((await request('tasks/target/cancel', {}, h)).status).toBe(502);
+    }
+    globalThis.fetch = vi.fn(async () => Response.json({id:'target',status:'cancelled'})) as typeof fetch;
+    expect((await request('tasks/target/cancel', {}, h)).data).toMatchObject({id:'target',status:'cancelled'});
+  });
   it('client does not allow task submission until unlocked and sends no code in subsequent tasks', async () => {
     const client = new KingdomActions();
     await expect(client.submitTask('task')).rejects.toThrow('Unlock');

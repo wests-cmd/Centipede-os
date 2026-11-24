@@ -15,7 +15,7 @@ describe('Centipede read-only Kingdom proxy', () => {
   });
 
   it('keeps upstream credentials server-side and proxies only an allowlisted local read', async () => {
-    process.env.KINGDOM_API_URL = 'http://kingdom.internal:8000';
+    process.env.KINGDOM_API_URL = 'https://kingdom.internal:8000';
     process.env.KINGDOM_API_TOKEN = 'test-owner-token';
     const calls: Array<[RequestInfo | URL, RequestInit | undefined]> = [];
     globalThis.fetch = (async (input, init) => {
@@ -30,13 +30,26 @@ describe('Centipede read-only Kingdom proxy', () => {
     expect(response).toEqual({ status: 200, data: { version: 'v1TAS', running: false } });
     expect(calls.length).toBe(1);
     const [url, options] = calls[0];
-    expect(String(url)).toBe('http://kingdom.internal:8000/status?details=1');
+    expect(String(url)).toBe('https://kingdom.internal:8000/status?details=1');
     expect((options?.headers as Record<string, string>).Authorization).toBe('Bearer test-owner-token');
     expect(options?.redirect).toBe('error');
   });
 
+  it('never sends the read bearer over remote plaintext, even on Docker or private LAN', async () => {
+    process.env.KINGDOM_API_TOKEN = 'test-owner-token';
+    let calls = 0;
+    globalThis.fetch = (async () => { calls++; return Response.json({running:false}); }) as typeof fetch;
+    for (const url of ['http://kingdom.internal:8000', 'http://192.168.1.5:8000', 'http://host.docker.internal:8000', 'https://user:password@kingdom.internal:8000']) {
+      process.env.KINGDOM_API_URL = url;
+      expect((await apiRouter.handleRequest({path:'/api/v1/kingdom/status',method:'GET',isLocalAdmin:true})).status).toBe(503);
+    }
+    expect(calls).toBe(0);
+    process.env.KINGDOM_API_URL = 'http://127.0.0.1:8000';
+    expect((await apiRouter.handleRequest({path:'/api/v1/kingdom/status',method:'GET',isLocalAdmin:true})).status).toBe(200);
+    expect(calls).toBe(1);
+  });
   it('exposes only authorized local reads of real Kingdom skills', async () => {
-    process.env.KINGDOM_API_URL = 'http://kingdom.internal:8000';
+    process.env.KINGDOM_API_URL = 'https://kingdom.internal:8000';
     process.env.KINGDOM_API_TOKEN = 'test-owner-token';
     const calls: string[] = [];
     globalThis.fetch = (async input => {
@@ -46,14 +59,14 @@ describe('Centipede read-only Kingdom proxy', () => {
     const result = await apiRouter.handleRequest({path: '/api/v1/kingdom/skills', method: 'GET', isLocalAdmin: true});
     expect(result.status).toBe(200);
     expect(result.data?.[0].state).toBe('INSTALLED');
-    expect(calls).toEqual(['http://kingdom.internal:8000/skills']);
+    expect(calls).toEqual(['https://kingdom.internal:8000/skills']);
     expect((await apiRouter.handleRequest({path: '/api/v1/kingdom/skills', method: 'POST', isLocalAdmin: true})).status).toBe(405);
     expect((await apiRouter.handleRequest({path: '/api/v1/kingdom/skills', method: 'GET', isLocalAdmin: false})).status).toBe(403);
     expect(calls).toHaveLength(1);
   });
 
   it('denies remote requests, write methods, and paths outside the read-only contract', async () => {
-    process.env.KINGDOM_API_URL = 'http://kingdom.internal:8000';
+    process.env.KINGDOM_API_URL = 'https://kingdom.internal:8000';
     process.env.KINGDOM_API_TOKEN = 'test-owner-token';
     let called = false;
     globalThis.fetch = (async () => { called = true; throw new Error('must not be called'); }) as typeof fetch;
@@ -69,7 +82,7 @@ describe('Centipede read-only Kingdom proxy', () => {
   });
 
   it('fails truthfully when credentials are absent and sanitizes upstream authentication errors', async () => {
-    process.env.KINGDOM_API_URL = 'http://kingdom.internal:8000';
+    process.env.KINGDOM_API_URL = 'https://kingdom.internal:8000';
     process.env.KINGDOM_API_TOKEN = '';
     const unconfigured = await apiRouter.handleRequest({ path: '/api/v1/kingdom/status', method: 'GET', isLocalAdmin: true });
     expect(unconfigured.status).toBe(503);
@@ -81,7 +94,7 @@ describe('Centipede read-only Kingdom proxy', () => {
   });
 
   it('rejects oversized streamed responses without buffering them whole', async () => {
-    process.env.KINGDOM_API_URL = 'http://kingdom.internal:8000';
+    process.env.KINGDOM_API_URL = 'https://kingdom.internal:8000';
     process.env.KINGDOM_API_TOKEN = 'test-owner-token';
     globalThis.fetch = (async () => new Response(new ReadableStream({
       start(controller) {
@@ -97,7 +110,7 @@ describe('Centipede read-only Kingdom proxy', () => {
   });
 
   it('projects optional observations without forwarding prompts, names or node configuration', async () => {
-    process.env.KINGDOM_API_URL = 'http://kingdom.internal:8000';
+    process.env.KINGDOM_API_URL = 'https://kingdom.internal:8000';
     process.env.KINGDOM_API_TOKEN = 'test-owner-token';
     const now = Date.now() / 1000;
     globalThis.fetch = (async () => new Response(JSON.stringify({ state: 'observed', observed_at: now,
@@ -126,7 +139,7 @@ describe('Centipede read-only Kingdom proxy', () => {
   });
 
   it('allows only projected fleet/service reads and preserves old-backend 404', async () => {
-    process.env.KINGDOM_API_URL = 'http://kingdom.internal:8000';
+    process.env.KINGDOM_API_URL = 'https://kingdom.internal:8000';
     process.env.KINGDOM_API_TOKEN = 'test-owner-token';
     const now = Date.now() / 1000;
     const fixtures = [
@@ -135,7 +148,7 @@ describe('Centipede read-only Kingdom proxy', () => {
     ] as const;
     for (const [path, fixture] of fixtures) {
       globalThis.fetch = (async (input, init) => {
-        expect(String(input)).toBe('http://kingdom.internal:8000' + path);
+        expect(String(input)).toBe('https://kingdom.internal:8000' + path);
         expect(init?.method).toBe('GET');
         return new Response(JSON.stringify(fixture), { headers: { Date: new Date(now * 1000).toUTCString() } });
       }) as typeof fetch;
@@ -150,7 +163,7 @@ describe('Centipede read-only Kingdom proxy', () => {
   });
 
   it('uses the upstream HTTP clock for local reads and reports missing clock evidence as unavailable', async () => {
-    process.env.KINGDOM_API_URL = 'http://kingdom.internal:8000';
+    process.env.KINGDOM_API_URL = 'https://kingdom.internal:8000';
     process.env.KINGDOM_API_TOKEN = 'test-owner-token';
     const upstreamNow = Date.now() / 1000 + 128;
     const body = JSON.stringify({ state: 'observed', observed_at: upstreamNow, jobs: [] });
