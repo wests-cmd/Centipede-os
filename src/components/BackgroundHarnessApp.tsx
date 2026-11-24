@@ -22,12 +22,21 @@ interface BrowserRun {
   summary: string;
   sha256: string | null;
 }
+interface BrowserChangeAlert {
+  run_id: string;
+  routine_id: string;
+  created: number;
+  previous_digest: string;
+  current_digest: string;
+}
 interface WorkerStatus {
   scope: 'isolated-headless-browser-only';
   enabled: boolean;
   paused: boolean;
   routines: BrowserRoutine[];
   runs: BrowserRun[];
+  needsAttention?: BrowserChangeAlert[];
+  attentionCount?: number;
   limits: { maxConcurrent: number; maxJobSeconds: number; maxSteps: number; minIntervalSeconds: number };
   browserIsolation: string;
   machineOffPolicy: string;
@@ -116,12 +125,23 @@ export const BackgroundHarnessApp: React.FC = () => {
     } finally { setBusy(false); }
   };
 
+  const acknowledgeAlert = async (runId: string) => {
+    if (!unlocked || busy) return;
+    setBusy(true); setMessage(''); setError('');
+    try {
+      await kingdomActions.harnessAcknowledgeAlert(runId);
+      setMessage('Change alert acknowledged. The approved routine remains scheduled.');
+      await refresh();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Alert acknowledgement was rejected.'); }
+    finally { setBusy(false); }
+  };
+
   const deleteRoutine = async (id: string) => {
-    if (!unlocked || busy || !window.confirm('Remove this approved routine? Its existing receipts will remain.')) return;
+    if (!unlocked || busy || !window.confirm('Remove this approved routine and request cancellation of its active run? Existing receipts remain.')) return;
     setBusy(true);
     try {
       await kingdomActions.harnessDeleteRoutine(id);
-      setMessage('Routine removed; no new runs will be scheduled for it.');
+      setMessage('Routine removed; active work is being cancelled and no new runs will be scheduled.');
       await refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Routine removal rejected.');
@@ -250,6 +270,26 @@ export const BackgroundHarnessApp: React.FC = () => {
             </div>
             <button type="button" disabled={!unlocked || busy} onClick={() => void deleteRoutine(routine.id)}
               className="rounded-lg border border-red-800 px-3 py-2 text-xs text-red-300 disabled:opacity-40">Remove</button>
+          </article>)}
+    </section>
+
+    <section aria-label="Needs attention" className="rounded-xl border border-blue-900 bg-slate-900/70 p-4 space-y-3">
+      <h3 className="flex items-center gap-2 text-lg font-semibold">
+        <AlertTriangle aria-hidden="true" className="h-5 w-5 text-blue-300"/>
+        Needs attention ({data?.attentionCount ?? 'unknown'})
+      </h3>
+      <p className="text-xs text-slate-400">This is a bounded, hash-only record of changes on sites you approved. The first observation establishes a baseline; website text cannot grant permissions or start a new action.</p>
+      {!data ? <p className="text-sm text-slate-400">Worker status unavailable. No alerts can be verified.</p> :
+        !data.needsAttention ? <p className="text-sm text-slate-400">This worker version has no verified change-alert feed.</p> :
+        data.needsAttention.length === 0 ? <p className="text-sm text-slate-400">No unacknowledged page changes recorded.</p> :
+          data.needsAttention.map(alert => <article key={alert.run_id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-950/60 p-3">
+            <div className="min-w-0 space-y-1">
+              <p className="text-sm font-semibold text-blue-200">Approved page changed</p>
+              <p className="break-all text-xs text-slate-300">Routine {alert.routine_id} · {shortDate(alert.created)}</p>
+              <p className="break-all text-xs text-slate-400">Prior digest: {alert.previous_digest.slice(0,12)}… · New digest: {alert.current_digest.slice(0,12)}…</p>
+            </div>
+            <button type="button" disabled={!unlocked || busy} onClick={() => void acknowledgeAlert(alert.run_id)}
+              className="rounded-lg border border-blue-700 px-3 py-2 text-xs text-blue-200 disabled:opacity-40">Acknowledge</button>
           </article>)}
     </section>
 

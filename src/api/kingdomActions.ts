@@ -120,6 +120,14 @@ export class KingdomActions {
       throw new Error('File copy did not return a verified copy receipt.');
     return { path: result.path, size: result.size };
   }
+  /** Acknowledge one verified hash-change alert; never starts another task. */
+  public async harnessAcknowledgeAlert(runId: string): Promise<void> {
+    if (!this.isUnlocked()) throw new Error('Unlock the local owner session to acknowledge background alerts.');
+    if (!/^run_[0-9a-f]{24}$/.test(runId)) throw new Error('Invalid background alert run ID.');
+    const data = await this.request('alerts/ack', { runId }, 'harness');
+    if (data?.acknowledged !== true || data?.runId !== runId)
+      throw new Error('Background worker did not confirm alert acknowledgement.');
+  }
   public async cancelTask(id: string): Promise<TaskItem> {
     if (!this.isUnlocked()) throw new Error('Unlock the Kingdom owner session to cancel a task.');
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(id)) throw new Error('Invalid Kingdom task ID.');

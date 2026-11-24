@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { spawn, ChildProcess } from 'child_process';
+import type { ChildProcess } from 'child_process';
 import { startKingdomFixture } from '../fixtures/kingdomFixtureProcess';
 import { KingdomAdapter } from '../../src/api/kingdomAdapter';
 
@@ -9,17 +9,25 @@ describe('Kingdom Docker & HTTP Server Integration Test Suite', () => {
   const TEST_PORT = '8088';
 
   beforeAll(async () => {
-    serverProcess = await startKingdomFixture(TEST_PORT);
-
-    adapter = new KingdomAdapter(`http://localhost:${TEST_PORT}`);
-
-    // Register test node
-    await fetch(`http://localhost:${TEST_PORT}/nodes/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nodeId: 'commander-1', name: 'commander-1', role: 'COMMANDER' }),
-    });
-  });
+    // The shared readiness helper polls the real Python HTTP socket until it
+    // responds (up to its own bounded limit). Windows cold-start plus heavily
+    // concurrent tests can legitimately exceed Vitest's default 5s hook.
+    // Do not skip readiness or assume a timer means the service is healthy.
+    try {
+      serverProcess = await startKingdomFixture(TEST_PORT);
+      adapter = new KingdomAdapter(`http://localhost:${TEST_PORT}`);
+      const registered = await fetch(`http://localhost:${TEST_PORT}/nodes/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nodeId: 'commander-1', name: 'commander-1', role: 'COMMANDER' }),
+        signal: AbortSignal.timeout(4000),
+      });
+      expect(registered.ok).toBe(true);
+    } catch (error) {
+      serverProcess?.kill('SIGTERM');
+      throw error;
+    }
+  }, 25_000);
 
   afterAll(() => {
     if (serverProcess) {

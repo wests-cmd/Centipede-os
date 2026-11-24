@@ -141,22 +141,22 @@ class Harness:
                 if job:
                     summary, digest, screenshot = self.runner(
                         job, self.state_dir,
-                        lambda: self.stopping.is_set() or not self.store.status()["enabled"] or
-                        self.store.status()["paused"]
+                        lambda: self.stopping.is_set() or self.store.run_should_stop(job["runId"])
                     )
-                    self.store.complete_run(
-                        job["runId"], outcome="completed", summary=summary,
-                        sha256=digest, screenshot=screenshot
-                    )
+                    if self.stopping.is_set():
+                        self.store.complete_run(job["runId"], outcome="interrupted",
+                                                summary="Worker shutting down; outcome unknown.")
+                    else:
+                        self.store.complete_run(
+                            job["runId"], outcome="completed", summary=summary,
+                            sha256=digest, screenshot=screenshot
+                        )
             except Exception as error:
                 # Untrusted site content and exception bodies are never used as
                 # instructions. Avoid logging visited URL, selectors or secrets.
                 if job:
                     try:
-                        current = self.store.status()
-                        interrupted = (
-                            self.stopping.is_set() or not current["enabled"] or current["paused"]
-                        )
+                        interrupted = self.stopping.is_set() or self.store.run_should_stop(job["runId"])
                         self.store.complete_run(
                             job["runId"], outcome="interrupted" if interrupted else "failed",
                             summary="Browser run stopped or failed; remote outcome unknown, no automatic replay.",
@@ -181,6 +181,10 @@ def handle_api(method: str, path: str, body: object, store: HarnessStore) -> tup
             return 422, {"error": "Only a routine ID may be supplied."}
         store.delete_routine(body["id"])
         return 200, {"deleted": True}
+    if method == "POST" and path == "/v1/alerts/ack":
+        if not isinstance(body, dict) or set(body) != {"runId"}:
+            return 422, {"error": "Only the verified alert receipt ID may be acknowledged."}
+        return 200, store.acknowledge_alert(body["runId"])
     return 404, {"error": "Unknown harness endpoint."}
 
 

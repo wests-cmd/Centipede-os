@@ -22,6 +22,7 @@ MIN_INTERVAL = 900
 MAX_INTERVAL = 604800
 MAX_STEPS = 5
 MAX_RUNS = 200
+MAX_ALERTS = 100  # bounded change notifications; never store page content
 MAX_SCREENSHOTS = 20  # 20 * 2 MiB max browser screenshot = at most 40 MiB
 MAX_ROUTINES = 20
 MAX_SELECTOR = 180
@@ -132,10 +133,20 @@ class HarnessStore:
           CREATE TABLE IF NOT EXISTS runs (
             id TEXT PRIMARY KEY, routine_id TEXT NOT NULL, started INTEGER NOT NULL,
             completed INTEGER, state TEXT NOT NULL, summary TEXT NOT NULL DEFAULT '',
-            sha256 TEXT, screenshot TEXT
+            sha256 TEXT, screenshot TEXT,
+            cancel_requested INTEGER NOT NULL DEFAULT 0
+          );
+          CREATE TABLE IF NOT EXISTS alerts (
+            run_id TEXT PRIMARY KEY, routine_id TEXT NOT NULL, created INTEGER NOT NULL,
+            previous_digest TEXT NOT NULL, current_digest TEXT NOT NULL,
+            acknowledged INTEGER NOT NULL DEFAULT 0
           );
         """)
         with self.connection:
+            # Existing worker databases retain receipts across the upgrade.
+            columns = {row["name"] for row in self.connection.execute("PRAGMA table_info(runs)")}
+            if "cancel_requested" not in columns:
+                self.connection.execute("ALTER TABLE runs ADD COLUMN cancel_requested INTEGER NOT NULL DEFAULT 0")
             self.connection.execute("INSERT OR IGNORE INTO settings VALUES ('enabled','0')")
             self.connection.execute("INSERT OR IGNORE INTO settings VALUES ('paused','0')")
             self.connection.execute("UPDATE runs SET state='interrupted', completed=?, summary=? WHERE state='running'",
@@ -182,6 +193,13 @@ class HarnessStore:
                 "SELECT id,routine_id,started,completed,state,summary,sha256 "
                 "FROM runs ORDER BY started DESC, id DESC LIMIT 20"
             ).fetchall()
+            alerts = self.connection.execute(
+                "SELECT run_id,routine_id,created,previous_digest,current_digest "
+                "FROM alerts WHERE acknowledged=0 ORDER BY created DESC,run_id DESC LIMIT 20"
+            ).fetchall()
+            pending_count = self.connection.execute(
+                "SELECT count(*) FROM alerts WHERE acknowledged=0"
+            ).fetchone()[0]
             return {
                 "scope": "isolated-headless-browser-only",
                 "enabled": self._setting("enabled"),
@@ -192,6 +210,8 @@ class HarnessStore:
                            "maxStoredScreenshots": MAX_SCREENSHOTS},
                 "routines": [dict(r) for r in rows],
                 "runs": [dict(r) for r in runs],
+                "needsAttention": [dict(r) for r in alerts],
+                "attentionCount": pending_count,
                 "browserIsolation": "New browser context per run; no host desktop or login profile.",
                 "machineOffPolicy": "Stops when this worker host is powered off; resumes when it starts.",
             }
@@ -203,6 +223,8 @@ class HarnessStore:
             key = "paused" if action in ("pause", "resume") else "enabled"
             value = "1" if action in ("enable", "pause") else "0"
             self.connection.execute("UPDATE settings SET value=? WHERE key=?", (value, key))
+            if action in {"pause", "disable"}:
+                self.connection.execute("UPDATE runs SET cancel_requested=1 WHERE state='running'")
         return self.status()
 
     def add_routine(self, payload: dict, *, resolve_dns: bool = True) -> dict:
@@ -224,7 +246,33 @@ class HarnessStore:
         if not isinstance(routine_id, str) or not SAFE_ID.fullmatch(routine_id):
             raise PolicyError("Invalid routine ID.")
         with self.lock, self.connection:
+            self.connection.execute(
+                "UPDATE runs SET cancel_requested=1 WHERE routine_id=? AND state='running'", (routine_id,)
+            )
             self.connection.execute("DELETE FROM routines WHERE id=?", (routine_id,))
+
+    def acknowledge_alert(self, run_id: str) -> dict:
+        if not isinstance(run_id, str) or not re.fullmatch(r"run_[0-9a-f]{24}", run_id):
+            raise PolicyError("Invalid background alert receipt ID.")
+        with self.lock, self.connection:
+            updated = self.connection.execute(
+                "UPDATE alerts SET acknowledged=1 WHERE run_id=? AND acknowledged=0",
+                (run_id,)
+            )
+            if updated.rowcount != 1:
+                raise PolicyError("This change alert was already acknowledged or does not exist.")
+        return {"acknowledged": True, "runId": run_id}
+
+    def run_should_stop(self, run_id: str) -> bool:
+        """A revocation is sticky for a claimed run, even after a quick resume."""
+        with self.lock:
+            row = self.connection.execute(
+                "SELECT runs.cancel_requested, routines.enabled AS routine_enabled "
+                "FROM runs LEFT JOIN routines ON routines.id=runs.routine_id "
+                "WHERE runs.id=? AND runs.state='running'", (run_id,)
+            ).fetchone()
+            return (row is None or bool(row["cancel_requested"]) or row["routine_enabled"] != 1
+                    or not self._setting("enabled") or self._setting("paused"))
 
     def claim_due(self, *, now: int | None = None) -> dict | None:
         now = now if now is not None else int(time.time())
@@ -260,19 +308,43 @@ class HarnessStore:
             summary = summary[:400]
         if screenshot is not None and screenshot != run_id + ".png":
             raise PolicyError("Screenshot receipt filename must match its run ID.")
+        if sha256 is not None and not re.fullmatch(r"[0-9a-f]{64}", sha256):
+            raise PolicyError("Invalid verified page digest.")
         with self.lock, self.connection:
             current = self.connection.execute(
                 "SELECT routine_id FROM runs WHERE id=? AND state='running'", (run_id,)
             ).fetchone()
             if not current:
                 raise PolicyError("Run is not active; duplicate completion rejected.")
+            # The lock spans this check and receipt commit. A late reply cannot
+            # restore authority after the owner revoked the run.
+            if self.run_should_stop(run_id):
+                outcome, summary = "interrupted", "Owner revoked this run; outcome unknown, no automatic replay."
+                sha256, screenshot = None, None
             self.connection.execute(
                 "UPDATE runs SET completed=?, state=?, summary=?, sha256=?, screenshot=? WHERE id=?",
                 (int(time.time()), outcome, summary, sha256, screenshot, run_id),
             )
             if outcome == "completed" and sha256:
+                prior = self.connection.execute(
+                    "SELECT last_digest FROM routines WHERE id=?", (current["routine_id"],)
+                ).fetchone()
+                # First observation establishes a baseline, not an alarm.
+                # Unchanged pages create no notifications. Hash-only data is
+                # deliberately independent of webpage instructions.
+                if prior and prior["last_digest"] and prior["last_digest"] != sha256:
+                    self.connection.execute(
+                        "INSERT OR IGNORE INTO alerts "
+                        "(run_id,routine_id,created,previous_digest,current_digest) VALUES (?,?,?,?,?)",
+                        (run_id, current["routine_id"], int(time.time()), prior["last_digest"], sha256)
+                    )
                 self.connection.execute(
                     "UPDATE routines SET last_digest=? WHERE id=?", (sha256, current["routine_id"])
+                )
+                self.connection.execute(
+                    "DELETE FROM alerts WHERE run_id NOT IN "
+                    "(SELECT run_id FROM alerts ORDER BY created DESC,run_id DESC LIMIT ?)",
+                    (MAX_ALERTS,)
                 )
             # Keep a bounded audit history and explicitly prune old images.
             self.connection.execute(
