@@ -70,6 +70,45 @@ export class KingdomActions {
       }); } catch { /* Memory-only credential was already discarded. */ }
     }
   }
+  /** Owner-gated local mobile administration. Pair confirmation stays a separate code-only endpoint. */
+  private async mobileOwnerRequest(path: 'devices' | 'pair/initiate' | 'revoke',
+                                   method: 'GET' | 'POST', payload?: object): Promise<any> {
+    if (!this.isUnlocked()) throw new Error('Unlock the local owner session on this computer to manage mobile devices.');
+    const response = await fetch('/api/v1/mobile/' + path, {
+      method,
+      headers: {
+        'X-Centipede-Owner-Intent': '1',
+        'X-Centipede-Action-Session': this.token!,
+        ...(payload ? { 'Content-Type': 'application/json' } : {}),
+      },
+      ...(payload ? { body: JSON.stringify(payload) } : {}),
+      signal: AbortSignal.timeout(10_000),
+    });
+    let data: any;
+    try { data = await response.json(); } catch { data = {}; }
+    if (!response.ok) {
+      if (response.status === 401) { this.token = null; this.expiresAt = 0; this.notify(); }
+      throw new Error(typeof data.error === 'string' ? data.error : `Device administration was rejected (HTTP ${response.status}).`);
+    }
+    return data;
+  }
+  public async listPairedDevices(): Promise<{ devices: any[] }> {
+    const data = await this.mobileOwnerRequest('devices', 'GET');
+    if (!Array.isArray(data?.devices)) throw new Error('Device list response was invalid.');
+    return data;
+  }
+  public async createMobilePairingCode(): Promise<{ deviceId: string; pairingCode: string; qrData: string }> {
+    const data = await this.mobileOwnerRequest('pair/initiate', 'POST', { deviceName: 'Mobile Companion' });
+    if (typeof data?.deviceId !== 'string' || !/^\d{6}$/.test(data.pairingCode) ||
+        typeof data?.qrData !== 'string') throw new Error('Pairing service returned an invalid code.');
+    return data;
+  }
+  public async revokeMobileDevice(deviceId: string): Promise<boolean> {
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(deviceId)) throw new Error('Invalid device ID.');
+    const data = await this.mobileOwnerRequest('revoke', 'POST', { deviceId });
+    if (typeof data?.revoked !== 'boolean') throw new Error('Device revocation was not confirmed.');
+    return data.revoked;
+  }
   public async submitTask(prompt: string): Promise<TaskItem> {
     if (!this.isUnlocked()) throw new Error('Unlock the Kingdom owner session on this computer before submitting tasks.');
     const task = await this.request('tasks', { prompt });

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { TrustedDevice } from '../security/deviceTrust';
+import { kingdomActions } from '../api/kingdomActions';
+import { KingdomActionUnlock } from './KingdomActionUnlock';
 import { contentIngestionPipeline, IngestedContent } from '../ingest/pipeline';
 import { QrCode, Smartphone, ShieldCheck, Key, UploadCloud, Camera, RefreshCw, AlertTriangle } from 'lucide-react';
 
@@ -9,17 +11,17 @@ export const MobileCompanionApp: React.FC = () => {
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [pairedDevices, setPairedDevices] = useState<TrustedDevice[]>([]);
   const [canManageDevices, setCanManageDevices] = useState(false);
+  const [ownerUnlocked, setOwnerUnlocked] = useState(kingdomActions.isUnlocked());
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [pasteText, setPasteText] = useState<string>('');
   const [ingestionResult, setIngestionResult] = useState<IngestedContent | null>(null);
 
   const refreshDevices = async () => {
     try {
-      const response = await fetch('/api/v1/mobile/devices');
-      if (!response.ok) throw new Error('Device management is available only when Centipede confirms this connection comes from the host computer.');
-      const data = await response.json();
+      const data = await kingdomActions.listPairedDevices();
       setPairedDevices(data.devices || []);
       setCanManageDevices(true);
+      setStatusMessage('');
     } catch (error) {
       setCanManageDevices(false);
       setPairedDevices([]);
@@ -27,26 +29,35 @@ export const MobileCompanionApp: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    refreshDevices();
-  }, []);
+  useEffect(() => kingdomActions.subscribe(unlocked => {
+    setOwnerUnlocked(unlocked);
+    if (unlocked) void refreshDevices();
+    else { setCanManageDevices(false); setPairedDevices([]); }
+  }), []);
 
   const handleInitiatePairing = async () => {
     try {
-      const response = await fetch('/api/v1/mobile/pair/initiate', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deviceName: 'Mobile Companion', endpoint: window.location.origin }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Could not start pairing.');
+      const data = await kingdomActions.createMobilePairingCode();
       setPairingData(data);
-      setStatusMessage('Pairing code created by the Centipede service. On your phone, open its address and enter this code.');
+      const advertised = JSON.parse(data.qrData).centipedeEndpoint as string;
+      const remoteInsecure = advertised.startsWith('http://') &&
+        !/^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?\/?$/i.test(advertised);
+      setStatusMessage(remoteInsecure
+        ? 'Pairing code is local-preview only. Remote phone pairing over plaintext HTTP is blocked; configure authenticated HTTPS before using this address.'
+        : 'Pairing code created. Open the secure Centipede address on your phone and enter this code.');
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : 'Could not reach the Centipede pairing service.');
     }
   };
 
   const handleConfirmPairing = async () => {
+    // Do not send a pairing PIN or request its bearer token from an insecure
+    // off-device web page. The server independently enforces this boundary.
+    if (window.location.protocol !== 'https:' &&
+        !['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)) {
+      setStatusMessage('Remote phone pairing requires authenticated HTTPS. Plain HTTP is only permitted on the Centipede host.');
+      return;
+    }
     try {
       const response = await fetch('/api/v1/mobile/pair/confirm', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -58,18 +69,21 @@ export const MobileCompanionApp: React.FC = () => {
       setStatusMessage('This phone is paired with the Centipede service.');
       setPairingData(null);
       setConfirmCode('');
-      await refreshDevices();
+      // A paired phone is NOT a local owner: do not request the privileged
+      // inventory after successfully confirming a single-use pairing code.
+      // Keep the success receipt visible instead of replacing it with a 401.
+      if (kingdomActions.isUnlocked()) await refreshDevices();
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : 'Could not reach the Centipede pairing service.');
     }
   };
 
   const handleRevokeDevice = async (deviceId: string) => {
-    const response = await fetch('/api/v1/mobile/revoke', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ deviceId }),
-    });
-    if (!response.ok) {
-      setStatusMessage('Could not revoke this device. Open Centipede on the desktop to manage trusted devices.');
+    try {
+      const revoked = await kingdomActions.revokeMobileDevice(deviceId);
+      if (!revoked) throw new Error('Device revocation was not confirmed.');
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Device revocation was rejected.');
       return;
     }
     setStatusMessage(`Device "${deviceId}" access revoked.`);
@@ -103,7 +117,7 @@ export const MobileCompanionApp: React.FC = () => {
           <div>
             <h2 className="text-xl font-bold text-white sm:text-2xl">Mobile Companion</h2>
             <p className="text-xs text-slate-400 mt-1">
-              Connect a phone browser to this Centipede service on the same trusted network. Native Android and iOS apps are not included yet.
+              Connect a phone browser to this Centipede service only through authenticated HTTPS. Plain HTTP is a localhost-only preview; same-Wi-Fi networking does not make token exchange secure. Native Android and iOS apps are not included yet.
             </p>
           </div>
         </div>
@@ -118,6 +132,12 @@ export const MobileCompanionApp: React.FC = () => {
           </button>
         )}
       </div>
+
+      <section aria-label="Desktop device administration" className="rounded-xl border border-slate-700 bg-slate-900/80 p-4 space-y-2">
+        <p className="text-sm text-slate-200">Creating pairing codes, viewing devices and revoking them requires an unlocked owner session on the Centipede host. A phone only needs the one-time pairing code to connect.</p>
+        <KingdomActionUnlock />
+        {!ownerUnlocked && <p role="status" className="text-xs text-amber-300">Owner administration locked. Unlock on the host computer before creating a pairing code.</p>}
+      </section>
 
       {statusMessage && (
         <div className="bg-blue-950/80 border border-blue-500/40 text-blue-200 px-4 py-3 rounded-xl text-xs flex items-center justify-between">
@@ -161,7 +181,7 @@ export const MobileCompanionApp: React.FC = () => {
 
       <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-5">
         <label className="text-sm font-semibold text-white">Join this Centipede from your phone</label>
-        <p className="mt-1 text-xs text-slate-400">Create a code on the desktop, open the address shown there on your phone, then enter that code here.</p>
+        <p className="mt-1 text-xs text-slate-400">Create a code on the desktop. On a different phone, use a verified HTTPS address; ordinary LAN HTTP pairing is blocked to protect your identity token.</p>
         <div className="mt-3 flex gap-2">
           <input type="text" inputMode="numeric" maxLength={6} value={confirmCode} onChange={(e) => setConfirmCode(e.target.value.replace(/\D/g, ''))} placeholder="6-digit code" aria-label="Pairing code" className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-white focus:border-cyan-500 focus:outline-none" />
           <button onClick={() => void handleConfirmPairing()} disabled={confirmCode.length !== 6} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">Connect</button>

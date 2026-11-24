@@ -3,7 +3,7 @@ import { platformDetector } from '../platform/detector';
 import { configManager } from '../config';
 import { CENTIPEDE_VERSION } from '../version';
 import { proxyKingdomRead } from './kingdomReadProxy';
-import { handleKingdomAction } from './kingdomAction';
+import { handleKingdomAction, isLocalOwnerActionAuthorized } from './kingdomAction';
 import { handleHostFiles } from './hostFiles';
 import { handleLocalInference } from './localInference';
 import { handleHostTelemetry } from './hostTelemetry';
@@ -17,6 +17,10 @@ export interface ApiRequest {
   query?: string;
   /** Set only by the HTTP adapter after checking the socket peer address. */
   isLocalAdmin?: boolean;
+  /** Observed TLS on the inbound socket/transport; never inferred from proxy headers. */
+  isSecureTransport?: boolean;
+  /** Network URL produced by the trusted HTTP adapter, not a request body field. */
+  serverPairingEndpoint?: string;
 }
 
 export interface ApiResponse {
@@ -71,12 +75,40 @@ export class ApiRouter {
       if (!req.isLocalAdmin) {
         return { status: 403, error: 'FORBIDDEN: Pairing codes can only be created from the Centipede host.' };
       }
-      const name = req.body?.deviceName || 'Mobile Companion';
-      const pairing = deviceTrustManager.initiatePairing(name, 'MOBILE_APP', req.body?.endpoint);
+      // Loopback proves proximity, not identity. A resident process must not
+      // silently pair a remote device or mint its own pairing code.
+      if (!isLocalOwnerActionAuthorized(req)) {
+        return { status: 401, error: 'Unlock the local owner session before creating a device pairing code.' };
+      }
+      const name = req.body && Object.hasOwn(req.body, 'deviceName')
+        ? req.body.deviceName : 'Mobile Companion';
+      if (typeof name !== 'string' || !name.trim() || name.length > 80 ||
+          /[\x00-\x1f\x7f]/.test(name))
+        return { status: 422, error: 'Device name must be 1–80 printable characters.' };
+      // Do not let a caller place an arbitrary phishing URL into pairing QR data.
+      // The verified HTTP adapter, never body.endpoint or a forwarded header,
+      // supplies the server address to be shared with the phone.
+      let trustedEndpoint: string | undefined;
+      if (req.serverPairingEndpoint !== undefined) {
+        try {
+          const candidate = new URL(req.serverPairingEndpoint);
+          if (!['http:', 'https:'].includes(candidate.protocol) || !candidate.hostname ||
+              candidate.username || candidate.password || candidate.search || candidate.hash ||
+              candidate.pathname !== '/') throw new Error('Invalid pairing server origin');
+          trustedEndpoint = candidate.origin;
+        } catch {
+          return { status: 503, error: 'Configured pairing server address must be a valid HTTP(S) origin.' };
+        }
+      }
+      const pairing = deviceTrustManager.initiatePairing(name.trim(), 'MOBILE_APP', trustedEndpoint);
       return { status: 200, data: pairing };
     }
 
     if (req.path === '/api/v1/mobile/pair/confirm' && req.method === 'POST') {
+      // Confirmation returns a bearer token; do not issue one over plaintext
+      // off-device HTTP. Loopback is still permitted for local development.
+      if (!req.isLocalAdmin && req.isSecureTransport !== true)
+        return { status: 403, error: 'Secure HTTPS transport is required for remote phone pairing.' };
       const result = deviceTrustManager.confirmPairing(req.body?.pairingCode || '');
       return result.success ? { status: 200, data: result } : { status: 401, error: result.error };
     }
@@ -84,15 +116,26 @@ export class ApiRouter {
     // Device administration is available only through a loopback connection.
     // A LAN client can complete a short-lived pairing but cannot enumerate or
     // revoke other devices. Headers such as Host and Sec-Fetch-Site are not authority.
-    if (req.isLocalAdmin && req.path === '/api/v1/mobile/devices' && req.method === 'GET') {
+    if (req.path === '/api/v1/mobile/devices' && req.method === 'GET') {
+      if (!req.isLocalAdmin) return { status: 403, error: 'Only the local owner can list devices.' };
+      if (!isLocalOwnerActionAuthorized(req)) return { status: 401, error: 'Unlock the local owner session to list devices.' };
       const devices = deviceTrustManager.getPairedDevices().map(({ sessionToken: _token, pairingCode: _code, ...device }) => device);
       return { status: 200, data: { devices } };
     }
-    if (req.isLocalAdmin && req.path === '/api/v1/mobile/revoke' && req.method === 'POST') {
+    if (req.isLocalAdmin && req.path === '/api/v1/mobile/revoke' && req.method === 'POST'
+        && isLocalOwnerActionAuthorized(req)) {
+      // Only an unlocked owner may revoke another device administratively.
       return { status: 200, data: { revoked: deviceTrustManager.revokeDevice(req.body?.deviceId || '') } };
     }
+    // A paired companion may revoke only its OWN session even when its socket
+    // happens to be loopback. Fall through to the device bearer/session check
+    // below; neither a localhost address nor an owner-intent header suffices.
 
     // 2. Session Authenticated Endpoints
+    // Remote bearer tokens must not travel over unencrypted LAN HTTP; never
+    // trust Host or X-Forwarded-Proto as evidence of TLS termination.
+    if (!req.isLocalAdmin && req.isSecureTransport !== true)
+      return { status: 403, error: 'Secure HTTPS transport is required for remote device actions.' };
     if (!sessionToken) {
       return { status: 401, error: 'UNAUTHORIZED: Missing session token.' };
     }

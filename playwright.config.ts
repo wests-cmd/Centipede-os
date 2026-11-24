@@ -7,6 +7,9 @@ const apiBaseUrl = `http://127.0.0.1:${apiPort}`;
 const bunCommand = process.env.CENTIPEDE_BUN || 'bun';
 const kingdomPort = Number(process.env.CENTIPEDE_E2E_KINGDOM_PORT || 8100);
 const kingdomBaseUrl = `http://127.0.0.1:${kingdomPort}`;
+// Fixed, clearly test-only owner credential for the disposable local API used
+// by Playwright; never read or store a production Kingdom owner secret here.
+const e2eOwnerCode = 'centipede-e2e-local-owner-fixture-not-for-production';
 const pythonCommand = process.env.CENTIPEDE_E2E_PYTHON || 'python3';
 
 export default defineConfig({
@@ -28,7 +31,8 @@ export default defineConfig({
     {
       command: `${bunCommand} run src/server/production.ts`,
       url: `${apiBaseUrl}/api/v1/health`,
-      env: { HOST: '127.0.0.1', PORT: String(apiPort) },
+      env: { HOST: '127.0.0.1', PORT: String(apiPort),
+        KINGDOM_API_URL: kingdomBaseUrl, KINGDOM_API_TOKEN: e2eOwnerCode },
       reuseExistingServer: false,
       timeout: 30_000,
     },

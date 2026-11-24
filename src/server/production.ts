@@ -1,5 +1,6 @@
 import { join, normalize, resolve } from 'node:path';
 import { discoverLanAddress } from './networkDiscovery';
+import { listenerHosts } from './listenerPolicy';
 import { apiRouter, ApiRequest } from './routes';
 import { isLocalAdminRequest } from './requestTrust';
 import { SelectedKnowledgeSources } from './selectedKnowledgeSources';
@@ -10,10 +11,11 @@ const root = process.cwd();
 const webRoot = process.env.CENTIPEDE_WEB_ROOT ? resolve(process.env.CENTIPEDE_WEB_ROOT) : join(root, 'dist');
 const port = Number(process.env.PORT || 3000);
 const lanAddress = discoverLanAddress(process.env.HOST);
-const hostnames = process.env.HOST
-  ? process.env.HOST.split(',').map((host) => host.trim()).filter(Boolean)
-  : ['127.0.0.1', ...(lanAddress ? [lanAddress] : [])];
-const publicUrl = process.env.PUBLIC_URL || (lanAddress ? `http://${lanAddress}:${port}` : `http://localhost:${port}`);
+// Fail closed: a local desktop should not expose its application and API
+// to Wi-Fi/LAN devices without a deliberate operator-supplied HOST binding.
+const hostnames = listenerHosts(process.env.HOST);
+const publicUrl = process.env.PUBLIC_URL ||
+  (process.env.HOST && lanAddress ? `http://${lanAddress}:${port}` : `http://localhost:${port}`);
 const rateWindows = new Map<string, { startsAt: number; count: number }>();
 const pruneRateWindows = (now: number) => {
   if (rateWindows.size > 200) {
@@ -25,7 +27,6 @@ const pruneRateWindows = (now: number) => {
 let knowledgeSources: SelectedKnowledgeSources | undefined;
 const selectedSources = () => knowledgeSources ??= new SelectedKnowledgeSources(
   process.env.CENTIPEDE_KNOWLEDGE_HOME || join(root, 'data', 'selected-knowledge'));
-const hostnameFromHeader = (host: string) => host.startsWith('[') ? host.slice(1, host.indexOf(']')) : host.split(':')[0];
 
 const serverOptions: ServerOptions = {
   port,
@@ -43,21 +44,18 @@ const serverOptions: ServerOptions = {
         try { body = await request.json(); }
         catch { return Response.json({ error: 'Invalid JSON body.' }, { status: 400 }); }
       }
-      if (url.pathname === '/api/v1/mobile/pair/initiate' && body && typeof body === 'object') {
-        // Never trust a client-supplied endpoint; share the service's reachable address.
-        const requestHost = request.headers.get('host') || '';
-        const hostName = hostnameFromHeader(requestHost);
-        const hostIsLoopback = ['localhost', '127.0.0.1', '::1'].includes(hostName);
-        (body as Record<string, unknown>).endpoint = !hostIsLoopback && /^[a-zA-Z0-9.\-\[\]:]+$/.test(requestHost)
-          ? `http://${requestHost}`
-          : publicUrl;
-      }
       const apiRequest: ApiRequest = {
         path: url.pathname,
         method: request.method as ApiRequest['method'],
         headers: Object.fromEntries(request.headers.entries()),
         body,
         query: url.search,
+        // Transport-verifiable fields: neither user JSON nor Host headers
+        // may override the endpoint or claim encrypted TLS protection.
+        serverPairingEndpoint: publicUrl,
+        // This listener currently has no TLS configuration. Do not infer TLS
+        // from a request URL or forwarded header. Remote pairing fails closed.
+        isSecureTransport: false,
         isLocalAdmin: isLocalAdminRequest(
           server.requestIP(request)?.address,
           Object.fromEntries(request.headers.entries()),
@@ -77,7 +75,7 @@ const serverOptions: ServerOptions = {
         else window.count += 1;
       }
       const result = handleSelectedKnowledgeRequest(apiRequest, selectedSources) || await apiRouter.handleRequest(apiRequest);
-      return Response.json(result.error ? { error: result.error } : result.data, { status: result.status });
+      return Response.json(result.error ? { error: result.error } : result.data, { status: result.status, headers: { 'Cache-Control': 'no-store' } });
     }
 
     if (request.method !== 'GET' && request.method !== 'HEAD') return new Response('Method not allowed', { status: 405 });

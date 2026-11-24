@@ -1,0 +1,195 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DeviceTrustManager } from '../../src/security/deviceTrust';
+import { apiRouter } from '../../src/server/routes';
+import { resetOwnerActionSessionsForTests } from '../../src/server/kingdomAction';
+
+const code = 'owner-pairing-credential-over-thirty-two-characters';
+const originalToken = process.env.KINGDOM_API_TOKEN;
+const originalURL = process.env.KINGDOM_API_URL;
+const ownerHeaders = (session: string) => ({
+  'x-centipede-owner-intent': '1',
+  'x-centipede-action-session': session,
+});
+const ask = (path: string, method: 'GET' | 'POST', body?: object,
+             local = true, headers: Record<string, string> = {}) =>
+  apiRouter.handleRequest({ path: '/api/v1/mobile/' + path, method, body, isLocalAdmin: local,
+    // Remote fixtures model verified HTTPS; real HTTP adapters derive this
+    // from the underlying socket, not from an attacker-controlled header.
+    isSecureTransport: !local, headers });
+
+async function unlock(): Promise<string> {
+  const response = await apiRouter.handleRequest({
+    path: '/api/v1/kingdom/actions/unlock', method: 'POST', isLocalAdmin: true,
+    body: { ownerCode: code }, headers: { 'x-centipede-owner-intent': '1' },
+  });
+  expect(response.status).toBe(200);
+  return response.data.sessionToken;
+}
+
+beforeEach(() => {
+  resetOwnerActionSessionsForTests();
+  process.env.KINGDOM_API_URL = 'http://127.0.0.1:8000';
+  process.env.KINGDOM_API_TOKEN = code;
+});
+afterEach(() => {
+  resetOwnerActionSessionsForTests();
+  if (originalToken === undefined) delete process.env.KINGDOM_API_TOKEN;
+  else process.env.KINGDOM_API_TOKEN = originalToken;
+  if (originalURL === undefined) delete process.env.KINGDOM_API_URL;
+  else process.env.KINGDOM_API_URL = originalURL;
+});
+
+describe('mobile pairing owner authorization', () => {
+  it('requires owner intent and expiring session to create a code, list devices or administratively revoke', async () => {
+    expect((await ask('pair/initiate', 'POST', {deviceName:'Phone'})).status).toBe(401);
+    expect((await ask('pair/initiate', 'POST', {deviceName:'Phone'}, false)).status).toBe(403);
+    expect((await ask('devices', 'GET')).status).toBe(401);
+    expect((await ask('devices', 'GET', undefined, false)).status).toBe(403);
+    expect((await ask('revoke', 'POST', {deviceId:'dev_unknown'})).status).toBe(401);
+    const session = await unlock();
+    const h = ownerHeaders(session);
+    expect((await ask('pair/initiate', 'POST', {deviceName:'Phone'}, true,
+      {'x-centipede-action-session':session})).status).toBe(401);
+    const pending = await ask('pair/initiate', 'POST', {deviceName:'Phone'}, true, h);
+    expect(pending.status).toBe(200);
+    expect(pending.data.pairingCode).toMatch(/^\d{6}$/);
+    const confirmed = await ask('pair/confirm', 'POST', {pairingCode:pending.data.pairingCode}, false);
+    expect(confirmed.status).toBe(200);
+    expect(confirmed.data.success).toBe(true);
+    const list = await ask('devices', 'GET', undefined, true, h);
+    expect(list.status).toBe(200);
+    const device = list.data.devices.find((entry: {deviceId:string}) => entry.deviceId === pending.data.deviceId);
+    expect(device).toBeDefined();
+    expect(device).not.toHaveProperty('sessionToken');
+    expect(device).not.toHaveProperty('pairingCode');
+    expect((await ask('revoke', 'POST', {deviceId:pending.data.deviceId}, true, h)).data.revoked).toBe(true);
+    expect((await apiRouter.handleRequest({
+      path:'/api/v1/kingdom/actions/lock', method:'POST', isLocalAdmin:true, headers:h, body:{},
+    })).status).toBe(200);
+    expect((await ask('devices', 'GET', undefined, true, h)).status).toBe(401);
+    expect((await ask('pair/initiate', 'POST', {deviceName:'Phone'}, true, h)).status).toBe(401);
+  });
+
+  it('issues high-entropy expiring device sessions with no authority to approve or upload', () => {
+    const manager = new DeviceTrustManager();
+    const originalNow = Date.now();
+    const pairing = manager.initiatePairing('Personal phone', 'MOBILE_APP');
+    const confirmed = manager.confirmPairing(pairing.pairingCode);
+    expect(confirmed.success).toBe(true);
+    expect(confirmed.sessionToken).toMatch(/^tok_[a-f0-9]{64}$/);
+    const token = confirmed.sessionToken!;
+    const authorized = manager.validateSessionToken(token);
+    expect(authorized.valid).toBe(true);
+    expect(authorized.device?.allowedCapabilities).toEqual(['status.view']);
+    expect(authorized.device?.sessionExpiresAt).toBeGreaterThan(originalNow);
+    const expiry = authorized.device!.sessionExpiresAt!;
+    const dateSpy = vi.spyOn(Date, 'now').mockReturnValue(expiry + 1);
+    try {
+      const expired = manager.validateSessionToken(token);
+      expect(expired.valid).toBe(false);
+      expect(expired.error).toContain('SESSION_EXPIRED');
+      expect(manager.validateSessionToken(token).valid).toBe(false);
+    } finally {
+      dateSpy.mockRestore();
+    }
+  });
+
+  it('rejects malformed or oversized device names before issuing pairing codes', async () => {
+    const session = await unlock();
+    const headers = ownerHeaders(session);
+    for (const deviceName of [null, 24, '', '   ', 'x'.repeat(81), 'Phone\nHost']) {
+      const result = await ask('pair/initiate', 'POST', { deviceName }, true, headers);
+      expect(result.status).toBe(422);
+    }
+    const manager = new DeviceTrustManager();
+    expect(() => manager.initiatePairing('\t', 'MOBILE_APP')).toThrow('Invalid device name');
+    expect(() => manager.initiatePairing('x'.repeat(81), 'MOBILE_APP')).toThrow('Invalid device name');
+  });
+
+  it('preserves self-revocation for a paired device reaching the service via localhost', async () => {
+    const session = await unlock();
+    const pending = await ask('pair/initiate', 'POST', {deviceName: 'On-host phone client'},
+      true, ownerHeaders(session));
+    expect(pending.status).toBe(200);
+    const paired = await ask('pair/confirm', 'POST', {pairingCode: pending.data.pairingCode}, false);
+    expect(paired.status).toBe(200);
+    const ownHeaders = { authorization: 'Bearer ' + paired.data.sessionToken };
+    expect((await ask('revoke', 'POST', {deviceId: 'dev_another'}, true, ownHeaders)).status).toBe(403);
+    expect((await ask('devices', 'GET', undefined, true, ownHeaders)).status).toBe(401);
+    const revoked = await ask('revoke', 'POST', {deviceId: paired.data.deviceId}, true, ownHeaders);
+    expect(revoked.status).toBe(200);
+    expect(revoked.data.revoked).toBe(true);
+    expect((await ask('revoke', 'POST', {deviceId: paired.data.deviceId}, true, ownHeaders)).status).toBe(403);
+  });
+
+  it('refuses remote pairing tokens and bearer actions over cleartext LAN HTTP', async () => {
+    const session = await unlock();
+    const pending = await ask('pair/initiate', 'POST', { deviceName: 'Secure phone' }, true, ownerHeaders(session));
+    expect(pending.status).toBe(200);
+    const insecure = await apiRouter.handleRequest({
+      path: '/api/v1/mobile/pair/confirm', method: 'POST', isLocalAdmin: false,
+      isSecureTransport: false, body: { pairingCode: pending.data.pairingCode },
+      headers: { host: 'localhost:3000', 'x-forwarded-proto': 'https' },
+    });
+    expect(insecure.status).toBe(403);
+    const secure = await ask('pair/confirm', 'POST', { pairingCode: pending.data.pairingCode }, false);
+    expect(secure.status).toBe(200);
+    const revokedViaHttp = await apiRouter.handleRequest({
+      path: '/api/v1/mobile/revoke', method: 'POST', isLocalAdmin: false,
+      isSecureTransport: false,
+      body: { deviceId: secure.data.deviceId },
+      headers: { authorization: 'Bearer ' + secure.data.sessionToken, 'x-forwarded-proto': 'https' },
+    });
+    expect(revokedViaHttp.status).toBe(403);
+    // A genuinely encrypted remote request can still revoke only itself.
+    const legitimate = await ask('revoke', 'POST', { deviceId: secure.data.deviceId }, false,
+      { authorization: 'Bearer ' + secure.data.sessionToken });
+    expect(legitimate.status).toBe(200);
+  });
+
+  it('ignores caller-supplied pairing QR endpoints and accepts only adapter-generated addresses', async () => {
+    const session = await unlock();
+    const maliciousBody = { deviceName: 'Phone', endpoint: 'https://attacker.example/collect' };
+    const request = await apiRouter.handleRequest({
+      path: '/api/v1/mobile/pair/initiate', method: 'POST', isLocalAdmin: true,
+      headers: ownerHeaders(session), body: maliciousBody,
+      serverPairingEndpoint: 'https://trusted.centipede.example',
+    });
+    expect(request.status).toBe(200);
+    expect(JSON.parse(request.data.qrData).centipedeEndpoint).toBe('https://trusted.centipede.example');
+    const legacy = await apiRouter.handleRequest({
+      path: '/api/v1/mobile/pair/initiate', method: 'POST', isLocalAdmin: true,
+      headers: ownerHeaders(session), body: maliciousBody,
+    });
+    expect(legacy.status).toBe(200);
+    expect(JSON.parse(legacy.data.qrData).centipedeEndpoint).toBe('http://localhost:3000');
+    for (const badOrigin of [
+      'file:///etc/hosts', 'https://victim.example/steal', 'https://user:pass@example.com',
+      'https://example.com/?token=secret', 'javascript:alert(1)',
+    ]) {
+      const response = await apiRouter.handleRequest({
+        path: '/api/v1/mobile/pair/initiate', method: 'POST', isLocalAdmin: true,
+        headers: ownerHeaders(session), body: { deviceName: 'Phone' },
+        serverPairingEndpoint: badOrigin,
+      });
+      expect(response.status).toBe(503);
+    }
+  });
+
+  it('still allows a remote phone to confirm a single-use code without seeing owner-only device lists', async () => {
+    const session = await unlock();
+    const pending = await ask('pair/initiate', 'POST', {deviceName:'Phone'}, true, ownerHeaders(session));
+    expect(pending.status).toBe(200);
+    const confirmed = await ask('pair/confirm', 'POST', {pairingCode:pending.data.pairingCode}, false);
+    expect(confirmed.status).toBe(200);
+    expect(confirmed.data.success).toBe(true);
+    expect((await ask('devices', 'GET', undefined, false,
+      {authorization:'Bearer ' + confirmed.data.sessionToken})).status).toBe(403);
+    expect((await ask('pair/confirm', 'POST', {pairingCode:pending.data.pairingCode}, false)).status).not.toBe(200);
+    // Remote paired devices retain a narrowly scoped right to revoke themselves.
+    const own = await ask('revoke', 'POST', {deviceId:confirmed.data.deviceId}, false,
+      {authorization:'Bearer ' + confirmed.data.sessionToken});
+    expect(own.status).toBe(200);
+    expect(own.data.revoked).toBe(true);
+  });
+});

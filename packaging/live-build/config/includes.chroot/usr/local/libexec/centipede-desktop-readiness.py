@@ -27,7 +27,10 @@ def desktop_browser_running(uid):
                 and "127.0.0.1:3000" in command
             ):
                 return True
-        except (FileNotFoundError, PermissionError, StopIteration, ValueError):
+        except (OSError, StopIteration, ValueError):
+            # /proc is a live process view. A process may exit during open()
+            # or read(), including ESRCH (ProcessLookupError) on Linux.
+            # Treat only that candidate as gone; keep checking actual readiness.
             continue
     return False
 

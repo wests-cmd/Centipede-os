@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
 const kingdomTestUrl = `http://127.0.0.1:${process.env.CENTIPEDE_E2E_KINGDOM_PORT || 8100}`;
+const e2eOwnerCode = 'centipede-e2e-local-owner-fixture-not-for-production';
 
 async function completeClientSetup(page: Page, kingdomUrl = 'http://127.0.0.1:1') {
   await expect(page.getByRole('heading', { name: 'Welcome to Centipede' })).toBeVisible();
@@ -45,6 +46,14 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
       const initialCount = Number((await initialHeading.textContent())?.match(/\((\d+)\)/)?.[1]);
       await expect(iosLike.getByRole('heading', { name: `Trusted Paired Devices (${initialCount})` })).toBeVisible();
       await androidLike.screenshot({ path: 'test-results/15_mobile-shared-service-disclosure.png' });
+      // Loopback does not grant owner powers. Only the host's explicit unlock
+      // can issue a pairing code; the companion never receives that session.
+      await expect(androidLike.getByRole('button', { name: 'Create Pairing Code' })).toHaveCount(0);
+      await androidLike.getByPlaceholder('Kingdom owner access code').fill(e2eOwnerCode);
+      await androidLike.getByRole('button', { name: 'Unlock', exact: true }).click();
+      await expect(androidLike.getByText(/Owner actions unlocked on this host/)).toBeVisible();
+      await expect(androidLike.getByRole('button', { name: 'Create Pairing Code' })).toBeVisible();
+      await expect(iosLike.getByRole('button', { name: 'Create Pairing Code' })).toHaveCount(0);
 
       await androidLike.getByRole('button', { name: 'Create Pairing Code' }).click();
       const pin = (await androidLike.locator('.font-mono.font-bold.text-cyan-300').textContent())?.trim();
@@ -55,6 +64,7 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
       await iosLike.getByLabel('Pairing code').fill(pin!);
       await iosLike.getByRole('button', { name: 'Connect', exact: true }).click();
       await expect(iosLike.getByText('This phone is paired with the Centipede service.')).toBeVisible();
+      await expect(iosLike.getByRole('button', { name: 'Create Pairing Code' })).toHaveCount(0);
       await androidLike.getByRole('button', { name: 'Refresh paired devices' }).click();
       await expect(androidLike.getByRole('heading', { name: `Trusted Paired Devices (${initialCount + 1})` })).toBeVisible();
       expect(await iosLike.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);

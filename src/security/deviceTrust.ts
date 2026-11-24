@@ -13,6 +13,7 @@ export interface TrustedDevice {
   allowedCapabilities: string[];
   pairedAt?: number;
   lastSeenAt?: number;
+  sessionExpiresAt?: number;
 }
 
 export interface PairingConfirmationResult {
@@ -24,6 +25,8 @@ export interface PairingConfirmationResult {
 
 export class DeviceTrustManager {
   public static readonly MAX_PAIRING_ATTEMPTS = 5;
+  public static readonly SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+  public static readonly MAX_PENDING_CODES = 64;
   private devices: Map<string, TrustedDevice> = new Map();
   private pendingPairingCodes: Map<string, { deviceId: string; expiresAt: number; attempts: number }> = new Map();
   private sessionTokenIndex: Map<string, TrustedDevice> = new Map();
@@ -37,24 +40,36 @@ export class DeviceTrustManager {
     for (const [code, pending] of this.pendingPairingCodes.entries()) {
       if (pending.expiresAt < now || pending.attempts > DeviceTrustManager.MAX_PAIRING_ATTEMPTS) {
         this.pendingPairingCodes.delete(code);
+        const device = this.devices.get(pending.deviceId);
+        if (device?.trustState === 'PENDING_PAIRING') this.devices.delete(pending.deviceId);
       }
     }
   }
 
   public initiatePairing(deviceName: string, deviceType: DeviceType, endpoint = 'http://localhost:3000'): { deviceId: string; pairingCode: string; qrData: string } {
     this.cleanupExpired();
-    const deviceId = `dev_${Date.now()}_${generateSecureRandomHex(4)}`;
-    const pairingCode = generateSecurePin(); // CSPRNG 6-digit PIN
+    if (typeof deviceName !== 'string' || !deviceName.trim() || deviceName.length > 80 ||
+        /[\x00-\x1f\x7f]/.test(deviceName)) throw new Error('Invalid device name.');
+    if (this.pendingPairingCodes.size >= DeviceTrustManager.MAX_PENDING_CODES)
+      throw new Error('Too many outstanding pairing requests.');
+    const deviceId = `dev_${Date.now()}_${generateSecureRandomHex(16)}`;
+    let pairingCode = '';
+    for (let attempt = 0; attempt < 16; attempt++) {
+      const candidate = generateSecurePin();
+      if (!this.pendingPairingCodes.has(candidate)) { pairingCode = candidate; break; }
+    }
+    if (!pairingCode) throw new Error('No available unique pairing code.');
 
     const device: TrustedDevice = {
       deviceId,
-      deviceName,
+      deviceName: deviceName.trim(),
       deviceType,
       trustState: 'PENDING_PAIRING',
       pairingCode,
-      allowedCapabilities: deviceType === 'MOBILE_APP'
-        ? ['task.submit', 'task.view', 'approval.view', 'approval.action', 'ingest.upload', 'status.view']
-        : ['*'], // Desktop full UI access
+      // Pairing is only identity enrollment; it does NOT grant Kingdom task,
+      // approval, upload or device administration permissions. No phone-side
+      // privileged capability is implemented/verified yet.
+      allowedCapabilities: ['status.view'],
     };
 
     this.devices.set(deviceId, device);
@@ -103,11 +118,12 @@ export class DeviceTrustManager {
       return { success: false, error: 'Device not found.' };
     }
 
-    const sessionToken = `tok_${Date.now()}_${generateSecureRandomHex(8)}`;
+    const sessionToken = `tok_${generateSecureRandomHex(32)}`;
     device.trustState = 'PAIRED_ACTIVE';
     device.sessionToken = sessionToken;
     device.pairedAt = Date.now();
     device.lastSeenAt = Date.now();
+    device.sessionExpiresAt = Date.now() + DeviceTrustManager.SESSION_TTL_MS;
 
     this.sessionTokenIndex.set(sessionToken, device);
     this.pendingPairingCodes.delete(pairingCode);
@@ -120,6 +136,11 @@ export class DeviceTrustManager {
     }
 
     const device = this.sessionTokenIndex.get(sessionToken) || Array.from(this.devices.values()).find((d) => d.sessionToken === sessionToken);
+    if (device && device.trustState === 'PAIRED_ACTIVE' &&
+        (!device.sessionExpiresAt || Date.now() >= device.sessionExpiresAt)) {
+      this.revokeDevice(device.deviceId);
+      return { valid: false, error: 'DEVICE_SESSION_EXPIRED: Pair the device again.' };
+    }
     if (!device || device.trustState !== 'PAIRED_ACTIVE' || device.sessionToken !== sessionToken) {
       if (device && device.trustState === 'REVOKED') {
         return { valid: false, error: 'REVOKED_DEVICE: Device access has been revoked by system administrator.' };
@@ -140,6 +161,7 @@ export class DeviceTrustManager {
     }
     device.trustState = 'REVOKED';
     device.sessionToken = undefined;
+    device.sessionExpiresAt = undefined;
     return true;
   }
 

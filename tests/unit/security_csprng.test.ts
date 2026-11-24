@@ -55,7 +55,7 @@ describe('CSPRNG Token & Grant ID Security Invariants', () => {
   it('deviceTrustManager uses CSPRNG for device IDs and pairing codes', () => {
     const pairing = deviceTrustManager.initiatePairing('Test Device', 'MOBILE_APP');
 
-    expect(pairing.deviceId).toMatch(/^dev_\d+_[0-9a-f]{8}$/);
+    expect(pairing.deviceId).toMatch(/^dev_\d+_[0-9a-f]{32}$/);
     expect(pairing.pairingCode).toMatch(/^\d{6}$/);
   });
 
@@ -73,6 +73,7 @@ describe('CSPRNG Token & Grant ID Security Invariants', () => {
     const confirmResult = deviceTrustManager.confirmPairing(pendingPairing.pairingCode);
     expect(confirmResult.success).toBe(true);
     expect(confirmResult.sessionToken).toBeDefined();
+    expect(confirmResult.sessionToken).toMatch(/^tok_[a-f0-9]{64}$/);
 
     const validAuth = deviceTrustManager.validateSessionToken(confirmResult.sessionToken!);
     expect(validAuth.valid).toBe(true);

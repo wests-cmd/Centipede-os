@@ -1,24 +1,67 @@
 import packageJson from '../../package.json';
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { centipedeServer } from '../../src/server/server';
+import { resetOwnerActionSessionsForTests } from '../../src/server/kingdomAction';
 
 describe('Centipede API Server & Transport Test Suite', () => {
   const TEST_PORT = 3099;
+  const ownerCode = 'mobile-api-test-owner-credential-with-more-than-thirty-two-characters';
+  const priorURL = process.env.KINGDOM_API_URL;
+  const priorToken = process.env.KINGDOM_API_TOKEN;
 
   beforeAll(() => {
+    process.env.KINGDOM_API_URL = 'http://127.0.0.1:8000';
+    process.env.KINGDOM_API_TOKEN = ownerCode;
     centipedeServer.start(TEST_PORT);
   });
 
   beforeEach(() => {
     centipedeServer.resetRateLimits();
+    resetOwnerActionSessionsForTests();
   });
 
   afterAll(() => {
     centipedeServer.stop();
+    resetOwnerActionSessionsForTests();
+    if (priorURL === undefined) delete process.env.KINGDOM_API_URL;
+    else process.env.KINGDOM_API_URL = priorURL;
+    if (priorToken === undefined) delete process.env.KINGDOM_API_TOKEN;
+    else process.env.KINGDOM_API_TOKEN = priorToken;
   });
+
+  async function ownerHeaders(): Promise<Record<string, string>> {
+    const response = await fetch(`http://127.0.0.1:${TEST_PORT}/api/v1/kingdom/actions/unlock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Centipede-Owner-Intent': '1' },
+      body: JSON.stringify({ ownerCode }),
+    });
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data.sessionToken).toMatch(/^[a-f0-9]{64}$/);
+    return {
+      'Content-Type': 'application/json',
+      'X-Centipede-Owner-Intent': '1',
+      'X-Centipede-Action-Session': data.sessionToken,
+    };
+  }
 
   it('1. Verifies server mode is REAL_HTTP_SERVER in Node/Bun environment', () => {
     expect(centipedeServer.getMode()).toBe('REAL_HTTP_SERVER');
+  });
+
+  it('does not put a client-supplied URL into an issued pairing QR when using legacy Node HTTP', async () => {
+    const headers = await ownerHeaders();
+    const response = await fetch(`http://127.0.0.1:${TEST_PORT}/api/v1/mobile/pair/initiate`, {
+      method: 'POST', headers,
+      body: JSON.stringify({
+        deviceName: 'Trusted phone', endpoint: 'https://impostor.example/steal-code',
+      }),
+    });
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    const qr = JSON.parse(data.qrData);
+    expect(qr.centipedeEndpoint).toBe(`http://localhost:${TEST_PORT}`);
+    expect(data.qrData).not.toContain('impostor.example');
   });
 
   it('denies pairing-code creation when local-admin authority is absent, regardless of spoofed request headers', async () => {
@@ -35,7 +78,7 @@ describe('Centipede API Server & Transport Test Suite', () => {
   });
 
   it('denies localhost pairing-code requests initiated by a hostile browser origin', async () => {
-    const response = await fetch(`http://localhost:${TEST_PORT}/api/v1/mobile/pair/initiate`, {
+    const response = await fetch(`http://127.0.0.1:${TEST_PORT}/api/v1/mobile/pair/initiate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -52,7 +95,7 @@ describe('Centipede API Server & Transport Test Suite', () => {
   it('enforces rate limiting on /api/v1/mobile/pair/confirm with HTTP 429 when threshold exceeded', async () => {
     // Send 10 rapid confirmation attempts (allowed threshold)
     for (let i = 0; i < 10; i++) {
-      await fetch(`http://localhost:${TEST_PORT}/api/v1/mobile/pair/confirm`, {
+      await fetch(`http://127.0.0.1:${TEST_PORT}/api/v1/mobile/pair/confirm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pairingCode: '999999' }),
@@ -60,7 +103,7 @@ describe('Centipede API Server & Transport Test Suite', () => {
     }
 
     // 11th request must be rate-limited with HTTP 429 and Retry-After header
-    const limitedRes = await fetch(`http://localhost:${TEST_PORT}/api/v1/mobile/pair/confirm`, {
+    const limitedRes = await fetch(`http://127.0.0.1:${TEST_PORT}/api/v1/mobile/pair/confirm`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pairingCode: '999999' }),
@@ -75,7 +118,7 @@ describe('Centipede API Server & Transport Test Suite', () => {
   it('rejects oversized request bodies exceeding 1MB with HTTP 413 Payload Too Large', async () => {
     // Generate an oversized payload exceeding 1MB limit (1024 * 1024 bytes)
     const largeString = 'A'.repeat(1024 * 1024 + 100);
-    const response = await fetch(`http://localhost:${TEST_PORT}/api/v1/mobile/pair/initiate`, {
+    const response = await fetch(`http://127.0.0.1:${TEST_PORT}/api/v1/mobile/pair/initiate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -89,7 +132,7 @@ describe('Centipede API Server & Transport Test Suite', () => {
   });
 
   it('2. Responds to GET /api/v1/health over real HTTP socket', async () => {
-    const res = await fetch(`http://localhost:${TEST_PORT}/api/v1/health`);
+    const res = await fetch(`http://127.0.0.1:${TEST_PORT}/api/v1/health`);
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.status).toBe('HEALTHY');
@@ -98,7 +141,7 @@ describe('Centipede API Server & Transport Test Suite', () => {
   });
 
   it('3. Responds to GET /api/v1/runtime over real HTTP socket', async () => {
-    const res = await fetch(`http://localhost:${TEST_PORT}/api/v1/runtime`);
+    const res = await fetch(`http://127.0.0.1:${TEST_PORT}/api/v1/runtime`);
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.centipedeVersion).toBe(packageJson.version);
@@ -107,10 +150,16 @@ describe('Centipede API Server & Transport Test Suite', () => {
   });
 
   it('4. Executes complete Mobile Pairing & Session Auth flow over real HTTP', async () => {
-    // Initiate pairing
-    const initRes = await fetch(`http://localhost:${TEST_PORT}/api/v1/mobile/pair/initiate`, {
+    // The host owner explicitly unlocks before minting a pairing code.
+    const headers = await ownerHeaders();
+    const anonymous = await fetch(`http://127.0.0.1:${TEST_PORT}/api/v1/mobile/pair/initiate`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deviceName: 'Unapproved client' }),
+    });
+    expect(anonymous.status).toBe(401);
+    const initRes = await fetch(`http://127.0.0.1:${TEST_PORT}/api/v1/mobile/pair/initiate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ deviceName: 'Pixel 8 Pro Test' }),
     });
     expect(initRes.status).toBe(200);
@@ -119,7 +168,7 @@ describe('Centipede API Server & Transport Test Suite', () => {
     expect(initData.pairingCode.length).toBe(6);
 
     // Confirm pairing
-    const confirmRes = await fetch(`http://localhost:${TEST_PORT}/api/v1/mobile/pair/confirm`, {
+    const confirmRes = await fetch(`http://127.0.0.1:${TEST_PORT}/api/v1/mobile/pair/confirm`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pairingCode: initData.pairingCode }),
@@ -130,7 +179,7 @@ describe('Centipede API Server & Transport Test Suite', () => {
     expect(confirmData.sessionToken).toBeDefined();
 
     // Authenticated request with session token
-    const revokeRes = await fetch(`http://localhost:${TEST_PORT}/api/v1/mobile/revoke`, {
+    const revokeRes = await fetch(`http://127.0.0.1:${TEST_PORT}/api/v1/mobile/revoke`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -144,17 +193,19 @@ describe('Centipede API Server & Transport Test Suite', () => {
   });
 
   it('5. Keeps two mobile clients independent through a connection drop, reconnect, and revocation', async () => {
-    const baseUrl = `http://localhost:${TEST_PORT}`;
+    const baseUrl = `http://127.0.0.1:${TEST_PORT}`;
     const clients = [
       { name: 'Android Companion', token: '', deviceId: '' },
       { name: 'iOS Companion', token: '', deviceId: '' },
     ];
 
-    // Pair each client against the same server, as two separately installed apps would.
+    // Owner unlock is shared for code issuance. Each phone receives only its own
+    // single-use pairing code, never the owner action session credential.
+    const headers = await ownerHeaders();
     for (const client of clients) {
       const initRes = await fetch(`${baseUrl}/api/v1/mobile/pair/initiate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ deviceName: client.name }),
       });
       expect(initRes.status).toBe(200);
@@ -181,6 +232,8 @@ describe('Centipede API Server & Transport Test Suite', () => {
       headers: { Authorization: `Bearer ${clients[1].token}` },
       body: { deviceId: clients[0].deviceId },
       isLocalAdmin: false,
+      // Dispatch fixture models authenticated HTTPS, not a plaintext socket.
+      isSecureTransport: true,
     });
     expect(crossDeviceRevoke.status).toBe(403);
     expect(crossDeviceRevoke.error).toContain('only revoke its own session');
@@ -193,6 +246,8 @@ describe('Centipede API Server & Transport Test Suite', () => {
       headers: { Authorization: `Bearer ${clients[1].token}` },
       body: { deviceId: clients[1].deviceId },
       isLocalAdmin: false,
+      // Dispatch fixture models authenticated HTTPS, not a plaintext socket.
+      isSecureTransport: true,
     });
     expect(iosRevoke.status).toBe(200);
     expect(iosRevoke.data?.revoked).toBe(true);
@@ -204,6 +259,8 @@ describe('Centipede API Server & Transport Test Suite', () => {
       headers: { Authorization: `Bearer ${clients[0].token}` },
       body: { deviceId: clients[0].deviceId },
       isLocalAdmin: false,
+      // Dispatch fixture models authenticated HTTPS, not a plaintext socket.
+      isSecureTransport: true,
     });
     expect(androidRevoke.status).toBe(200);
     expect(androidRevoke.data?.revoked).toBe(true);
@@ -215,6 +272,8 @@ describe('Centipede API Server & Transport Test Suite', () => {
       headers: { Authorization: `Bearer ${clients[1].token}` },
       body: { deviceId: clients[1].deviceId },
       isLocalAdmin: false,
+      // Dispatch fixture models authenticated HTTPS, not a plaintext socket.
+      isSecureTransport: true,
     });
     expect(revokedRetry.status).toBe(403);
   });
