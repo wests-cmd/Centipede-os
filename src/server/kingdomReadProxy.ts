@@ -1,4 +1,5 @@
 import type { ApiRequest, ApiResponse } from './routes';
+import { trustedKingdomBase } from './kingdomUpstream';
 import { OBSERVATION_READ_PATHS, summarizeObservation } from '../api/kingdomObservations';
 
 const PREFIX = '/api/v1/kingdom';
@@ -36,10 +37,8 @@ export async function proxyKingdomRead(req: ApiRequest): Promise<ApiResponse | n
 
   let endpoint: URL;
   try {
-    const base = new URL(baseUrl);
-    if (!['http:', 'https:'].includes(base.protocol) || base.username || base.password || base.search || base.hash) {
-      return { status: 503, error: 'Kingdom server configuration is invalid.' };
-    }
+    const base = trustedKingdomBase(baseUrl);
+    if (!base) return { status: 503, error: 'Kingdom server configuration is invalid. Remote Kingdom requires HTTPS.' };
     base.pathname = `${base.pathname.replace(/\/+$/, '')}${path}`;
     base.search = req.query || '';
     endpoint = base;

@@ -1,11 +1,12 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { ApiRequest, ApiResponse } from './routes';
+import { trustedKingdomBase } from './kingdomUpstream';
 
 const PREFIX = '/api/v1/kingdom/actions';
 const SESSION_MS = 15 * 60_000;
 const WINDOW_MS = 60_000;
 const MAX_RESPONSE_BYTES = 256 * 1024;
-const sessions = new Map<string, { expiresAt: number; ownerCredential: string }>();
+const sessions = new Map<string, { expiresAt: number; ownerCredential: string; upstream: string }>();
 let failureWindowStart = 0;
 let failedUnlocks = 0;
 
@@ -28,26 +29,17 @@ function upstreamConfig(): { base: URL; token: string } | null {
   const token = process.env.KINGDOM_API_TOKEN || '';
   const url = process.env.KINGDOM_API_URL || '';
   if (token.length < 32 || !url) return null;
-  try {
-    const base = new URL(url);
-    if (!['http:', 'https:'].includes(base.protocol) ||
-      base.username || base.password || base.search || base.hash) return null;
-    // A server-side bearer credential must never traverse an unencrypted LAN/WAN.
-    // Local loopback HTTP is acceptable; remote Kingdom needs HTTPS even on a
-    // private LAN. The read proxy's separate policy is unchanged.
-    const hostname = base.hostname.toLowerCase().replace(/^\[|\]$/g, '');
-    if (base.protocol === 'http:' && !['localhost', '127.0.0.1', '::1'].includes(hostname)) return null;
-    return { base, token };
-  } catch {
-    return null;
-  }
+  const base = trustedKingdomBase(url);
+  return base ? { base, token } : null;
 }
 function validSession(req: ApiRequest, token: string): boolean {
   if (!/^[a-f0-9]{64}$/.test(token)) return false;
   const hash = digest(token);
   const session = sessions.get(hash);
   if (!session) return false;
-  if (session.expiresAt <= Date.now() || !equalSecrets(session.ownerCredential, process.env.KINGDOM_API_TOKEN || '')) {
+  const config = upstreamConfig();
+  if (session.expiresAt <= Date.now() || !config || session.upstream !== config.base.href ||
+      !equalSecrets(session.ownerCredential, config.token)) {
     sessions.delete(hash);
     return false;
   }
@@ -57,6 +49,7 @@ async function forwardTaskAction(
   config: { base: URL; token: string },
   path: string,
   payload?: object,
+  expectedTaskId?: string,
 ): Promise<ApiResponse> {
   const endpoint = new URL(config.base.toString());
   endpoint.pathname = `${endpoint.pathname.replace(/\/+$/, '')}${path}`;
@@ -106,7 +99,9 @@ async function forwardTaskAction(
     const item: unknown = JSON.parse(new TextDecoder().decode(combined));
     if (!item || typeof item !== 'object' ||
       !('id' in item) || typeof item.id !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(item.id) ||
-      !('status' in item) || typeof item.status !== 'string') {
+      !('status' in item) || typeof item.status !== 'string' ||
+      !['queued', 'running', 'completed', 'failed', 'cancelled', 'unknown'].includes(item.status) ||
+      (expectedTaskId !== undefined && item.id !== expectedTaskId)) {
       return { status: 502, error: 'Kingdom did not return a valid task ID and status; submission outcome is unknown.' };
     }
     return { status: 200, data: item };
@@ -145,7 +140,7 @@ export async function handleKingdomAction(req: ApiRequest): Promise<ApiResponse 
     // The configured credential is already in this server process environment.
     // Keep this session-bound snapshot in memory only, so rotation revokes the
     // session without applying a fast password hash to the owner's access code.
-    sessions.set(digest(newSession), { expiresAt, ownerCredential: config.token });
+    sessions.set(digest(newSession), { expiresAt, ownerCredential: config.token, upstream: config.base.href });
     return { status: 200, data: { sessionToken: newSession, expiresAt } };
   }
   if (!validSession(req, token)) return { status: 401, error: 'Owner session missing or expired. Unlock again on this computer.' };
@@ -161,7 +156,7 @@ export async function handleKingdomAction(req: ApiRequest): Promise<ApiResponse 
     return forwardTaskAction(config, '/tasks', { prompt: prompt.trim(), metadata: { client: 'centipede_os_owner_ui' } });
   }
   const cancel = req.path.match(/^\/api\/v1\/kingdom\/actions\/tasks\/([A-Za-z0-9_-]{1,128})\/cancel$/);
-  if (cancel) return forwardTaskAction(config, `/tasks/${cancel[1]}/cancel`);
+  if (cancel) return forwardTaskAction(config, `/tasks/${cancel[1]}/cancel`, undefined, cancel[1]);
   return { status: 404, error: 'This owner action is not supported.' };
 }
 
