@@ -226,6 +226,40 @@ class DatabaseTests(unittest.TestCase):
         self.store.control("disable")
         self.assertFalse(self.store.status()["enabled"])
 
+    def test_owner_revocation_is_sticky_and_late_reply_cannot_create_alert(self):
+        for action in ("pause", "disable", "remove"):
+            with self.subTest(action=action), tempfile.TemporaryDirectory() as folder:
+                store = HarnessStore(str(Path(folder) / "queue.sqlite3"))
+                try:
+                    added = store.add_routine(SAMPLE, resolve_dns=False)
+                    now = int(time.time()) + 10
+                    store.control("enable")
+                    first = store.claim_due(now=now)
+                    store.complete_run(first["runId"], outcome="completed", sha256="a" * 64)
+                    active = store.claim_due(now=now + 900)
+                    self.assertFalse(store.run_should_stop(active["runId"]))
+                    if action == "remove":
+                        store.delete_routine(added["id"])
+                    else:
+                        store.control(action)
+                        store.control("resume" if action == "pause" else "enable")
+                    self.assertTrue(store.run_should_stop(active["runId"]))
+                    self.assertIsNone(store.claim_due(now=now + 1800))
+                    store.complete_run(active["runId"], outcome="completed", sha256="b" * 64)
+                    receipt = next(r for r in store.status()["runs"] if r["id"] == active["runId"])
+                    self.assertEqual(receipt["state"], "interrupted")
+                    self.assertIsNone(receipt["sha256"])
+                    self.assertEqual(store.status()["attentionCount"], 0)
+                    if action != "remove":
+                        next_run = store.claim_due(now=now + 1800)
+                        self.assertIsNotNone(next_run)
+                        self.assertFalse(store.run_should_stop(next_run["runId"]))
+                        self.assertEqual(next_run["previousDigest"], "a" * 64)
+                    else:
+                        self.assertIsNone(store.claim_due(now=now + 1800))
+                finally:
+                    store.close()
+
     def test_screenshots_are_bounded_without_deleting_unrelated_files(self):
         self.add()
         self.store.control("enable")

@@ -137,11 +137,11 @@ export const BackgroundHarnessApp: React.FC = () => {
   };
 
   const deleteRoutine = async (id: string) => {
-    if (!unlocked || busy || !window.confirm('Remove this approved routine? Its existing receipts will remain.')) return;
+    if (!unlocked || busy || !window.confirm('Remove this approved routine and request cancellation of its active run? Existing receipts remain.')) return;
     setBusy(true);
     try {
       await kingdomActions.harnessDeleteRoutine(id);
-      setMessage('Routine removed; no new runs will be scheduled for it.');
+      setMessage('Routine removed; active work is being cancelled and no new runs will be scheduled.');
       await refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Routine removal rejected.');

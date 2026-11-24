@@ -133,7 +133,8 @@ class HarnessStore:
           CREATE TABLE IF NOT EXISTS runs (
             id TEXT PRIMARY KEY, routine_id TEXT NOT NULL, started INTEGER NOT NULL,
             completed INTEGER, state TEXT NOT NULL, summary TEXT NOT NULL DEFAULT '',
-            sha256 TEXT, screenshot TEXT
+            sha256 TEXT, screenshot TEXT,
+            cancel_requested INTEGER NOT NULL DEFAULT 0
           );
           CREATE TABLE IF NOT EXISTS alerts (
             run_id TEXT PRIMARY KEY, routine_id TEXT NOT NULL, created INTEGER NOT NULL,
@@ -142,6 +143,10 @@ class HarnessStore:
           );
         """)
         with self.connection:
+            # Existing worker databases retain receipts across the upgrade.
+            columns = {row["name"] for row in self.connection.execute("PRAGMA table_info(runs)")}
+            if "cancel_requested" not in columns:
+                self.connection.execute("ALTER TABLE runs ADD COLUMN cancel_requested INTEGER NOT NULL DEFAULT 0")
             self.connection.execute("INSERT OR IGNORE INTO settings VALUES ('enabled','0')")
             self.connection.execute("INSERT OR IGNORE INTO settings VALUES ('paused','0')")
             self.connection.execute("UPDATE runs SET state='interrupted', completed=?, summary=? WHERE state='running'",
@@ -218,6 +223,8 @@ class HarnessStore:
             key = "paused" if action in ("pause", "resume") else "enabled"
             value = "1" if action in ("enable", "pause") else "0"
             self.connection.execute("UPDATE settings SET value=? WHERE key=?", (value, key))
+            if action in {"pause", "disable"}:
+                self.connection.execute("UPDATE runs SET cancel_requested=1 WHERE state='running'")
         return self.status()
 
     def add_routine(self, payload: dict, *, resolve_dns: bool = True) -> dict:
@@ -239,6 +246,9 @@ class HarnessStore:
         if not isinstance(routine_id, str) or not SAFE_ID.fullmatch(routine_id):
             raise PolicyError("Invalid routine ID.")
         with self.lock, self.connection:
+            self.connection.execute(
+                "UPDATE runs SET cancel_requested=1 WHERE routine_id=? AND state='running'", (routine_id,)
+            )
             self.connection.execute("DELETE FROM routines WHERE id=?", (routine_id,))
 
     def acknowledge_alert(self, run_id: str) -> dict:
@@ -252,6 +262,17 @@ class HarnessStore:
             if updated.rowcount != 1:
                 raise PolicyError("This change alert was already acknowledged or does not exist.")
         return {"acknowledged": True, "runId": run_id}
+
+    def run_should_stop(self, run_id: str) -> bool:
+        """A revocation is sticky for a claimed run, even after a quick resume."""
+        with self.lock:
+            row = self.connection.execute(
+                "SELECT runs.cancel_requested, routines.enabled AS routine_enabled "
+                "FROM runs LEFT JOIN routines ON routines.id=runs.routine_id "
+                "WHERE runs.id=? AND runs.state='running'", (run_id,)
+            ).fetchone()
+            return (row is None or bool(row["cancel_requested"]) or row["routine_enabled"] != 1
+                    or not self._setting("enabled") or self._setting("paused"))
 
     def claim_due(self, *, now: int | None = None) -> dict | None:
         now = now if now is not None else int(time.time())
@@ -295,6 +316,11 @@ class HarnessStore:
             ).fetchone()
             if not current:
                 raise PolicyError("Run is not active; duplicate completion rejected.")
+            # The lock spans this check and receipt commit. A late reply cannot
+            # restore authority after the owner revoked the run.
+            if self.run_should_stop(run_id):
+                outcome, summary = "interrupted", "Owner revoked this run; outcome unknown, no automatic replay."
+                sha256, screenshot = None, None
             self.connection.execute(
                 "UPDATE runs SET completed=?, state=?, summary=?, sha256=?, screenshot=? WHERE id=?",
                 (int(time.time()), outcome, summary, sha256, screenshot, run_id),

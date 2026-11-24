@@ -141,22 +141,22 @@ class Harness:
                 if job:
                     summary, digest, screenshot = self.runner(
                         job, self.state_dir,
-                        lambda: self.stopping.is_set() or not self.store.status()["enabled"] or
-                        self.store.status()["paused"]
+                        lambda: self.stopping.is_set() or self.store.run_should_stop(job["runId"])
                     )
-                    self.store.complete_run(
-                        job["runId"], outcome="completed", summary=summary,
-                        sha256=digest, screenshot=screenshot
-                    )
+                    if self.stopping.is_set():
+                        self.store.complete_run(job["runId"], outcome="interrupted",
+                                                summary="Worker shutting down; outcome unknown.")
+                    else:
+                        self.store.complete_run(
+                            job["runId"], outcome="completed", summary=summary,
+                            sha256=digest, screenshot=screenshot
+                        )
             except Exception as error:
                 # Untrusted site content and exception bodies are never used as
                 # instructions. Avoid logging visited URL, selectors or secrets.
                 if job:
                     try:
-                        current = self.store.status()
-                        interrupted = (
-                            self.stopping.is_set() or not current["enabled"] or current["paused"]
-                        )
+                        interrupted = self.stopping.is_set() or self.store.run_should_stop(job["runId"])
                         self.store.complete_run(
                             job["runId"], outcome="interrupted" if interrupted else "failed",
                             summary="Browser run stopped or failed; remote outcome unknown, no automatic replay.",
