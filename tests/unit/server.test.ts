@@ -232,6 +232,8 @@ describe('Centipede API Server & Transport Test Suite', () => {
       headers: { Authorization: `Bearer ${clients[1].token}` },
       body: { deviceId: clients[0].deviceId },
       isLocalAdmin: false,
+      // Dispatch fixture models authenticated HTTPS, not a plaintext socket.
+      isSecureTransport: true,
     });
     expect(crossDeviceRevoke.status).toBe(403);
     expect(crossDeviceRevoke.error).toContain('only revoke its own session');
@@ -244,6 +246,8 @@ describe('Centipede API Server & Transport Test Suite', () => {
       headers: { Authorization: `Bearer ${clients[1].token}` },
       body: { deviceId: clients[1].deviceId },
       isLocalAdmin: false,
+      // Dispatch fixture models authenticated HTTPS, not a plaintext socket.
+      isSecureTransport: true,
     });
     expect(iosRevoke.status).toBe(200);
     expect(iosRevoke.data?.revoked).toBe(true);
@@ -255,6 +259,8 @@ describe('Centipede API Server & Transport Test Suite', () => {
       headers: { Authorization: `Bearer ${clients[0].token}` },
       body: { deviceId: clients[0].deviceId },
       isLocalAdmin: false,
+      // Dispatch fixture models authenticated HTTPS, not a plaintext socket.
+      isSecureTransport: true,
     });
     expect(androidRevoke.status).toBe(200);
     expect(androidRevoke.data?.revoked).toBe(true);
@@ -266,6 +272,8 @@ describe('Centipede API Server & Transport Test Suite', () => {
       headers: { Authorization: `Bearer ${clients[1].token}` },
       body: { deviceId: clients[1].deviceId },
       isLocalAdmin: false,
+      // Dispatch fixture models authenticated HTTPS, not a plaintext socket.
+      isSecureTransport: true,
     });
     expect(revokedRetry.status).toBe(403);
   });

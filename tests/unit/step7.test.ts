@@ -51,6 +51,9 @@ describe('Step 7 â€” Platform Harness, Docker, API & Security Test Suite', 
       method: 'POST' as const,
       headers: { authorization: `Bearer ${token}` },
       body: { deviceId: pairing.deviceId },
+      // Internal router fixture represents a TLS-verified remote request.
+      isLocalAdmin: false,
+      isSecureTransport: true,
     };
 
     const res = await apiRouter.handleRequest(req);
