@@ -135,7 +135,7 @@ export class CentipedeServer {
           };
 
           const apiRes = await apiRouter.handleRequest(apiReq);
-          res.writeHead(apiRes.status, { 'Content-Type': 'application/json', 'X-Content-Type-Options': 'nosniff' });
+          res.writeHead(apiRes.status, { 'Content-Type': 'application/json', 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store' });
           if (apiRes.error) {
             res.end(JSON.stringify({ error: apiRes.error }));
           } else {
@@ -143,7 +143,7 @@ export class CentipedeServer {
           }
         });
 
-        this.httpServer.listen(port, () => {
+        this.httpServer.listen(port, '127.0.0.1', () => {
           console.log(`[CentipedeServer] Bound REAL HTTP Server listening on port ${port}`);
         });
       } catch (err: any) {

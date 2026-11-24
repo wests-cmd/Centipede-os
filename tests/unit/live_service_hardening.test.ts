@@ -54,6 +54,38 @@ describe('Debian live-image static web hardening and fallback', () => {
     expect(shell.status, String(shell.stderr)).toBe(0);
   });
 
+  it('survives a process disappearing during /proc status and cmdline reads', () => {
+    const script = 'packaging/live-build/config/includes.chroot/usr/local/libexec/centipede-desktop-readiness.py';
+    // Execute the actual packaged scan function without running the Linux boot
+    // loop on the Windows runner. Inject ESRCH at both read boundaries.
+    const fixture = [
+      'import ast, pathlib, sys, os, errno, io',
+      'from types import SimpleNamespace',
+      'from unittest.mock import patch',
+      'tree = ast.parse(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))',
+      'node = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "desktop_browser_running")',
+      'scope = {"os": os}',
+      'exec(compile(ast.Module(body=[node], type_ignores=[]), sys.argv[1], "exec"), scope)',
+      'class Gone:',
+      '    def __enter__(self): return self',
+      '    def __exit__(self, *args): return False',
+      '    def read(self): raise ProcessLookupError(errno.ESRCH, "process exited")',
+      'def opened(path, *args, **kwargs):',
+      '    if path == "/proc/101/status" or path == "/proc/102/cmdline": return Gone()',
+      '    if path.endswith("/status"): return io.StringIO("Uid:\\t1000\\t1000\\t1000\\t1000\\n")',
+      '    if path == "/proc/103/cmdline": return io.BytesIO(b"chromium\\0--start-maximized\\0--app=http://127.0.0.1:3000\\0")',
+      '    raise AssertionError(path)',
+      'entries = [SimpleNamespace(name=n) for n in ["self", "101", "102", "103"]]',
+      'with patch("os.scandir", return_value=entries), patch("builtins.open", side_effect=opened):',
+      '    assert scope["desktop_browser_running"](1000) is True',
+      'with patch("os.scandir", return_value=entries[:-1]), patch("builtins.open", side_effect=opened):',
+      '    assert scope["desktop_browser_running"](1000) is False',
+    ].join('\n');
+    const python = spawnSync(process.env.CENTIPEDE_E2E_PYTHON || (process.platform === 'win32' ? 'python' : 'python3'),
+      ['-c', fixture, script], { encoding: 'utf8', timeout: 10_000 });
+    expect(python.status, String(python.stderr)).toBe(0);
+  }, 20_000);
+
   it('orders readiness after concrete services without cycling its target', () => {
     const unit = file('packaging/live-build/config/includes.chroot/etc/systemd/system/centipede-desktop-readiness.service');
     expect(unit).toContain('After=lightdm.service centipede-web.service');

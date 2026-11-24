@@ -8,6 +8,8 @@ This navigation organizes existing source and evidence; it moves no runtime file
 | Try the published USB image | [Beginner installation guide](INSTALLATION_GUIDE.md) |
 | Watch an animated illustrated installation/use tutorial | [Quick-start animation](media/quick-start.svg), [accessible transcript](VIDEO_GUIDE.md) |
 | **Master product and engineering requirements** | **[Centipede OS master specification](CENTIPEDE_OS_MASTER.md)** — requirements and historical evidence, not current certification |
+| **Daily-driver and autonomous-worker critical path** | **[Release and acceptance plan](DAILY_DRIVER_AUTONOMOUS_RELEASE_PLAN.md)** — evidence-gated milestones and non-interference requirements |
+| **Isolated browser worker (experimental)** | [Background harness scope and limits](BACKGROUND_HARNESS.md) — opt-in only, NOT in published RC11 |
 | Understand application, image and mobile boundaries | [Architecture](ARCHITECTURE.md) |
 | Run, configure, build and test | [Development](DEVELOPMENT.md) |
 | Operate services and update safely | [Operations](OPERATIONS.md) |

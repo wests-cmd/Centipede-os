@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { mkdtemp, readFile, rm, symlink, chmod, realpath } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, symlink, chmod, realpath, writeFile, truncate } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -20,6 +20,15 @@ beforeEach(async () => {
   // Windows hosted runners can expose TEMP through an 8.3 alias. Use the real
   // path so this fixture exercises ACL enforcement, not alias rejection.
   root = await realpath(await mkdtemp(join(tmpdir(), 'centipede-files-test-')));
+  if (process.platform === 'win32') {
+    // A Windows temp directory normally inherits Users/Everyone read rights.
+    // Create the explicitly private ACL an installer must set on its workspace.
+    const script = `$ErrorActionPreference='Stop'; $p=$env:CENTIPEDE_ACL_TEST_ROOT; $a=[System.IO.Directory]::GetAccessControl($p); $sid=[System.Security.Principal.WindowsIdentity]::GetCurrent().User; $a.SetAccessRuleProtection($true,$false); $rule=[System.Security.AccessControl.FileSystemAccessRule]::new($sid,'FullControl','ContainerInherit,ObjectInherit','None','Allow'); $a.AddAccessRule($rule); [System.IO.Directory]::SetAccessControl($p,$a)`;
+    execFileSync(join(process.env.SystemRoot || 'C:\\\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
+      ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')],
+      { env: { SystemRoot: process.env.SystemRoot, WINDIR: process.env.WINDIR, CENTIPEDE_ACL_TEST_ROOT: root },
+        windowsHide: true, timeout: 10_000 });
+  }
   process.env.CENTIPEDE_FILES_ROOT = root;
   process.env.KINGDOM_API_URL = 'http://127.0.0.1:8000';
   process.env.KINGDOM_API_TOKEN = secret;
@@ -44,6 +53,24 @@ describe('Centipede local Files security', () => {
     } else await chmod(root, 0o777);
     expect((await request('list',{directory:''})).status).toBe(503);
   }, 30_000);
+  it('rejects a Windows workspace readable by Everyone even without write rights', async () => {
+    if (process.platform !== 'win32') return;
+    const script = `$ErrorActionPreference='Stop'; $p=$env:CENTIPEDE_ACL_TEST_ROOT; $a=[System.IO.Directory]::GetAccessControl($p); $sid=[System.Security.Principal.SecurityIdentifier]::new('S-1-1-0'); $rule=[System.Security.AccessControl.FileSystemAccessRule]::new($sid,'Read','Allow'); $a.AddAccessRule($rule); [System.IO.Directory]::SetAccessControl($p,$a)`;
+    execFileSync(join(process.env.SystemRoot || 'C:\\\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
+      ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script,'utf16le').toString('base64')],
+      { env: { SystemRoot: process.env.SystemRoot, WINDIR: process.env.WINDIR, CENTIPEDE_ACL_TEST_ROOT: root },
+        windowsHide: true, timeout: 10_000 });
+    expect((await request('list', {directory: ''})).status).toBe(503);
+  }, 30_000);
+  it('rejects group/other-readable POSIX workspace roots, not only writable ones', async () => {
+    if (process.platform === 'win32') return; // Windows requires its ACL-specific checker.
+    for (const mode of [0o755, 0o750, 0o705, 0o644]) {
+      await chmod(root, mode);
+      expect((await request('list', {directory: ''})).status).toBe(503);
+    }
+    await chmod(root, 0o700);
+    expect((await request('list', {directory: ''})).status).toBe(200);
+  }, 30_000);
   it('persists and reads a real on-disk text file', async () => {
     expect((await request('list',{directory:''})).data.entries).toEqual([]);
     expect((await request('mkdir',{directory:'',name:'Projects'})).status).toBe(201);
@@ -53,6 +80,39 @@ describe('Centipede local Files security', () => {
     expect((await request('read',{path:'Projects/notes.txt'})).data.content).toBe('real data');
     expect(await readFile(join(root,'Projects','notes.txt'),'utf8')).toBe('real data');
   }, 30_000);
+  it('copies real binary files without touching or overwriting the source', async () => {
+    const source = Buffer.from([0, 1, 255, 2, 3, 42]);
+    await writeFile(join(root, 'photo.bin'), source);
+    const copied = await request('copy', { path: 'photo.bin', directory: '', name: 'photo-copy.bin' });
+    expect(copied.status).toBe(201);
+    expect(copied.data).toMatchObject({ copied: true, source: 'photo.bin', path: 'photo-copy.bin', size: 6 });
+    expect(await readFile(join(root, 'photo-copy.bin'))).toEqual(source);
+    expect(await readFile(join(root, 'photo.bin'))).toEqual(source);
+    expect((await request('copy', { path: 'photo.bin', directory: '', name: 'photo-copy.bin' })).status).toBe(409);
+    expect(await readFile(join(root, 'photo-copy.bin'))).toEqual(source);
+  }, 30_000);
+
+  it('copies into approved nested folders but rejects traversal, symlinks and oversized files', async () => {
+    await writeFile(join(root, 'notes.txt'), 'copied notes');
+    expect((await request('mkdir', { directory: '', name: 'Documents' })).status).toBe(201);
+    const copied = await request('copy', { path: 'notes.txt', directory: 'Documents', name: 'backup.txt' });
+    expect(copied.status).toBe(201);
+    expect(await readFile(join(root, 'Documents', 'backup.txt'), 'utf8')).toBe('copied notes');
+    for (const candidate of [
+      { path: '../notes.txt', directory: '', name: 'escape.txt' },
+      { path: 'notes.txt', directory: '../', name: 'escape.txt' },
+      { path: 'notes.txt', directory: '', name: '.hidden' },
+      { path: 'notes.txt', directory: '', name: 'Documents/backup.txt' },
+    ]) expect((await request('copy', candidate)).status).toBe(422);
+    await symlink(tmpdir(), join(root, 'escape-dir'), process.platform === 'win32' ? 'junction' : undefined);
+    expect((await request('copy', { path: 'notes.txt', directory: 'escape-dir', name: 'secret.txt' })).status).toBe(403);
+    expect((await request('copy', { path: 'escape-dir/anything', directory: '', name: 'test.txt' })).status).toBe(403);
+    await writeFile(join(root, 'big.bin'), '0');
+    await truncate(join(root, 'big.bin'), 32 * 1024 * 1024 + 1);
+    expect((await request('copy', { path: 'big.bin', directory: '', name: 'not-copied.bin' })).status).toBe(413);
+    expect((await request('list', { directory: '' })).data.entries.some((entry: any) => entry.name === 'not-copied.bin')).toBe(false);
+  }, 30_000);
+
   it('blocks remote clients, missing sessions, wrong method and owner intent', async () => {
     expect((await request('list',{directory:''}, false)).status).toBe(403);
     expect((await request('list',{directory:''}, true, '')).status).toBe(401);
@@ -76,5 +136,6 @@ describe('Centipede local Files security', () => {
     expect((await apiRouter.handleRequest({path:'/api/v1/kingdom/actions/lock',method:'POST',isLocalAdmin:true,
       headers:{'x-centipede-owner-intent':'1','x-centipede-action-session':session},body:{}})).status).toBe(200);
     expect((await request('list',{directory:''})).status).toBe(401);
+    expect((await request('copy', { path: 'existing.txt', directory: '', name: 'copy.txt' })).status).toBe(401);
   }, 30_000);
 });

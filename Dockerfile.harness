@@ -1,0 +1,20 @@
+# Explicitly opt-in isolated background browser worker, separate from UI/Kingdom.
+# Browser build must be verified in CI before making production claims.
+FROM mcr.microsoft.com/playwright/python:v1.64.1-noble
+
+WORKDIR /opt/centipede
+COPY harness/requirements.txt /opt/centipede/harness/requirements.txt
+RUN pip install --no-cache-dir -r /opt/centipede/harness/requirements.txt && \
+    mkdir -p /data && chown pwuser:pwuser /data
+COPY harness/ /opt/centipede/harness/
+RUN chmod -R a+rX /opt/centipede/harness
+USER pwuser
+ENV PYTHONUNBUFFERED=1 \
+    CENTIPEDE_HARNESS_PORT=3011 \
+    CENTIPEDE_HARNESS_DATA=/data \
+    HOME=/home/pwuser
+WORKDIR /opt/centipede
+EXPOSE 3011
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD python -m harness.healthcheck
+CMD ["python", "-m", "harness.service"]

@@ -53,7 +53,9 @@ const serverOptions: ServerOptions = {
         // Transport-verifiable fields: neither user JSON nor Host headers
         // may override the endpoint or claim encrypted TLS protection.
         serverPairingEndpoint: publicUrl,
-        isSecureTransport: url.protocol === 'https:',
+        // This listener currently has no TLS configuration. Do not infer TLS
+        // from a request URL or forwarded header. Remote pairing fails closed.
+        isSecureTransport: false,
         isLocalAdmin: isLocalAdminRequest(
           server.requestIP(request)?.address,
           Object.fromEntries(request.headers.entries()),
@@ -73,7 +75,7 @@ const serverOptions: ServerOptions = {
         else window.count += 1;
       }
       const result = handleSelectedKnowledgeRequest(apiRequest, selectedSources) || await apiRouter.handleRequest(apiRequest);
-      return Response.json(result.error ? { error: result.error } : result.data, { status: result.status });
+      return Response.json(result.error ? { error: result.error } : result.data, { status: result.status, headers: { 'Cache-Control': 'no-store' } });
     }
 
     if (request.method !== 'GET' && request.method !== 'HEAD') return new Response('Method not allowed', { status: 405 });
@@ -84,8 +86,8 @@ const serverOptions: ServerOptions = {
     const safePath = normalize(relativePath || 'index.html');
     if (safePath.startsWith('..') || safePath.includes(':')) return new Response('Not found', { status: 404 });
     const head = request.method === 'HEAD';
-    return await staticFile(join(webRoot, safePath), head)
-      || await staticFile(join(webRoot, 'index.html'), head)
+    return await staticFile(join(webRoot, safePath), head, webRoot)
+      || await staticFile(join(webRoot, 'index.html'), head, webRoot)
       || new Response('Centipede web build is missing. Run `bun run build` first.', { status: 503 });
   },
 };

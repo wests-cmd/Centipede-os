@@ -15,3 +15,10 @@ coverage
 .cache
 *.log
 .DS_Store
+
+# Private opt-in headless-worker secret and local receipts
+.centipede-harness.env
+harness-data/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
