@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Segmentor Native Quick Actions
+Comment=Open or activate approved Linux applications
+Exec=/usr/local/bin/centipede-native-quick
+Icon=system-run
+Terminal=false
+Categories=Utility;
+StartupNotify=false

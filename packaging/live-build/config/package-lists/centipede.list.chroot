@@ -1,12 +1,15 @@
 chromium
 desktop-base
 lightdm
+libnotify-bin
 libreoffice-calc
 libreoffice-writer
 network-manager
 python3
 thunderbird
 vlc
+wmctrl
+x11-utils
 xfce4
 xfce4-terminal
 zenity

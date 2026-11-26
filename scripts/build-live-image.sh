@@ -38,6 +38,8 @@ test -x "$BUILD/config/includes.chroot/usr/local/bin/centipede-readiness-ui"
 # even when the Python syntax is correct. Never depend on Git/archive mode alone.
 chmod 0755 "$BUILD/config/includes.chroot/usr/local/libexec/centipede-desktop-readiness.py"
 test -x "$BUILD/config/includes.chroot/usr/local/libexec/centipede-desktop-readiness.py"
+chmod 0755 "$BUILD/config/includes.chroot/usr/local/bin/centipede-native-quick"
+test -x "$BUILD/config/includes.chroot/usr/local/bin/centipede-native-quick"
 
 cd "$BUILD"
 lb config \

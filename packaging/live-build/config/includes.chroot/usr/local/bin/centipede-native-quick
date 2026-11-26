@@ -1,0 +1,158 @@
+#!/usr/bin/python3
+"""Explicit native quick actions for a local XFCE/X11 user session.
+
+No network API, arbitrary commands, root access, typing, or agent authority.
+A successful receipt requires the requested application's window to become
+the active X11 window. Starting a process alone is not a verified result.
+"""
+import os
+import re
+import subprocess
+import sys
+import time
+
+APPS = {
+    "writer": ("LibreOffice Writer", ("/usr/bin/libreoffice", "--writer"), {"libreoffice-writer"}),
+    "calc": ("LibreOffice Calc", ("/usr/bin/libreoffice", "--calc"), {"libreoffice-calc"}),
+    "mail": ("Thunderbird", ("/usr/bin/thunderbird",), {"thunderbird"}),
+    "media": ("VLC", ("/usr/bin/vlc",), {"vlc"}),
+}
+ID = re.compile(r"0x[0-9a-fA-F]{1,8}\Z")
+DISPLAY = re.compile(r":[0-9]{1,5}(?:\.[0-9]{1,3})?\Z")
+
+
+def local_session(env, uid):
+    return uid != 0 and env.get("XDG_SESSION_TYPE", "x11") == "x11" and bool(
+        DISPLAY.fullmatch(env.get("DISPLAY", "")))
+
+
+def parse_windows(output):
+    result = []
+    for line in output.splitlines():
+        # wmctrl -lx: XID, desktop number, WM_CLASS, host, title.
+        parts = line.split(None, 4)
+        if len(parts) < 4 or not ID.fullmatch(parts[0]):
+            continue
+        result.append((int(parts[0], 16), set(parts[2].lower().split("."))))
+    return result
+
+
+def parse_active(output):
+    match = re.fullmatch(
+        r"_NET_ACTIVE_WINDOW\(WINDOW\): window id # (0x[0-9a-fA-F]{1,8})\s*",
+        output.strip(),
+    )
+    return int(match.group(1), 16) if match else None
+
+
+class Desktop:
+    def run(self, args):
+        return subprocess.run(args, check=True, capture_output=True, text=True, timeout=3)
+
+    def windows(self):
+        return parse_windows(self.run(["/usr/bin/wmctrl", "-lx"]).stdout)
+
+    def active(self):
+        return parse_active(self.run(["/usr/bin/xprop", "-root", "_NET_ACTIVE_WINDOW"]).stdout)
+
+    def focus(self, window_id):
+        if not isinstance(window_id, int) or not 0 < window_id <= 0xffffffff:
+            raise ValueError("Invalid X11 window identifier")
+        self.run(["/usr/bin/wmctrl", "-ia", hex(window_id)])
+
+    def launch(self, argv):
+        subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True)
+
+
+def matching(desktop, classes):
+    return sorted({wid for wid, wmclass in desktop.windows() if wid and classes & wmclass})
+
+
+def activate(app_id, desktop, clock=time.monotonic, sleep=time.sleep):
+    """Return a bounded receipt; do not silently retry a possibly launched app."""
+    if app_id not in APPS:
+        return "DENIED", "Unknown application. Nothing was dispatched."
+    label, argv, classes = APPS[app_id]
+    launched = False
+    dispatched = False
+    try:
+        candidates = matching(desktop, classes)
+        if not candidates:
+            # Mark possible dispatch before entering the side-effecting call.
+            dispatched = True
+            desktop.launch(argv)
+            launched = True
+            deadline = clock() + 12
+            while clock() < deadline:
+                candidates = matching(desktop, classes)
+                if candidates:
+                    break
+                sleep(0.2)
+        if not candidates:
+            return "UNVERIFIED", label + ": launch was requested, but no matching window was observed."
+        current = desktop.active()
+        if current in candidates:
+            return "VERIFIED", label + ": matching active X11 window observed."
+        if len(candidates) != 1:
+            return "UNVERIFIED", label + ": multiple matching windows; choose one manually."
+        window_id = candidates[0]
+        # Recheck the target identity before dispatch, then independently read back.
+        if window_id not in matching(desktop, classes):
+            return "UNVERIFIED", label + ": target changed before focus."
+        dispatched = True
+        desktop.focus(window_id)
+        deadline = clock() + 3
+        while clock() < deadline:
+            if desktop.active() == window_id and window_id in matching(desktop, classes):
+                return "VERIFIED", label + ": matching active X11 window observed."
+            sleep(0.1)
+        return "UNVERIFIED", label + ": focus requested, but active window could not be verified."
+    except (OSError, ValueError, subprocess.SubprocessError):
+        if launched or dispatched:
+            return "UNVERIFIED", label + ": an operation may have occurred; check before trying again."
+        return "UNAVAILABLE", label + ": native window inspection failed before dispatch."
+
+
+def notify(status, message):
+    # The receipt reports an observation; never claims an app's contents are verified.
+    # stdout is useful to an interactive terminal; no persistent telemetry is stored.
+    print(status + ": " + message)
+    try:
+        subprocess.run(["/usr/bin/notify-send", "Segmentor — " + status, message],
+                       check=False, timeout=3)
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
+def main():
+    if len(sys.argv) != 1:
+        print("Open Segmentor Native Quick Actions from the desktop Applications menu.", file=sys.stderr)
+        return 2
+    if not local_session(os.environ, os.geteuid()):
+        notify("UNAVAILABLE", "A non-root local X11 desktop session is required.")
+        return 1
+    try:
+        result = subprocess.run(
+            ["/usr/bin/zenity", "--list", "--title=Segmentor Native Quick Actions",
+             "--text=Choose an application to open or activate.",
+             "--column=ID", "--column=Application", "--hide-column=1", "--print-column=1",
+             "--width=380", "--height=300",
+             *[value for app, (label, _, _) in APPS.items() for value in (app, label)]],
+            capture_output=True, text=True, timeout=300, check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        notify("UNAVAILABLE", "The native application picker is unavailable.")
+        return 1
+    if result.returncode == 1:
+        return 0
+    if result.returncode != 0:
+        notify("UNAVAILABLE", "The native application picker did not complete.")
+        return 1
+    status, message = activate(result.stdout.strip(), Desktop())
+    notify(status, message)
+    return 0 if status == "VERIFIED" else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
