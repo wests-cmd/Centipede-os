@@ -1,3 +1,4 @@
+alsa-utils
 chromium
 desktop-base
 lightdm
@@ -7,6 +8,8 @@ libreoffice-writer
 network-manager
 python3
 python3-tk
+python3-pocketsphinx
+pocketsphinx-en-us
 thunderbird
 vlc
 wmctrl

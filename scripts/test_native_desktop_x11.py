@@ -77,6 +77,25 @@ class X11Readback(unittest.TestCase):
                     self.assertEqual(receipts, [("VERIFIED", "UI fixture receipt")])
                     self.assertFalse(ui.busy)
                     self.assertIn("VERIFIED", ui.message.get())
+                    ui.transcriber = lambda cancel: "open writer"
+                    ui.record()
+                    deadline = time.monotonic() + 5
+                    while ui.recording and time.monotonic() < deadline:
+                        root.update()
+                        time.sleep(.05)
+                    self.assertFalse(ui.recording)
+                    self.assertEqual(ui.command.get(), "open writer")
+                    ui.execute()
+                    self.assertEqual(calls, ["calc:open"])
+                    ui.record()
+                    ui.discard_speech()
+                    deadline = time.monotonic() + 5
+                    while ui.recording and time.monotonic() < deadline:
+                        root.update()
+                        time.sleep(.05)
+                    self.assertFalse(ui.recording)
+                    self.assertIn("discarded", ui.message.get())
+                    self.assertEqual(calls, ["calc:open"])
                 finally:
                     root.destroy()
             finally:

@@ -1,7 +1,7 @@
 name: Native desktop acceptance
 on:
   pull_request:
-    branches: [main, feat/segmentor-native-foundation-20261126]
+    branches: [main, feat/segmentor-native-foundation-20261126, feat/segmentor-native-x11-quick-actions-20261126]
     paths:
       - 'packaging/live-build/**'
       - 'scripts/test_native_desktop*.py'
@@ -26,3 +26,19 @@ jobs:
           sudo apt-get "${apt_options[@]}" install -y --no-install-recommends xvfb xauth openbox xterm wmctrl x11-utils x11-xserver-utils python3-tk
       - name: Verify X11 geometry and native assistant confirmation
         run: CENTIPEDE_TEST_X11=1 xvfb-run -a python3 -m unittest discover -s scripts -p test_native_desktop_x11.py -v
+  offline-speech:
+    name: Real Debian Bookworm offline speech fixture
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - name: Prepare signed Debian speech packages
+        run: |
+          docker build -t centipede-speech-test - <<'DOCKER'
+          FROM debian:bookworm-slim
+          RUN apt-get update && apt-get install -y --no-install-recommends python3-pocketsphinx pocketsphinx-en-us pocketsphinx-testdata && rm -rf /var/lib/apt/lists/*
+          DOCKER
+      - name: Decode real packaged audio without network
+        run: |
+          docker run --rm --network none --read-only --user 65534:65534 --memory 512m --cpus 1 \
+            -v "$PWD:/repo:ro" centipede-speech-test python3 -B /repo/scripts/test_native_desktop_speech.py -v
