@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ArrowDownToLine, RefreshCw, X } from 'lucide-react';
 import { appVersionAtLeast, classifyAppUpdate } from '../platform/appUpdate';
 
@@ -88,7 +89,9 @@ export const AppUpdateManager: React.FC<{ currentVersion: string }> = ({ current
   if (!offer || dismissedVersion === offer.version || state === 'idle') return null;
 
   const isLarge = offer.kind === 'large';
-  return (
+  // The desktop workspace may have its own stacking context. Keep the update
+  // notice above the dock and outside scroll clipping, including on small screens.
+  return createPortal(
     <section
       aria-live="polite"
       aria-atomic="true"
@@ -151,6 +154,6 @@ export const AppUpdateManager: React.FC<{ currentVersion: string }> = ({ current
           </button>
         )}
       </div>
-    </section>
+    </section>, document.body
   );
 };

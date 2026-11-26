@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+
+# Build-time default only. Never modify a user's XFCE configuration at login.
+# Debian desktop-base supplies this alternative for its XFCE backdrop defaults.
+wallpaper=/usr/share/backgrounds/centipede/centipede-earth.png
+link=/usr/share/images/desktop-base/desktop-background
+test -s "$wallpaper"
+update-alternatives --install "$link" desktop-background "$wallpaper" 100
+update-alternatives --set desktop-background "$wallpaper"
+test "$(readlink -f "$link")" = "$wallpaper"
+printf '%s\n' 'Centipede native desktop default registered and verified.'

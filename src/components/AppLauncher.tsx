@@ -92,10 +92,12 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-8 px-3 py-4 sm:px-6 sm:py-7">
-      <section aria-labelledby="desktop-heading" className="relative isolate h-[19rem] overflow-hidden rounded-2xl border border-cyan-950/70 bg-slate-950 shadow-2xl shadow-cyan-950/20 sm:h-[23rem]">
-        <CentipedeWorldVisual visual={homeVisual} quality="BALANCED" className="absolute inset-0" />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-slate-950/5" />
-        <div className="relative z-10 flex h-full max-w-xl flex-col items-start justify-center px-6 py-8 sm:px-10">
+      <section aria-labelledby="desktop-heading" className={`relative isolate overflow-hidden rounded-2xl ${homeVisual === 'centipede-art' ? 'flex min-h-[58vh] items-end sm:items-center' : 'h-[19rem] border border-cyan-950/70 bg-slate-950 shadow-2xl shadow-cyan-950/20 sm:h-[23rem]'}`}>
+        {homeVisual !== 'centipede-art' && <>
+          <CentipedeWorldVisual visual={homeVisual} quality="BALANCED" className="absolute inset-0" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-slate-950/5" />
+        </>}
+        <div className={`relative z-10 flex max-w-xl flex-col items-start justify-center ${homeVisual === 'centipede-art' ? 'm-2 max-w-sm rounded-xl border border-slate-700 bg-slate-950/90 p-5 sm:m-4 sm:max-w-md sm:p-6' : 'h-full px-6 py-8 sm:px-10'}`}>
           <p className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200">
             <span className="h-px w-7 bg-cyan-300/80" /> A more capable everyday desktop
           </p>
@@ -114,7 +116,7 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
           </button>
         </div>
         <div className="absolute bottom-4 right-4 z-10 hidden rounded-full border border-white/10 bg-slate-950/55 px-3 py-1.5 text-[11px] text-slate-300 backdrop-blur sm:block">
-          {homeVisual === 'centipede-world' ? 'Centipede + World' : homeVisual.replace('-', ' ')}
+          {homeVisual === 'centipede-art' ? 'Centipede Earth · signature wallpaper' : homeVisual === 'centipede-world' ? 'Centipede + World' : homeVisual.replace('-', ' ')}
         </div>
       </section>
 

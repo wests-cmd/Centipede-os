@@ -61,3 +61,40 @@ test('real video releases the old decoder on pause, offscreen and Home unmount',
   await page.getByRole('complementary').getByRole('button', { name: 'Settings', exact: true }).click();
   await expect.poll(() => detached!.evaluate((element: HTMLVideoElement) => !element.isConnected && element.paused && !element.getAttribute('src') && element.readyState === HTMLMediaElement.HAVE_NOTHING)).toBe(true);
 });
+
+
+test('signature wallpaper spans the desktop and stays behind scrollable Home, with saved choices preserved', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('centipede_first_run_completed', 'true'));
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/');
+  const wallpaper = page.getByTestId('signature-desktop-wallpaper');
+  const image = wallpaper.getByAltText('Illuminated metallic centipede curled around Earth');
+  await expect(image).toBeVisible();
+  await image.evaluate((element: HTMLImageElement) => element.decode());
+  const before = await wallpaper.boundingBox();
+  const main = await page.getByRole('main').boundingBox();
+  expect(before).not.toBeNull();
+  expect(main).not.toBeNull();
+  expect(before!.height).toBeGreaterThan(500);
+  expect(before!.height).toBeCloseTo(main!.height, 0);
+  expect(before!.width).toBeCloseTo(main!.width, 0);
+  await expect(image).toHaveCSS('object-fit', 'contain');
+  await page.getByText('Centipede tools', { exact: true }).scrollIntoViewIfNeeded();
+  expect(await wallpaper.boundingBox()).toEqual(before);
+  await page.getByRole('complementary').getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(wallpaper).toHaveCount(0);
+  await page.getByRole('button', { name: /Space Nebula/ }).click();
+  await page.getByRole('complementary').getByRole('button', { name: 'Home / Desktop', exact: true }).click();
+  await expect(wallpaper).toHaveCount(0);
+  await expect(page.getByRole('img', { name: 'Space Nebula animated home scene' })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('img', { name: 'Space Nebula animated home scene' })).toBeVisible();
+  await page.getByRole('complementary').getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('button', { name: /Centipede Earth artwork/ }).click();
+  await page.getByRole('complementary').getByRole('button', { name: 'Home / Desktop', exact: true }).click();
+  await expect(image).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(image).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await page.screenshot({ path: 'test-results/signature-desktop-mobile.png' });
+});
