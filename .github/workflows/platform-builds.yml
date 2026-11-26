@@ -262,10 +262,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Debian Bookworm live-build and image tools
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ca-certificates curl debootstrap debian-archive-keyring qemu-utils qemu-system-x86 ovmf file unzip
-          curl --fail --silent --show-error --location https://deb.debian.org/debian/pool/main/l/live-build/live-build_20230502_all.deb --output "$RUNNER_TEMP/live-build_20230502_all.deb"
-          sudo apt-get install -y "$RUNNER_TEMP/live-build_20230502_all.deb"
+          # Only signed Ubuntu archives supply the host tools. Unrelated
+          # preinstalled third-party repositories must not gate Debian image builds.
+          test -s /etc/apt/sources.list.d/ubuntu.sources
+          apt_options=(-o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3)
+          sudo apt-get "${apt_options[@]}" update
+          sudo apt-get "${apt_options[@]}" install -y ca-certificates curl debootstrap debian-archive-keyring qemu-utils qemu-system-x86 ovmf file unzip
+          curl --fail --silent --show-error --location --retry 3 https://deb.debian.org/debian/pool/main/l/live-build/live-build_20230502_all.deb --output "$RUNNER_TEMP/live-build_20230502_all.deb"
+          sudo apt-get "${apt_options[@]}" install -y "$RUNNER_TEMP/live-build_20230502_all.deb"
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest

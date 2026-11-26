@@ -12,7 +12,7 @@ permissions:
 jobs:
   native-x11:
     name: Native quick action policy and real X11 readback
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4.2.2
@@ -20,7 +20,9 @@ jobs:
         run: python3 -m unittest discover -s scripts -p test_native_desktop.py -v
       - name: Install disposable X11 fixture
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends xvfb xauth openbox xterm wmctrl x11-utils
+          test -s /etc/apt/sources.list.d/ubuntu.sources
+          apt_options=(-o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3)
+          sudo apt-get "${apt_options[@]}" update
+          sudo apt-get "${apt_options[@]}" install -y --no-install-recommends xvfb xauth openbox xterm wmctrl x11-utils
       - name: Verify actual window focus and maximization readback
         run: CENTIPEDE_TEST_X11=1 xvfb-run -a python3 -m unittest discover -s scripts -p test_native_desktop_x11.py -v
