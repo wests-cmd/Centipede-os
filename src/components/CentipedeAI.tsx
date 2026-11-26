@@ -9,11 +9,14 @@ import { Bot, RefreshCw, ShieldAlert, Play } from 'lucide-react';
 interface CentipedeAIProps {
   adapter: KingdomAdapter;
   onNavigateSecurity: () => void;
+  draft?: { text: string } | null;
+  onDraftConsumed?: () => void;
 }
 
 /** Segmentor is a Kingdom task client, not a second executor or fake chat completion engine. */
-export const CentipedeAI: React.FC<CentipedeAIProps> = ({ adapter, onNavigateSecurity }) => {
+export const CentipedeAI: React.FC<CentipedeAIProps> = ({ adapter, onNavigateSecurity, draft, onDraftConsumed }) => {
   const [prompt, setPrompt] = useState('');
+  useEffect(() => { if (draft) { setPrompt(draft.text); onDraftConsumed?.(); } }, [draft, onDraftConsumed]);
   const [connection, setConnection] = useState(adapter.getConnectionState());
   const [unlocked, setUnlocked] = useState(kingdomActions.isUnlocked());
   const [task, setTask] = useState<TaskItem | null>(null);
