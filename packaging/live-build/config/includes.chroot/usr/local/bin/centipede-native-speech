@@ -11,7 +11,7 @@ def decode(pcm):
     if not isinstance(pcm, bytes) or not 0 < len(pcm) <= MAX_PCM or len(pcm) % 2:
         raise ValueError("Invalid PCM length")
     from pocketsphinx import Pocketsphinx
-    decoder = Pocketsphinx(samprate=16000, verbose=False)
+    decoder = Pocketsphinx(samprate=16000.0, verbose=False)
     decoder.start_utt()
     decoder.process_raw(pcm, False, True)
     decoder.end_utt()
@@ -32,7 +32,8 @@ def main():
             return 3
         print(text)
         return 0
-    except (ImportError, OSError, RuntimeError, ValueError):
+    except (ImportError, OSError, RuntimeError, ValueError) as error:
+        print("Local speech decoder unavailable: " + type(error).__name__, file=sys.stderr)
         return 1
 
 
