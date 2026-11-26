@@ -1,4 +1,4 @@
-"""Native launcher policy and receipt tests; fake desktop and clock, no personal apps."""
+"""Native launcher policy and receipt tests; test desktop and clock, no personal apps."""
 import importlib.machinery
 import importlib.util
 import pathlib

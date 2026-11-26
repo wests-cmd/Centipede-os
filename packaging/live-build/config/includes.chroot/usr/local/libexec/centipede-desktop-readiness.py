@@ -27,72 +27,77 @@ def desktop_browser_running(uid):
                 and "127.0.0.1:3000" in command
             ):
                 return True
-        except (FileNotFoundError, PermissionError, StopIteration, ValueError):
+        except (FileNotFoundError, ProcessLookupError, PermissionError, StopIteration, ValueError):
             continue
     return False
 
 def daily_apps_installed():
     return all(shutil.which(app) for app in ("libreoffice", "thunderbird", "vlc"))
 
-uid = pwd.getpwnam("centipede").pw_uid
-deadline = time.monotonic() + 120
-last_app_ready = False
-last_browser_ready = False
-last_lightdm_ready = False
-last_apps_ready = False
-while time.monotonic() < deadline:
-    try:
-        with urllib.request.urlopen("http://127.0.0.1:3000/", timeout=2) as response:
-            last_app_ready = response.status == 200 and b'id="root"' in response.read()
-        with urllib.request.urlopen("http://127.0.0.1:3000/api/v1/health", timeout=2) as response:
-            health = json.load(response)
-            last_app_ready = last_app_ready and response.status == 200 and health.get("status") in {"HEALTHY", "DEGRADED"}
-    except Exception:
-        last_app_ready = False
-    last_browser_ready = desktop_browser_running(uid)
-    last_apps_ready = daily_apps_installed()
-    last_lightdm_ready = subprocess.run(
-        ["systemctl", "is-active", "--quiet", "lightdm"], check=False
-    ).returncode == 0
-    if last_app_ready and last_browser_ready and last_lightdm_ready and last_apps_ready:
-        message = "CENTIPEDE_DESKTOP_READY: LightDM, Chromium, local web app, and everyday apps are ready"
-        command_line = open("/proc/cmdline", encoding="ascii").read().split()
-        graphics_marker = (
-            "CENTIPEDE_SAFE_GRAPHICS_ENABLED: nomodeset is active"
-            if "nomodeset" in command_line
-            else "CENTIPEDE_STANDARD_GRAPHICS_BOOT: nomodeset is absent"
-        )
-        print(graphics_marker, flush=True)
-        print(message, flush=True)
+def main():
+    uid = pwd.getpwnam("centipede").pw_uid
+    deadline = time.monotonic() + 120
+    last_app_ready = False
+    last_browser_ready = False
+    last_lightdm_ready = False
+    last_apps_ready = False
+    while time.monotonic() < deadline:
         try:
-            with open("/dev/ttyS0", "w", encoding="ascii", buffering=1) as serial:
-                serial.write(graphics_marker + "\r\n")
-                serial.write(message + "\r\n")
-        except OSError as error:
-            print(f"Could not write serial readiness marker: {error}", file=sys.stderr, flush=True)
-        sys.exit(0)
-    time.sleep(2)
-message = (
-    "CENTIPEDE_DESKTOP_NOT_READY: "
-    f"lightdm={last_lightdm_ready} web={last_app_ready} chromium={last_browser_ready} apps={last_apps_ready}"
-)
-print(message, file=sys.stderr, flush=True)
-# A QEMU boot test must report why the concrete service failed; status,
-# exit code and the absence of a binary are evidence, not a "ready" marker.
-# Do not print environment variables, owner credentials or arbitrary journals.
-probe = subprocess.run(
-    ["systemctl", "show", "centipede-web.service",
-     "--property=ActiveState,SubState,Result,ExecMainCode,ExecMainStatus,MainPID",
-     "--no-pager"], capture_output=True, text=True, timeout=10, check=False)
-print("CENTIPEDE_WEB_UNIT_DIAGNOSTIC: " +
-      probe.stdout.replace("\n", " ").strip()[:500], file=sys.stderr, flush=True)
-binary = "/opt/centipede/bin/centipede-server"
-print(f"CENTIPEDE_WEB_BINARY_DIAGNOSTIC: present={os.path.isfile(binary)} executable={os.access(binary, os.X_OK)}",
-      file=sys.stderr, flush=True)
-try:
-    with open("/dev/ttyS0", "w", encoding="ascii", buffering=1) as serial:
-        serial.write(message + "\r\n")
-        serial.write("CENTIPEDE_WEB_UNIT_DIAGNOSTIC: " + probe.stdout.replace("\n", " ").strip()[:500] + "\r\n")
-except OSError:
-    pass
-sys.exit(1)
+            with urllib.request.urlopen("http://127.0.0.1:3000/", timeout=2) as response:
+                last_app_ready = response.status == 200 and b'id="root"' in response.read()
+            with urllib.request.urlopen("http://127.0.0.1:3000/api/v1/health", timeout=2) as response:
+                health = json.load(response)
+                last_app_ready = last_app_ready and response.status == 200 and health.get("status") in {"HEALTHY", "DEGRADED"}
+        except Exception:
+            last_app_ready = False
+        last_browser_ready = desktop_browser_running(uid)
+        last_apps_ready = daily_apps_installed()
+        last_lightdm_ready = subprocess.run(
+            ["systemctl", "is-active", "--quiet", "lightdm"], check=False
+        ).returncode == 0
+        if last_app_ready and last_browser_ready and last_lightdm_ready and last_apps_ready:
+            message = "CENTIPEDE_DESKTOP_READY: LightDM, Chromium, local web app, and everyday apps are ready"
+            command_line = open("/proc/cmdline", encoding="ascii").read().split()
+            graphics_marker = (
+                "CENTIPEDE_SAFE_GRAPHICS_ENABLED: nomodeset is active"
+                if "nomodeset" in command_line
+                else "CENTIPEDE_STANDARD_GRAPHICS_BOOT: nomodeset is absent"
+            )
+            print(graphics_marker, flush=True)
+            print(message, flush=True)
+            try:
+                with open("/dev/ttyS0", "w", encoding="ascii", buffering=1) as serial:
+                    serial.write(graphics_marker + "\r\n")
+                    serial.write(message + "\r\n")
+            except OSError as error:
+                print(f"Could not write serial readiness marker: {error}", file=sys.stderr, flush=True)
+            sys.exit(0)
+        time.sleep(2)
+    message = (
+        "CENTIPEDE_DESKTOP_NOT_READY: "
+        f"lightdm={last_lightdm_ready} web={last_app_ready} chromium={last_browser_ready} apps={last_apps_ready}"
+    )
+    print(message, file=sys.stderr, flush=True)
+    # A QEMU boot test must report why the concrete service failed; status,
+    # exit code and the absence of a binary are evidence, not a "ready" marker.
+    # Do not print environment variables, owner credentials or arbitrary journals.
+    probe = subprocess.run(
+        ["systemctl", "show", "centipede-web.service",
+         "--property=ActiveState,SubState,Result,ExecMainCode,ExecMainStatus,MainPID",
+         "--no-pager"], capture_output=True, text=True, timeout=10, check=False)
+    print("CENTIPEDE_WEB_UNIT_DIAGNOSTIC: " +
+          probe.stdout.replace("\n", " ").strip()[:500], file=sys.stderr, flush=True)
+    binary = "/opt/centipede/bin/centipede-server"
+    print(f"CENTIPEDE_WEB_BINARY_DIAGNOSTIC: present={os.path.isfile(binary)} executable={os.access(binary, os.X_OK)}",
+          file=sys.stderr, flush=True)
+    try:
+        with open("/dev/ttyS0", "w", encoding="ascii", buffering=1) as serial:
+            serial.write(message + "\r\n")
+            serial.write("CENTIPEDE_WEB_UNIT_DIAGNOSTIC: " + probe.stdout.replace("\n", " ").strip()[:500] + "\r\n")
+    except OSError:
+        pass
+    sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()
