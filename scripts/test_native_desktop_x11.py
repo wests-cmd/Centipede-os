@@ -3,7 +3,7 @@ import os
 import subprocess
 import time
 import unittest
-from test_native_desktop import quick
+from test_native_desktop import quick, assistant
 
 
 @unittest.skipUnless(os.environ.get("CENTIPEDE_TEST_X11") == "1", "Disposable X11 test only")
@@ -48,6 +48,37 @@ class X11Readback(unittest.TestCase):
                     result = quick.snap("fixture", side, desktop)
                     self.assertEqual(result[0], "VERIFIED", (result, desktop.geometry(target), area))
                     self.assertTrue(quick.close_geometry(desktop.geometry(target), quick.snap_rectangle(area, side)))
+                import tkinter as tk
+                root = tk.Tk()
+                try:
+                    calls = []
+                    receipts = []
+                    def dispatch(command):
+                        calls.append(command)
+                        return ("VERIFIED", "UI fixture receipt")
+                    ui = assistant.Assistant(root, dispatch=dispatch,
+                                             notifier=lambda *receipt: receipts.append(receipt))
+                    root.update()
+                    ui.command.set("open writer")
+                    ui.execute()
+                    self.assertEqual(calls, [])
+                    ui.review()
+                    ui.command.set("open calc")
+                    ui.execute()
+                    self.assertEqual(calls, [])
+                    ui.review()
+                    ui.execute()
+                    ui.execute()
+                    deadline = time.monotonic() + 5
+                    while (ui.busy or not receipts) and time.monotonic() < deadline:
+                        root.update()
+                        time.sleep(.05)
+                    self.assertEqual(calls, ["calc:open"])
+                    self.assertEqual(receipts, [("VERIFIED", "UI fixture receipt")])
+                    self.assertFalse(ui.busy)
+                    self.assertIn("VERIFIED", ui.message.get())
+                finally:
+                    root.destroy()
             finally:
                 del quick.APPS["fixture"]
         finally:

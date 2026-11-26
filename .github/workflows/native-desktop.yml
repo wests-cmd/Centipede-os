@@ -23,6 +23,6 @@ jobs:
           test -s /etc/apt/sources.list.d/ubuntu.sources
           apt_options=(-o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3)
           sudo apt-get "${apt_options[@]}" update
-          sudo apt-get "${apt_options[@]}" install -y --no-install-recommends xvfb xauth openbox xterm wmctrl x11-utils x11-xserver-utils
-      - name: Verify actual window focus, maximization and snap geometry
+          sudo apt-get "${apt_options[@]}" install -y --no-install-recommends xvfb xauth openbox xterm wmctrl x11-utils x11-xserver-utils python3-tk
+      - name: Verify X11 geometry and native assistant confirmation
         run: CENTIPEDE_TEST_X11=1 xvfb-run -a python3 -m unittest discover -s scripts -p test_native_desktop_x11.py -v

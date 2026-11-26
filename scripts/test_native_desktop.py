@@ -10,6 +10,11 @@ LOADER = importlib.machinery.SourceFileLoader("native_quick", str(PATH))
 SPEC = importlib.util.spec_from_loader(LOADER.name, LOADER)
 quick = importlib.util.module_from_spec(SPEC)
 LOADER.exec_module(quick)
+ASSISTANT_LOADER = importlib.machinery.SourceFileLoader(
+    "native_assistant", str(PATH.with_name("centipede-native-assistant")))
+ASSISTANT_SPEC = importlib.util.spec_from_loader(ASSISTANT_LOADER.name, ASSISTANT_LOADER)
+assistant = importlib.util.module_from_spec(ASSISTANT_SPEC)
+ASSISTANT_LOADER.exec_module(assistant)
 
 
 class Fixture:
@@ -218,6 +223,21 @@ class NativeQuickTests(unittest.TestCase):
         f.move_works = False
         self.assertEqual(f.snap()[0], "UNVERIFIED")
         self.assertEqual(len(f.moves), 1)
+
+
+class AssistantPolicyTests(unittest.TestCase):
+    def test_exact_commands(self):
+        for command, expected in (
+            ("open writer", "writer:open"), ("activate Thunderbird", "mail:open"),
+            ("MAXIMIZE VLC", "media:maximize"), ("restore libreoffice calc", "calc:restore"),
+            ("snap left writer", "writer:left"), ("  snap right   calc  ", "calc:right"),
+        ):
+            self.assertEqual(assistant.parse_command(command), expected)
+
+    def test_invalid_commands_do_not_resolve(self):
+        for command in ("", "open", "sudo open writer", "open writer; ls", "open writer\n",
+                        "open writer and close calc", "open ｗriter", "x" * 121, None):
+            self.assertIsNone(assistant.parse_command(command))
 
 
 if __name__ == "__main__":

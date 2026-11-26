@@ -6,6 +6,7 @@ libreoffice-calc
 libreoffice-writer
 network-manager
 python3
+python3-tk
 thunderbird
 vlc
 wmctrl
