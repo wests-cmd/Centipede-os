@@ -40,6 +40,9 @@ export class VoiceProcessor {
   };
 
   private listeners: Set<(state: VoiceState) => void> = new Set();
+  private phase: 'idle' | 'transcribing' | 'dispatching' = 'idle';
+  private transcriptionGeneration = 0;
+  private pendingConversationId?: string;
 
   public subscribe(listener: (state: VoiceState) => void): () => void {
     this.listeners.add(listener);
@@ -52,30 +55,47 @@ export class VoiceProcessor {
   }
 
   public setProviders(stt?: STTProvider, tts?: TTSProvider): void {
+    const changed = this.sttProvider !== stt;
     this.sttProvider = stt;
     this.ttsProvider = tts;
+    if (changed && this.phase !== 'dispatching') {
+      // A provider change invalidates an in-flight transcription and any unapproved draft.
+      this.cancelPendingVoiceInput();
+    }
   }
 
   public async processVoiceInput(audioData: Blob | ArrayBuffer, conversationId = 'default_conv'): Promise<Message | null> {
-    if (!this.sttProvider) {
+    if (this.phase !== 'idle') {
+      throw new Error('Voice input is already processing.');
+    }
+    const provider = this.sttProvider;
+    if (!provider) {
       this.state.statusMessage = 'Voice Error: STT provider not configured.';
       this.notify();
       throw new Error('STT Provider not configured.');
     }
 
+    const generation = ++this.transcriptionGeneration;
+    this.phase = 'transcribing';
     this.state.isProcessing = true;
     this.state.requiresConfirmation = false;
     this.state.pendingText = undefined;
+    this.pendingConversationId = undefined;
+    this.state.lastTranscription = undefined;
     this.state.statusMessage = 'Transcribing voice input...';
     this.notify();
 
+    if (generation !== this.transcriptionGeneration) return null;
     let transcription: TranscriptionResult;
     try {
-      transcription = await this.sttProvider.transcribe(audioData);
+      transcription = await provider.transcribe(audioData);
+      if (generation !== this.transcriptionGeneration) return null;
       if (!transcription || typeof transcription.text !== 'string' || !transcription.text.trim() || transcription.text.length > 24000) {
         throw new Error('Invalid transcription');
       }
     } catch (error) {
+      if (generation !== this.transcriptionGeneration) return null;
+      this.phase = 'idle';
       this.state.isProcessing = false;
       this.state.statusMessage = 'Transcription failed. No voice command was dispatched; try text or retry.';
       this.notify();
@@ -86,6 +106,7 @@ export class VoiceProcessor {
     // Check for voice interruption / cancellation keywords
     const lowerText = transcription.text.trim().toLowerCase();
     if (['stop', 'cancel', 'halt', 'never mind', 'abort'].includes(lowerText)) {
+      this.phase = 'idle';
       this.state.isProcessing = false;
       this.state.requiresConfirmation = false;
       this.state.pendingText = undefined;
@@ -96,9 +117,11 @@ export class VoiceProcessor {
 
     // Voice confidence rule: Confidence < 0.85 requires explicit user confirmation before processing pipeline
     if (!Number.isFinite(transcription.confidence) || transcription.confidence < 0 || transcription.confidence > 1 || transcription.confidence < 0.85) {
+      this.phase = 'idle';
       this.state.isProcessing = false;
       this.state.requiresConfirmation = true;
       this.state.pendingText = transcription.text;
+      this.pendingConversationId = conversationId;
       this.state.statusMessage = `Low voice transcription confidence (${(transcription.confidence * 100).toFixed(0)}%). Confirmation required for: "${transcription.text}"`;
       this.notify();
       return null;
@@ -107,26 +130,43 @@ export class VoiceProcessor {
     return this.executeConfirmedText(transcription.text, conversationId);
   }
 
-  public async confirmPendingVoiceInput(conversationId = 'default_conv'): Promise<Message | null> {
-    if (!this.state.pendingText) {
+  public async confirmPendingVoiceInput(conversationId?: string): Promise<Message | null> {
+    if (this.phase !== 'idle') throw new Error('Voice input is already processing.');
+    if (!this.state.pendingText || this.pendingConversationId === undefined) {
       throw new Error('No pending voice input to confirm.');
+    }
+    if (conversationId !== undefined && conversationId !== this.pendingConversationId) {
+      throw new Error('Voice input belongs to a different conversation.');
     }
 
     const text = this.state.pendingText;
+    const approvedConversation = this.pendingConversationId;
     this.state.requiresConfirmation = false;
     this.state.pendingText = undefined;
+    this.pendingConversationId = undefined;
 
-    return this.executeConfirmedText(text, conversationId);
+    return this.executeConfirmedText(text, approvedConversation);
   }
 
   public cancelPendingVoiceInput(): void {
+    if (this.phase === 'dispatching') {
+      this.state.statusMessage = 'Voice command already submitted; use task cancellation if available.';
+      this.notify();
+      return;
+    }
+    ++this.transcriptionGeneration;
+    this.phase = 'idle';
+    this.state.isProcessing = false;
     this.state.requiresConfirmation = false;
     this.state.pendingText = undefined;
-    this.state.statusMessage = 'Voice input discarded.';
+    this.state.lastTranscription = undefined;
+    this.pendingConversationId = undefined;
+    this.state.statusMessage = 'Voice input discarded. No pending transcription will be dispatched.';
     this.notify();
   }
 
   private async executeConfirmedText(text: string, conversationId: string): Promise<Message> {
+    this.phase = 'dispatching';
     this.state.isProcessing = true;
     this.state.statusMessage = 'Dispatching voice input through Centipede AI Pipeline...';
     this.notify();
@@ -148,6 +188,7 @@ export class VoiceProcessor {
       this.state.statusMessage = 'Voice command failed. Check its retained task before trying again.';
       throw error;
     } finally {
+      this.phase = 'idle';
       this.state.isProcessing = false;
       this.notify();
     }
