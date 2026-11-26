@@ -21,3 +21,7 @@ Original generated wallpaper SHA-256: `73f30f9f956b935fdde43fe75c468848ccd8bab3c
 Original generated transparent emblem SHA-256: `736ce81652f28a63fca34ad123d4a299681cd10529cbb6862fa03397fbb50f05`.
 
 Both packaged copies retain those digests. Generation used the owner-supplied reference as inspiration; reel media and third-party source code were not copied into these assets.
+
+## Signature desktop wallpaper restoration
+
+The bundled Centipede Earth artwork is the default Home workspace backdrop, not a short banner. The original static PNG is unchanged. The complete image is contained inside the available workspace and stays fixed while Home scrolls. Foreground text uses an opaque-enough panel; other applications keep their normal dark surfaces. Existing saved animated/custom choices are preserved, including custom media pause controls. Settings shows the actual signature artwork thumbnail. This change affects the Centipede shell, not XFCE wallpaper defaults or previously installed releases. No image regeneration or new runtime dependency is required.

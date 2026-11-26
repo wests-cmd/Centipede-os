@@ -245,6 +245,7 @@ export const App: React.FC = () => {
       activeAppId={activeAppId}
       setActiveAppId={setActiveAppId}
       pendingApprovalsCount={pendingApprovalsCount}
+      homeVisual={homeVisual}
     >
       <AppUpdateManager currentVersion={CENTIPEDE_VERSION} />
       <React.Suspense fallback={<div role="status" className="p-6 text-sm text-slate-300">Opening app…</div>}>

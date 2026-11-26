@@ -6,6 +6,7 @@ import { CentipedeProfile, ProfileRecommendation } from '../platform/types';
 import { HOME_VISUALS, HomeVisual } from './CentipedeWorldVisual';
 import { AccessibilitySettings } from './AccessibilitySettings';
 import { HomeMediaPicker } from './HomeMediaPicker';
+import { ART_BACKGROUND } from './LocalMediaBackground';
 
 interface SettingsPanelProps {
   adapter: KingdomAdapter;
@@ -90,8 +91,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ adapter, homeVisua
                 className={`group overflow-hidden rounded-xl border text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 ${selected ? 'border-cyan-300 bg-cyan-950/40 ring-1 ring-cyan-300/30' : 'border-slate-700 bg-slate-900/70 hover:border-slate-500'}`}
               >
                 <span aria-hidden="true" className={`relative block h-20 bg-gradient-to-br ${swatch}`}>
-                  <span className="absolute left-1/2 top-1/2 h-11 w-11 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/50 bg-white/10 shadow-[0_0_28px_rgba(103,232,249,.45)]" />
-                  <span className="absolute left-1/2 top-1/2 h-5 w-16 -translate-x-1/2 -translate-y-1/2 rotate-[-20deg] rounded-[50%] border border-white/70" />
+                  {profile.id === 'centipede-art' ? <img src={ART_BACKGROUND} alt="" className="absolute inset-0 h-full w-full object-contain bg-slate-950" /> : <>
+                    <span className="absolute left-1/2 top-1/2 h-11 w-11 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/50 bg-white/10 shadow-[0_0_28px_rgba(103,232,249,.45)]" />
+                    <span className="absolute left-1/2 top-1/2 h-5 w-16 -translate-x-1/2 -translate-y-1/2 rotate-[-20deg] rounded-[50%] border border-white/70" />
+                  </>}
                   {selected && <span className="absolute right-2 top-2 rounded-full bg-slate-950/70 px-2 py-0.5 text-[10px] font-medium text-cyan-100">Selected</span>}
                 </span>
                 <span className="block p-3">

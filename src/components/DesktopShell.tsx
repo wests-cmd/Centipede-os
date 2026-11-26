@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { KingdomAdapter } from '../api/kingdomAdapter';
+import type { HomeVisual } from './CentipedeWorldVisual';
+import { ART_BACKGROUND } from './LocalMediaBackground';
 import { ConnectionState, KingdomRuntimeInfo, RuntimeStatus, VersionCompatibility } from '../types';
 import {
   Activity,
@@ -35,6 +37,7 @@ interface DesktopShellProps {
   activeAppId: string;
   setActiveAppId: (id: string) => void;
   pendingApprovalsCount: number;
+  homeVisual: HomeVisual;
   children: React.ReactNode;
 }
 
@@ -43,6 +46,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
   activeAppId,
   setActiveAppId,
   pendingApprovalsCount,
+  homeVisual,
   children,
 }) => {
   const [connectionState, setConnectionState] = useState<ConnectionState>('DISCONNECTED');
@@ -266,9 +270,16 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         </aside>
 
         {/* Main View Area */}
-        <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-slate-950 p-2 sm:p-3">
-          {children}
-        </main>
+        <div className="relative isolate min-w-0 flex-1 overflow-hidden bg-slate-950">
+          {activeAppId === 'launcher' && homeVisual === 'centipede-art' && (
+            <div data-testid="signature-desktop-wallpaper" className="pointer-events-none absolute inset-0 overflow-hidden bg-slate-950">
+              <img src={ART_BACKGROUND} alt="Illuminated metallic centipede curled around Earth" className="h-full w-full object-contain object-center sm:object-right" draggable={false} />
+            </div>
+          )}
+          <main className="relative h-full min-w-0 overflow-x-hidden overflow-y-auto p-2 sm:p-3">
+            {children}
+          </main>
+        </div>
       </div>
 
       {/* Bottom Desktop Dock */}
