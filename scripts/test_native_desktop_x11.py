@@ -37,6 +37,11 @@ class X11Readback(unittest.TestCase):
                 self.assertEqual(desktop.active(), targets["centipede-fixture-two"])
                 self.assertEqual(quick.activate("fixture", desktop)[0], "VERIFIED")
                 self.assertEqual(desktop.active(), targets["centipede-fixture-one"])
+                target = targets["centipede-fixture-one"]
+                self.assertEqual(quick.position("fixture", "maximize", desktop)[0], "VERIFIED")
+                self.assertTrue(quick.MAXIMIZED <= desktop.state(target))
+                self.assertEqual(quick.position("fixture", "restore", desktop)[0], "VERIFIED")
+                self.assertFalse(quick.MAXIMIZED & desktop.state(target))
             finally:
                 del quick.APPS["fixture"]
         finally:

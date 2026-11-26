@@ -45,6 +45,20 @@ def parse_active(output):
     return int(match.group(1), 16) if match else None
 
 
+MAXIMIZED = {"_NET_WM_STATE_MAXIMIZED_VERT", "_NET_WM_STATE_MAXIMIZED_HORZ"}
+OPERATIONS = {"open": "Open or activate", "maximize": "Maximize", "restore": "Restore from maximized"}
+
+
+def parse_state(output):
+    match = re.fullmatch(r"_NET_WM_STATE\(ATOM\)\s*=\s*(.*)", output.strip())
+    if not match:
+        return None
+    atoms = [atom.strip() for atom in match.group(1).split(",")] if match.group(1) else []
+    if any(not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", atom) for atom in atoms):
+        return None
+    return set(atoms)
+
+
 class Desktop:
     def run(self, args):
         return subprocess.run(args, check=True, capture_output=True, text=True, timeout=3)
@@ -59,6 +73,18 @@ class Desktop:
         if not isinstance(window_id, int) or not 0 < window_id <= 0xffffffff:
             raise ValueError("Invalid X11 window identifier")
         self.run(["/usr/bin/wmctrl", "-ia", hex(window_id)])
+
+    def state(self, window_id):
+        if not isinstance(window_id, int) or not 0 < window_id <= 0xffffffff:
+            raise ValueError("Invalid X11 window identifier")
+        return parse_state(self.run(["/usr/bin/xprop", "-id", hex(window_id), "_NET_WM_STATE"]).stdout)
+
+    def set_maximized(self, window_id, maximize):
+        if not isinstance(window_id, int) or not 0 < window_id <= 0xffffffff or type(maximize) is not bool:
+            raise ValueError("Invalid X11 window operation")
+        operation = "add" if maximize else "remove"
+        self.run(["/usr/bin/wmctrl", "-ir", hex(window_id), "-b",
+                  operation + ",maximized_vert,maximized_horz"])
 
     def launch(self, argv):
         subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
@@ -114,6 +140,61 @@ def activate(app_id, desktop, clock=time.monotonic, sleep=time.sleep):
         return "UNAVAILABLE", label + ": native window inspection failed before dispatch."
 
 
+def position(app_id, operation, desktop, clock=time.monotonic, sleep=time.sleep):
+    """Explicit maximize/restore of an existing allowlisted window, never launch or toggle."""
+    if app_id not in APPS or operation not in ("maximize", "restore"):
+        return "DENIED", "Unknown window action. Nothing was dispatched."
+    label, _, classes = APPS[app_id]
+    dispatched = False
+    desired = operation == "maximize"
+
+    def satisfied(state):
+        return state is not None and (MAXIMIZED <= state if desired else not MAXIMIZED & state)
+
+    try:
+        candidates = matching(desktop, classes)
+        if not candidates:
+            return "UNAVAILABLE", label + ": open the application before changing its window."
+        current = desktop.active()
+        if len(candidates) != 1 and current not in candidates:
+            return "UNVERIFIED", label + ": multiple matching windows; select one manually."
+        wid = current if current in candidates else candidates[0]
+
+        def same_target():
+            observed = matching(desktop, classes)
+            return wid in observed and (len(observed) == 1 or desktop.active() == wid)
+        before = desktop.state(wid)
+        if before is None:
+            return "UNAVAILABLE", label + ": window state cannot be inspected."
+        if not same_target():
+            return "UNVERIFIED", label + ": target changed before dispatch."
+        if satisfied(before):
+            return "VERIFIED", label + ": requested window state already observed."
+        dispatched = True
+        desktop.set_maximized(wid, desired)
+        deadline = clock() + 3
+        while clock() < deadline:
+            if not same_target():
+                return "UNVERIFIED", label + ": target changed after dispatch; check manually."
+            if satisfied(desktop.state(wid)) and same_target():
+                return "VERIFIED", label + ": requested maximization state observed."
+            sleep(0.1)
+        return "UNVERIFIED", label + ": window manager did not confirm requested state."
+    except (OSError, ValueError, subprocess.SubprocessError):
+        if dispatched:
+            return "UNVERIFIED", label + ": an operation may have occurred; check before retrying."
+        return "UNAVAILABLE", label + ": window inspection failed before dispatch."
+
+
+def dispatch(selection, desktop):
+    app_id, sep, operation = selection.partition(":")
+    if not sep or app_id not in APPS or operation not in OPERATIONS:
+        return "DENIED", "Unknown native action. Nothing was dispatched."
+    if operation == "open":
+        return activate(app_id, desktop)
+    return position(app_id, operation, desktop)
+
+
 def notify(status, message):
     # The receipt reports an observation; never claims an app's contents are verified.
     # stdout is useful to an interactive terminal; no persistent telemetry is stored.
@@ -135,10 +216,12 @@ def main():
     try:
         result = subprocess.run(
             ["/usr/bin/zenity", "--list", "--title=Segmentor Native Quick Actions",
-             "--text=Choose an application to open or activate.",
-             "--column=ID", "--column=Application", "--hide-column=1", "--print-column=1",
-             "--width=380", "--height=300",
-             *[value for app, (label, _, _) in APPS.items() for value in (app, label)]],
+             "--text=Choose an application and explicit window action.",
+             "--column=ID", "--column=Application", "--column=Action", "--hide-column=1", "--print-column=1",
+             "--width=520", "--height=430",
+             *[value for app, (label, _, _) in APPS.items()
+               for operation, action in OPERATIONS.items()
+               for value in (app + ":" + operation, label, action)]],
             capture_output=True, text=True, timeout=300, check=False,
         )
     except (OSError, subprocess.SubprocessError):
@@ -149,7 +232,7 @@ def main():
     if result.returncode != 0:
         notify("UNAVAILABLE", "The native application picker did not complete.")
         return 1
-    status, message = activate(result.stdout.strip(), Desktop())
+    status, message = dispatch(result.stdout.strip(), Desktop())
     notify(status, message)
     return 0 if status == "VERIFIED" else 1
 

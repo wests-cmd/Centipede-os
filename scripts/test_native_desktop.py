@@ -21,6 +21,20 @@ class Fixture:
         self.time = 0
         self.focus_works = True
         self.launch_works = True
+        self.window_state = set()
+        self.positioned = []
+        self.position_works = True
+
+    def state(self, wid):
+        return self.window_state
+
+    def set_maximized(self, wid, maximize):
+        self.positioned.append((wid, maximize))
+        if self.position_works:
+            self.window_state = set(quick.MAXIMIZED) if maximize else set()
+
+    def position(self, operation="maximize"):
+        return quick.position("writer", operation, self, self.clock, self.sleep)
 
     def windows(self):
         return self.rows
@@ -105,6 +119,43 @@ class NativeQuickTests(unittest.TestCase):
         f.windows = windows
         self.assertEqual(f.activate()[0], "UNVERIFIED")
         self.assertEqual(f.focused, [])
+
+    def test_window_state_parser(self):
+        self.assertEqual(quick.parse_state("_NET_WM_STATE(ATOM) = " ), set())
+        self.assertEqual(quick.parse_state("_NET_WM_STATE(ATOM) = " +
+                         ", ".join(sorted(quick.MAXIMIZED))), quick.MAXIMIZED)
+        self.assertIsNone(quick.parse_state("_NET_WM_STATE: not found."))
+        self.assertIsNone(quick.parse_state("_NET_WM_STATE(ATOM) = bad value"))
+
+    def test_maximize_restore_idempotent(self):
+        f = Fixture([(5, {"libreoffice-writer"})], 5)
+        self.assertEqual(f.position()[0], "VERIFIED")
+        self.assertEqual(f.position()[0], "VERIFIED")
+        self.assertEqual(f.position("restore")[0], "VERIFIED")
+        self.assertEqual(f.positioned, [(5, True), (5, False)])
+        self.assertEqual(f.launched + f.focused, [])
+
+    def test_position_fails_closed(self):
+        f = Fixture()
+        self.assertEqual(f.position()[0], "UNAVAILABLE")
+        self.assertEqual(f.launched + f.positioned, [])
+        f = Fixture([(5, {"libreoffice-writer"}), (6, {"libreoffice-writer"})], 9)
+        self.assertEqual(f.position()[0], "UNVERIFIED")
+        self.assertEqual(f.positioned, [])
+        f = Fixture([(5, {"libreoffice-writer"})], 5)
+        f.window_state = None
+        self.assertEqual(f.position()[0], "UNAVAILABLE")
+        self.assertEqual(f.positioned, [])
+        self.assertEqual(quick.dispatch("writer:toggle", f)[0], "DENIED")
+
+    def test_position_requires_readback_without_retry(self):
+        f = Fixture([(5, {"libreoffice-writer"})], 5)
+        f.position_works = False
+        self.assertEqual(f.position()[0], "UNVERIFIED")
+        self.assertEqual(f.positioned, [(5, True)])
+        f.window_state = {"_NET_WM_STATE_MAXIMIZED_VERT"}
+        self.assertEqual(f.position("restore")[0], "UNVERIFIED")
+        self.assertEqual(f.positioned, [(5, True), (5, False)])
 
 
 if __name__ == "__main__":

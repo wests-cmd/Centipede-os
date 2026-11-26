@@ -13,6 +13,7 @@ on:
   pull_request:
     branches:
       - main
+      - feat/segmentor-native-foundation-20261126
   # Tag releases run through release.yml only, so the release-gate executes
   # before a signed mobile build or expensive OS-image job can start.
   push:
