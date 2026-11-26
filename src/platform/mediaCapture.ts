@@ -52,3 +52,15 @@ export function frameSize(width: number, height: number): { width: number; heigh
   const scale = Math.min(1, 640 / width, 480 / height);
   return { width: Math.max(1, Math.floor(width * scale)), height: Math.max(1, Math.floor(height * scale)) };
 }
+
+/** Normalized selection on a frozen local frame. Bounds are clamped and validated. */
+export type FrameRegion = { x:number; y:number; width:number; height:number };
+export function regionPixels(region:FrameRegion,width:number,height:number):FrameRegion {
+  if (!Number.isSafeInteger(width)||!Number.isSafeInteger(height)||width<1||height<1||
+      ![region.x,region.y,region.width,region.height].every(Number.isFinite)||
+      region.x<0||region.y<0||region.width<=0||region.height<=0||
+      region.x+region.width>1.000001||region.y+region.height>1.000001) throw new Error('Invalid selection.');
+  const x=Math.min(width-1,Math.floor(region.x*width));
+  const y=Math.min(height-1,Math.floor(region.y*height));
+  return {x,y,width:Math.max(1,Math.min(width-x,Math.ceil(region.width*width))),height:Math.max(1,Math.min(height-y,Math.ceil(region.height*height)))};
+}

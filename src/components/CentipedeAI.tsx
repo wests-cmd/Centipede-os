@@ -4,6 +4,7 @@ import { kingdomActions } from '../api/kingdomActions';
 import { localInference, type LocalModelStatus } from '../api/localInference';
 import type { TaskItem } from '../types';
 import { KingdomActionUnlock } from './KingdomActionUnlock';
+import { NavigationShortcuts } from './NavigationShortcuts';
 import { Bot, RefreshCw, ShieldAlert, Play } from 'lucide-react';
 
 interface CentipedeAIProps {
@@ -125,6 +126,7 @@ export const CentipedeAI: React.FC<CentipedeAIProps> = ({ adapter, onNavigateSec
         Offline answers require an owner-installed llama.cpp runtime, approved GGUF and matching safe profile benchmark. Kingdom task submission remains separate.
       </p>}
     </section>
+    <NavigationShortcuts />
     <KingdomActionUnlock />
     {connection !== 'CONNECTED' && <p role="status" className="bg-slate-900 border border-red-700 rounded-xl p-3 text-red-300">
       Kingdom read connection: {connection}. Existing work cannot be verified until connected.

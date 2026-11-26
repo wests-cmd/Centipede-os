@@ -1,0 +1,26 @@
+import { test,expect } from '@playwright/test';
+test('explicit personal shortcut persists, replays without dispatch, and can be removed',async({page})=>{
+  await page.addInitScript(()=>localStorage.setItem('centipede_first_run_completed','true'));
+  await page.goto('/');
+  const dock=page.getByRole('navigation',{name:'Main navigation'});
+  await dock.getByRole('button',{name:'Segmentor',exact:true}).click();
+  const shortcuts=page.getByRole('region',{name:'Personal shortcuts'});
+  await shortcuts.getByLabel('Shortcut phrase').fill('work mode');
+  await shortcuts.getByLabel('Open view').selectOption('files');
+  await shortcuts.getByRole('button',{name:'Save shortcut'}).click();
+  await expect(shortcuts.getByRole('status')).toHaveText('Shortcut saved on this browser.');
+  await page.reload();
+  await page.getByRole('button',{name:'Open Segmentor quick assistant'}).click();
+  const quick=page.getByRole('region',{name:'Segmentor quick assistant'});
+  await quick.getByLabel('What do you need?').fill('work mode');
+  await quick.getByRole('button',{name:'Continue'}).click();
+  await expect(page.getByRole('heading',{name:'Centipede Files — Local Workspace'})).toBeVisible();
+  await expect(page.getByText(/Files are locked/)).toBeVisible();
+  await dock.getByRole('button',{name:'Segmentor',exact:true}).click();
+  await shortcuts.getByRole('button',{name:'Remove shortcut work mode'}).click();
+  await expect(shortcuts.getByRole('status')).toHaveText('Shortcut removed.');
+  await page.getByRole('button',{name:'Open Segmentor quick assistant'}).click();
+  await quick.getByLabel('What do you need?').fill('work mode');
+  await quick.getByRole('button',{name:'Continue'}).click();
+  await expect(page.getByLabel('What should Kingdom work on?')).toHaveValue('work mode');
+});

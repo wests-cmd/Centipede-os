@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Bot, X } from 'lucide-react';
 import { routeQuickCommand } from '../ai/deterministicRouter';
+import { localShortcuts } from '../ai/navigationShortcuts';
 
 export function SegmentorOverlay({ onNavigate, onDraft }: {
   onNavigate: (id: string) => void;
@@ -30,7 +31,7 @@ export function SegmentorOverlay({ onNavigate, onDraft }: {
   }, [open]);
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
-    const route = routeQuickCommand(text);
+    const route = routeQuickCommand(text, localShortcuts());
     if (route.kind === 'empty') return;
     setText(''); close();
     if (route.kind === 'navigate') onNavigate(route.destination);
@@ -39,8 +40,8 @@ export function SegmentorOverlay({ onNavigate, onDraft }: {
   return createPortal(<>
     <button ref={trigger} type="button" aria-label="Open Segmentor quick assistant" aria-expanded={open}
       aria-keyshortcuts="Control+Alt+Space" onClick={() => open ? close() : openPanel()}
-      className="fixed bottom-16 right-3 z-40 flex items-center gap-2 rounded-full border border-blue-500 bg-slate-950 px-4 py-3 text-sm text-blue-200 shadow-xl">
-      <Bot className="h-5 w-5" aria-hidden="true"/> Segmentor
+      className="fixed bottom-16 right-3 z-40 flex items-center gap-2 rounded-full border border-blue-500 bg-slate-950 p-3 text-sm text-blue-200 shadow-xl">
+      <Bot className="h-5 w-5" aria-hidden="true"/> <span className="hidden sm:inline">Segmentor</span>
     </button>
     {open && <section aria-label="Segmentor quick assistant" className="fixed bottom-32 right-3 z-50 max-h-[calc(100vh-9rem)] w-[min(25rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-blue-500 bg-slate-950 p-4 text-slate-100 shadow-2xl">
       <div className="flex items-center justify-between gap-2">

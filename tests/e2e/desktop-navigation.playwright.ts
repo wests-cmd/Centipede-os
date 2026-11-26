@@ -8,7 +8,7 @@ test('seven primary destinations and searchable advanced apps preserve all featu
   for (const name of ['Home','Segmentor','Apps','Files','Tasks','Devices','Settings']) await expect(dock.getByRole('button',{name,exact:true})).toBeVisible();
   await dock.getByRole('button',{name:'Apps',exact:true}).click();
   const apps=page.getByRole('region',{name:'Application directory'});
-  await expect(apps.getByRole('button')).toHaveCount(17);
+  await expect(apps.getByRole('button')).toHaveCount(18);
   await apps.getByLabel('Find an application').fill('recovery not a real app');
   await expect(apps.getByRole('status')).toHaveText('No matching applications.');
   await apps.getByLabel('Find an application').fill('doctor');
