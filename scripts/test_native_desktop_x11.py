@@ -42,6 +42,12 @@ class X11Readback(unittest.TestCase):
                 self.assertTrue(quick.MAXIMIZED <= desktop.state(target))
                 self.assertEqual(quick.position("fixture", "restore", desktop)[0], "VERIFIED")
                 self.assertFalse(quick.MAXIMIZED & desktop.state(target))
+                area = desktop.workarea()
+                self.assertIsNotNone(area)
+                for side in ("left", "right"):
+                    result = quick.snap("fixture", side, desktop)
+                    self.assertEqual(result[0], "VERIFIED", (result, desktop.geometry(target), area))
+                    self.assertTrue(quick.close_geometry(desktop.geometry(target), quick.snap_rectangle(area, side)))
             finally:
                 del quick.APPS["fixture"]
         finally:

@@ -46,7 +46,11 @@ def parse_active(output):
 
 
 MAXIMIZED = {"_NET_WM_STATE_MAXIMIZED_VERT", "_NET_WM_STATE_MAXIMIZED_HORZ"}
-OPERATIONS = {"open": "Open or activate", "maximize": "Maximize", "restore": "Restore from maximized"}
+OPERATIONS = {"open": "Open or activate", "maximize": "Maximize", "restore": "Restore from maximized",
+              "left": "Snap left (single monitor)", "right": "Snap right (single monitor)"}
+SNAP_TOLERANCE = 24
+BLOCKED_SNAP_STATES = MAXIMIZED | {"_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE_HIDDEN",
+                                  "_NET_WM_STATE_SHADED"}
 
 
 def parse_state(output):
@@ -57,6 +61,50 @@ def parse_state(output):
     if any(not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", atom) for atom in atoms):
         return None
     return set(atoms)
+
+
+def cardinal_values(output, property_name):
+    match = re.fullmatch(re.escape(property_name) + r"\(CARDINAL\)\s*=\s*([0-9,\s]+)", output.strip())
+    if not match:
+        return None
+    try:
+        values = tuple(int(value.strip()) for value in match.group(1).split(","))
+    except ValueError:
+        return None
+    return values if all(0 <= value <= 65535 for value in values) else None
+
+
+def parse_geometry(output):
+    values = []
+    for label in ("Absolute upper-left X", "Absolute upper-left Y", "Width", "Height"):
+        match = re.search(r"^\s*" + re.escape(label) + r":\s*(-?\d+)\s*$", output, re.MULTILINE)
+        if not match:
+            return None
+        values.append(int(match.group(1)))
+    return tuple(values) if values[2] > 0 and values[3] > 0 else None
+
+
+def snap_rectangle(area, side):
+    x, y, width, height = area
+    if min(x, y) < 0 or width < 640 or height < 320 or side not in ("left", "right"):
+        return None
+    half = width // 2
+    return (x, y, half, height) if side == "left" else (x + half, y, width - half, height)
+
+
+def frame_geometry(client, extents):
+    if client is None or extents is None or len(extents) != 4:
+        return None
+    x, y, width, height = client
+    left, right, top, bottom = extents
+    return (x - left, y - top, width + left + right, height + top + bottom)
+
+
+def close_geometry(observed, expected):
+    # Some applications enforce resize increments. Verify bounded pixel error,
+    # not a successful wmctrl exit code or an exact pixel-placement claim.
+    return observed is not None and len(observed) == 4 and all(
+        abs(a - b) <= SNAP_TOLERANCE for a, b in zip(observed, expected))
 
 
 class Desktop:
@@ -85,6 +133,51 @@ class Desktop:
         operation = "add" if maximize else "remove"
         self.run(["/usr/bin/wmctrl", "-ir", hex(window_id), "-b",
                   operation + ",maximized_vert,maximized_horz"])
+
+    def workarea(self):
+        monitors = self.run(["/usr/bin/xrandr", "--listactivemonitors"]).stdout
+        if not re.match(r"^Monitors:\s+1\s*$", monitors.splitlines()[0] if monitors else ""):
+            return None
+        current = cardinal_values(self.run(["/usr/bin/xprop", "-root", "_NET_CURRENT_DESKTOP"]).stdout,
+                                  "_NET_CURRENT_DESKTOP")
+        areas = cardinal_values(self.run(["/usr/bin/xprop", "-root", "_NET_WORKAREA"]).stdout, "_NET_WORKAREA")
+        if current is None or len(current) != 1 or areas is None or len(areas) % 4:
+            return None
+        offset = current[0] * 4
+        return areas[offset:offset + 4] if offset + 4 <= len(areas) else None
+
+    def window_workspace(self, window_id):
+        if type(window_id) is not int or not 0 < window_id <= 0xffffffff:
+            raise ValueError("Invalid X11 window identifier")
+        current = cardinal_values(self.run(["/usr/bin/xprop", "-root", "_NET_CURRENT_DESKTOP"]).stdout,
+                                  "_NET_CURRENT_DESKTOP")
+        target = cardinal_values(self.run(["/usr/bin/xprop", "-id", hex(window_id), "_NET_WM_DESKTOP"]).stdout,
+                                 "_NET_WM_DESKTOP")
+        return current is not None and len(current) == 1 and target == current
+
+    def frame_extents(self, window_id):
+        if type(window_id) is not int or not 0 < window_id <= 0xffffffff:
+            raise ValueError("Invalid X11 window identifier")
+        extents = cardinal_values(self.run(["/usr/bin/xprop", "-id", hex(window_id), "_NET_FRAME_EXTENTS"]).stdout,
+                                  "_NET_FRAME_EXTENTS")
+        return extents if extents is not None and len(extents) == 4 and max(extents) <= 128 else None
+
+    def geometry(self, window_id):
+        if type(window_id) is not int or not 0 < window_id <= 0xffffffff:
+            raise ValueError("Invalid X11 window identifier")
+        client = parse_geometry(self.run(["/usr/bin/xwininfo", "-id", hex(window_id)]).stdout)
+        return frame_geometry(client, self.frame_extents(window_id))
+
+    def move_resize(self, window_id, rectangle, extents):
+        if type(window_id) is not int or not 0 < window_id <= 0xffffffff:
+            raise ValueError("Invalid X11 window identifier")
+        x, y, width, height = rectangle
+        left, right, top, bottom = extents
+        client_width, client_height = width - left - right, height - top - bottom
+        if min(x, y) < 0 or min(client_width, client_height) < 100:
+            raise ValueError("Invalid snap rectangle")
+        geometry = ",".join(str(value) for value in (1, x, y, client_width, client_height))
+        self.run(["/usr/bin/wmctrl", "-ir", hex(window_id), "-e", geometry])
 
     def launch(self, argv):
         subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
@@ -186,12 +279,62 @@ def position(app_id, operation, desktop, clock=time.monotonic, sleep=time.sleep)
         return "UNAVAILABLE", label + ": window inspection failed before dispatch."
 
 
+def snap(app_id, side, desktop, clock=time.monotonic, sleep=time.sleep):
+    if app_id not in APPS or side not in ("left", "right"):
+        return "DENIED", "Unknown snap action. Nothing was dispatched."
+    label, _, classes = APPS[app_id]
+    dispatched = False
+    try:
+        candidates = matching(desktop, classes)
+        if len(candidates) != 1:
+            return "UNVERIFIED", label + ": exactly one matching window is required for snapping."
+        wid = candidates[0]
+        area = desktop.workarea()
+        expected = snap_rectangle(area, side) if area is not None else None
+        if expected is None or not desktop.window_workspace(wid):
+            return "UNAVAILABLE", label + ": snapping requires one monitor and the current workspace."
+        state = desktop.state(wid)
+        extents = desktop.frame_extents(wid)
+        if state is None or state & BLOCKED_SNAP_STATES or extents is None:
+            return "UNAVAILABLE", label + ": restore and show the window before snapping."
+
+        def same_target():
+            current_state = desktop.state(wid)
+            return (matching(desktop, classes) == [wid] and desktop.window_workspace(wid)
+                    and desktop.workarea() == area and current_state is not None
+                    and not current_state & BLOCKED_SNAP_STATES
+                    and desktop.frame_extents(wid) == extents)
+
+        before = desktop.geometry(wid)
+        if before is None:
+            return "UNAVAILABLE", label + ": geometry cannot be inspected."
+        if not same_target():
+            return "UNVERIFIED", label + ": target or workspace changed before dispatch."
+        if close_geometry(before, expected):
+            return "VERIFIED", label + ": requested half-screen geometry already observed."
+        dispatched = True
+        desktop.move_resize(wid, expected, extents)
+        deadline = clock() + 3
+        while clock() < deadline:
+            if not same_target():
+                return "UNVERIFIED", label + ": target or workspace changed; check manually."
+            if close_geometry(desktop.geometry(wid), expected) and same_target():
+                return "VERIFIED", label + ": requested half-screen geometry observed (within 24 pixels)."
+            sleep(0.1)
+        return "UNVERIFIED", label + ": requested geometry could not be confirmed."
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return ("UNVERIFIED", label + ": an operation may have occurred; check manually.") if dispatched else (
+            "UNAVAILABLE", label + ": geometry inspection failed before dispatch.")
+
+
 def dispatch(selection, desktop):
     app_id, sep, operation = selection.partition(":")
     if not sep or app_id not in APPS or operation not in OPERATIONS:
         return "DENIED", "Unknown native action. Nothing was dispatched."
     if operation == "open":
         return activate(app_id, desktop)
+    if operation in ("left", "right"):
+        return snap(app_id, operation, desktop)
     return position(app_id, operation, desktop)
 
 

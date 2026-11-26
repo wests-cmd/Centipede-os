@@ -24,6 +24,31 @@ class Fixture:
         self.window_state = set()
         self.positioned = []
         self.position_works = True
+        self.area = (0, 0, 1024, 768)
+        self.workspace_matches = True
+        self.rectangle = (10, 10, 300, 200)
+        self.moves = []
+        self.move_works = True
+
+    def workarea(self):
+        return self.area
+
+    def window_workspace(self, wid):
+        return self.workspace_matches
+
+    def frame_extents(self, wid):
+        return (1, 1, 20, 1)
+
+    def geometry(self, wid):
+        return self.rectangle
+
+    def move_resize(self, wid, rectangle, extents):
+        self.moves.append((wid, rectangle))
+        if self.move_works:
+            self.rectangle = rectangle
+
+    def snap(self, side="left"):
+        return quick.snap("writer", side, self, self.clock, self.sleep)
 
     def state(self, wid):
         return self.window_state
@@ -156,6 +181,43 @@ class NativeQuickTests(unittest.TestCase):
         f.window_state = {"_NET_WM_STATE_MAXIMIZED_VERT"}
         self.assertEqual(f.position("restore")[0], "UNVERIFIED")
         self.assertEqual(f.positioned, [(5, True), (5, False)])
+
+    def test_snap_parsers(self):
+        self.assertEqual(quick.cardinal_values("_NET_WORKAREA(CARDINAL) = 0, 20, 1024, 748", "_NET_WORKAREA"),
+                         (0, 20, 1024, 748))
+        self.assertIsNone(quick.cardinal_values("_NET_WORKAREA: not found.", "_NET_WORKAREA"))
+        client = quick.parse_geometry("  Absolute upper-left X:  1\n  Absolute upper-left Y:  40\n  Width: 510\n  Height: 727\n")
+        self.assertEqual(quick.frame_geometry(client, (1, 1, 20, 1)), (0, 20, 512, 748))
+        self.assertEqual(quick.snap_rectangle((0, 20, 1025, 748), "right"), (512, 20, 513, 748))
+        self.assertFalse(quick.close_geometry((0, 0, 400, 768), (0, 0, 512, 768)))
+
+    def test_snap_idempotent_and_verified(self):
+        f = Fixture([(5, {"libreoffice-writer"})], 5)
+        self.assertEqual(f.snap()[0], "VERIFIED")
+        self.assertEqual(f.snap()[0], "VERIFIED")
+        self.assertEqual(f.snap("right")[0], "VERIFIED")
+        self.assertEqual(f.moves, [(5, (0, 0, 512, 768)), (5, (512, 0, 512, 768))])
+        self.assertEqual(f.focused + f.launched, [])
+
+    def test_snap_fails_closed(self):
+        f = Fixture([(5, {"libreoffice-writer"}), (6, {"libreoffice-writer"})], 5)
+        self.assertEqual(f.snap()[0], "UNVERIFIED")
+        f.rows.pop()
+        f.area = None
+        self.assertEqual(f.snap()[0], "UNAVAILABLE")
+        f.area = (0, 0, 1024, 768)
+        f.workspace_matches = False
+        self.assertEqual(f.snap()[0], "UNAVAILABLE")
+        f.workspace_matches = True
+        f.window_state = set(quick.MAXIMIZED)
+        self.assertEqual(f.snap()[0], "UNAVAILABLE")
+        self.assertEqual(f.moves, [])
+
+    def test_snap_no_readback_no_retry(self):
+        f = Fixture([(5, {"libreoffice-writer"})], 5)
+        f.move_works = False
+        self.assertEqual(f.snap()[0], "UNVERIFIED")
+        self.assertEqual(len(f.moves), 1)
 
 
 if __name__ == "__main__":
