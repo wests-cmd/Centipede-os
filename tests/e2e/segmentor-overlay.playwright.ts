@@ -21,6 +21,6 @@ test('quick assistant opens local app, drafts complex work without dispatch, and
   await panel.getByRole('button',{name:'Continue'}).click();
   await expect(page.getByLabel('What should Kingdom work on?')).toHaveValue('Research the project');
   expect(submissions).toBe(0);
-  await page.getByRole('complementary').getByRole('button',{name:'Home / Desktop',exact:true}).click();
+  await page.getByRole('navigation',{name:'Main navigation'}).getByRole('button',{name:'Home',exact:true}).click();
   await expect(wallpaper).toBeVisible();
 });

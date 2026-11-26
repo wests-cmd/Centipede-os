@@ -29,14 +29,14 @@ export const Window: React.FC<WindowProps> = ({
 
   if (isMinimized) {
     return (
-      <div
+      <button type="button"
         onClick={() => setIsMinimized(false)}
         style={{ zIndex }}
-        className="fixed bottom-16 left-4 bg-slate-900/90 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-xl shadow-xl flex items-center space-x-2 text-xs font-semibold cursor-pointer hover:border-cyan-500 transition-all backdrop-blur-md"
+        className="absolute bottom-4 left-4 bg-slate-900/90 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-xl shadow-xl flex items-center space-x-2 text-xs font-semibold cursor-pointer hover:border-cyan-500 transition-all backdrop-blur-md"
       >
         {Icon && <Icon className="w-4 h-4 text-cyan-400" />}
-        <span>{title}</span>
-      </div>
+        <span>Restore {title}</span>
+      </button>
     );
   }
 
@@ -44,14 +44,14 @@ export const Window: React.FC<WindowProps> = ({
     <div
       onClick={onFocus}
       style={{ zIndex }}
-        className={`fixed flex min-w-0 flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-900/95 text-slate-100 shadow-2xl backdrop-blur-xl transition-all sm:rounded-2xl ${
+        className={`absolute flex min-w-0 flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-900/95 text-slate-100 shadow-2xl backdrop-blur-xl transition-all sm:rounded-2xl ${
         isMaximized
-          ? 'top-14 bottom-16 left-1 right-1 sm:left-4 sm:right-4'
-          : 'top-16 bottom-[4.5rem] left-1 right-1 sm:top-20 sm:bottom-20 sm:left-6 sm:right-6 md:left-64 md:right-6'
+          ? 'inset-0 rounded-none'
+          : 'inset-1 sm:inset-4'
       }`}
     >
       {/* Window Title Bar */}
-      <div className="flex h-10 shrink-0 cursor-move select-none items-center justify-between gap-2 border-b border-slate-800 bg-slate-950/80 px-3 sm:px-4">
+      <div className="flex h-10 shrink-0 select-none items-center justify-between gap-2 border-b border-slate-800 bg-slate-950/80 px-3 sm:px-4">
         <div className="flex min-w-0 items-center gap-2.5 truncate text-xs font-bold tracking-wide text-slate-200">
           {Icon && <Icon className="w-4 h-4 text-cyan-400" />}
           <span className="truncate">{title}</span>

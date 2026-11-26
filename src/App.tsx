@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { kingdomAdapter } from './api/kingdomAdapter';
 import { DesktopShell } from './components/DesktopShell';
 import { SegmentorOverlay } from './components/SegmentorOverlay';
+import { AppDirectory } from './components/AppDirectory';
 import { AppLauncher } from './components/AppLauncher';
 import { Window } from './components/Window';
 import { applyAccessibilitySettings, DEFAULT_ACCESSIBILITY_SETTINGS, loadAccessibilitySettings } from './platform/accessibility';
@@ -101,6 +102,8 @@ export const App: React.FC = () => {
 
   const renderActiveView = () => {
     switch (activeAppId) {
+      case 'apps':
+        return <AppDirectory onNavigate={setActiveAppId} pendingApprovalsCount={pendingApprovalsCount} />;
       case 'launcher':
         return (
           <AppLauncher
@@ -250,7 +253,7 @@ export const App: React.FC = () => {
       homeVisual={homeVisual}
     >
       <AppUpdateManager currentVersion={CENTIPEDE_VERSION} />
-      <React.Suspense fallback={<div role="status" className="p-6 text-sm text-slate-300">Opening app…</div>}>
+      <React.Suspense key={activeAppId} fallback={<div role="status" className="p-6 text-sm text-slate-300">Opening app…</div>}>
         {renderActiveView()}
       </React.Suspense>
     </DesktopShell>

@@ -1,6 +1,6 @@
 /** Explicit, exact local shell navigation only. No OS commands, model calls or side effects. */
 const DESTINATIONS = {
-  home: 'launcher', desktop: 'launcher', files: 'files', 'file manager': 'files',
+  home: 'launcher', desktop: 'launcher', apps: 'apps', applications: 'apps', devices: 'mobile', files: 'files', 'file manager': 'files',
   settings: 'settings', tasks: 'tasks', 'background work': 'background',
   'command center': 'command', 'system status': 'command', memory: 'memory',
   skills: 'skills', search: 'search', 'mobile companion': 'mobile',

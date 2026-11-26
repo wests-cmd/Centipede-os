@@ -63,7 +63,8 @@ test('production browser user journey: first run, all apps, offline security, an
   for (let pass = 0; pass < 2; pass++) {
     for (const [appName, title] of APP_PAGES) {
       const start = performance.now();
-      await page.getByRole('complementary').getByRole('button', { name: appName, exact: true }).click();
+      await page.getByRole('navigation',{name:'Main navigation'}).getByRole('button',{name:'Apps',exact:true}).click();
+      await page.getByRole('region',{name:'Application directory'}).getByRole('button',{name:appName,exact:true}).click();
       await expect(page.getByRole('main').getByText(title, { exact: true }).first()).toBeVisible({ timeout: 15_000 });
       if (appName === 'Segmentor') {
         await expect(page.getByRole('button', { name: 'Submit real Kingdom task' })).toBeDisabled();
