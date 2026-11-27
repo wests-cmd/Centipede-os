@@ -141,16 +141,8 @@ export class DesktopVisionEngine {
       throw new Error('Privilege escalation denied: Emergency Stop is active.');
     }
 
-    const elevationId = `elev_${Date.now()}_${generateSecureRandomHex(4)}`;
-    this.escalationState = {
-      isElevated: true,
-      elevationId,
-      reason,
-      elevatedAt: Date.now(),
-      expiresAt: Date.now() + durationMs,
-    };
-
-    return { ...this.escalationState };
+    void reason; void durationMs;
+    throw new Error('Native privilege broker unavailable; no elevation was granted.');
   }
 
   public dropPrivileges(): PrivilegeEscalationState {
@@ -189,15 +181,14 @@ export class DesktopVisionEngine {
       }
     }
 
-    const executedAction: ControlAction = {
-      ...action,
+    // This class has no native executor. Never manufacture a success receipt.
+    const failedAction: ControlAction = {
+      type: action.type, parameters: action.parameters, requiresRoot: action.requiresRoot,
       actionId: `act_${Date.now()}_${generateSecureRandomHex(3)}`,
-      status: 'EXECUTED',
-      executedAt: Date.now(),
+      status: 'FAILED',
     };
-
-    this.actionLog.push(executedAction);
-    return executedAction;
+    this.actionLog.push(failedAction);
+    return failedAction;
   }
 
   public getActionLog(): ControlAction[] {

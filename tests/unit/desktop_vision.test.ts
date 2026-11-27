@@ -32,14 +32,15 @@ describe('DesktopVisionEngine Unit Test Suite', () => {
     expect(invoiceOpp).toBeDefined();
   });
 
-  it('2. Executes user-level control actions and blocks un-elevated root actions', () => {
+  it('2. Reports unavailable native execution and blocks un-elevated root actions', () => {
     const userAction = visionEngine.executeControlAction({
       type: 'MOUSE_CLICK',
       parameters: { x: 100, y: 200 },
       requiresRoot: false,
     });
 
-    expect(userAction.status).toBe('EXECUTED');
+    expect(userAction.status).toBe('FAILED');
+    expect(userAction.executedAt).toBeUndefined();
     expect(visionEngine.getActionLog().length).toBe(1);
 
     expect(() => {
@@ -51,33 +52,14 @@ describe('DesktopVisionEngine Unit Test Suite', () => {
     }).toThrow(/requires root elevation/);
   });
 
-  it('3. Supports temporary privilege escalation and drops elevation on command', () => {
-    const elev = visionEngine.elevatePrivileges('Package installation for system update', 30000);
-    expect(elev.isElevated).toBe(true);
-    expect(elev.reason).toContain('Package installation');
-
-    const rootAction = visionEngine.executeControlAction({
-      type: 'SYSTEM_COMMAND',
-      parameters: { command: 'apt update' },
-      requiresRoot: true,
-    });
-    expect(rootAction.status).toBe('EXECUTED');
-
-    const dropped = visionEngine.dropPrivileges();
-    expect(dropped.isElevated).toBe(false);
-
-    expect(() => {
-      visionEngine.executeControlAction({
-        type: 'SYSTEM_COMMAND',
-        parameters: { command: 'apt update' },
-        requiresRoot: true,
-      });
-    }).toThrow(/requires root elevation/);
+  it('3. Cannot grant native privilege through a JavaScript flag', () => {
+    expect(() => visionEngine.elevatePrivileges('System maintenance', 30000)).toThrow(/no elevation was granted/);
+    expect(visionEngine.getPrivilegeState().isElevated).toBe(false);
+    expect(visionEngine.dropPrivileges().isElevated).toBe(false);
   });
 
   it('4. Dual-trigger Emergency Stop instantly blocks all actions and drops elevated privileges', () => {
-    visionEngine.elevatePrivileges('System maintenance', 60000);
-    expect(visionEngine.getPrivilegeState().isElevated).toBe(true);
+    expect(visionEngine.getPrivilegeState().isElevated).toBe(false);
 
     // Trigger Emergency Stop via Voice "STOP" command
     visionEngine.triggerEmergencyStop('VOICE_STOP_COMMAND', 'User shouted stop');

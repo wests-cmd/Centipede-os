@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CaptureKind, CaptureState, MediaCapture, frameSize } from '../platform/mediaCapture';
+import { ScreenSelection } from './ScreenSelection';
 
 export function PerceptionPanel() {
   const video = useRef<HTMLVideoElement>(null);
@@ -48,7 +49,7 @@ export function PerceptionPanel() {
     <p className="text-sm">{message}</p>
     <video ref={video} autoPlay muted playsInline hidden={state !== 'active' || kind === 'microphone'} className="max-h-80 w-full rounded bg-black object-contain" />
     <button onClick={snapshot} disabled={state !== 'active' || kind === 'microphone'} className="min-h-11 rounded border border-slate-600 px-3">Preview one frame</button>
-    {frame && <img src={frame} alt="User-selected local frame; not model analysis" className="max-h-80 max-w-full" />}
+    {frame && <ScreenSelection key={frame} frame={frame} />}
     <p className="rounded border border-amber-600 p-3 text-sm">Image understanding and speech transcription are not connected by this panel. A preview is not AI understanding. Use a verified vision/STT provider and review its data destination before adding analysis. Existing text input and speech output remain available.</p>
   </section>;
 }
