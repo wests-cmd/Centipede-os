@@ -234,6 +234,12 @@ class AssistantPolicyTests(unittest.TestCase):
         ):
             self.assertEqual(assistant.parse_command(command), expected)
 
+    def test_dictation_text_policy(self):
+        for value in ("open writer", "A dictated sentence.", "Café", "x" * 2000):
+            self.assertTrue(assistant.valid_dictation(value))
+        for value in ("", "   ", "x" * 2001, "hello\nworld", "\x00", None):
+            self.assertFalse(assistant.valid_dictation(value))
+
     def test_invalid_commands_do_not_resolve(self):
         for command in ("", "open", "sudo open writer", "open writer; ls", "open writer\n",
                         "open writer and close calc", "open ｗriter", "x" * 121, None):

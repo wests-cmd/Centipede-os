@@ -1,0 +1,41 @@
+#!/usr/bin/python3
+"""Bounded local PCM-to-text decoder. No microphone, shell, or desktop execution."""
+import os
+import resource
+import sys
+
+MAX_PCM = 16000 * 2 * 5
+
+
+def decode(pcm):
+    if not isinstance(pcm, bytes) or not 0 < len(pcm) <= MAX_PCM or len(pcm) % 2:
+        raise ValueError("Invalid PCM length")
+    from pocketsphinx import Pocketsphinx
+    decoder = Pocketsphinx(samprate=16000.0, verbose=False)
+    decoder.start_utt()
+    decoder.process_raw(pcm, False, True)
+    decoder.end_utt()
+    result = decoder.hypothesis().strip()
+    if len(result) > 120 or any(ord(ch) < 32 or ord(ch) > 126 for ch in result):
+        raise ValueError("Transcript outside supported command length")
+    return result
+
+
+def main():
+    if len(sys.argv) != 1 or os.geteuid() == 0:
+        return 2
+    try:
+        resource.setrlimit(resource.RLIMIT_AS, (384 * 1024**2, 384 * 1024**2))
+        resource.setrlimit(resource.RLIMIT_CPU, (12, 13))
+        text = decode(sys.stdin.buffer.read(MAX_PCM + 1))
+        if not text:
+            return 3
+        print(text)
+        return 0
+    except (ImportError, OSError, RuntimeError, ValueError) as error:
+        print("Local speech decoder unavailable: " + type(error).__name__, file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

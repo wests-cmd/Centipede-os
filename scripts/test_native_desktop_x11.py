@@ -77,6 +77,67 @@ class X11Readback(unittest.TestCase):
                     self.assertEqual(receipts, [("VERIFIED", "UI fixture receipt")])
                     self.assertFalse(ui.busy)
                     self.assertIn("VERIFIED", ui.message.get())
+                    ui.transcriber = lambda cancel: "open writer"
+                    ui.record()
+                    deadline = time.monotonic() + 5
+                    while ui.recording and time.monotonic() < deadline:
+                        root.update()
+                        time.sleep(.05)
+                    self.assertFalse(ui.recording)
+                    self.assertEqual(ui.command.get(), "open writer")
+                    ui.execute()
+                    self.assertEqual(calls, ["calc:open"])
+                    ui.record()
+                    ui.discard_speech()
+                    deadline = time.monotonic() + 5
+                    while ui.recording and time.monotonic() < deadline:
+                        root.update()
+                        time.sleep(.05)
+                    self.assertFalse(ui.recording)
+                    self.assertIn("discarded", ui.message.get())
+                    self.assertEqual(calls, ["calc:open"])
+
+                    # Speech text resembling a command must not execute in dictation mode.
+                    ui.mode.set("dictation")
+                    self.assertEqual(ui.command.get(), "")
+                    ui.transcriber = lambda cancel: "open writer"
+                    ui.record()
+                    deadline = time.monotonic() + 5
+                    while ui.recording and time.monotonic() < deadline:
+                        root.update()
+                        time.sleep(.05)
+                    self.assertFalse(ui.recording)
+                    self.assertEqual(ui.command.get(), "open writer")
+                    self.assertEqual(str(ui.review_button.cget("state")), "disabled")
+                    ui.review()
+                    ui.execute()
+                    self.assertEqual(calls, ["calc:open"])
+                    ui.command.set("Edited offline dictation.")
+                    ui.copy_draft()
+                    self.assertIn("Text copied", ui.message.get())
+                    # Read the real X11 CLIPBOARD from a separate process.
+                    consumer = subprocess.Popen(["xclip", "-selection", "clipboard", "-o"],
+                                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    try:
+                        deadline = time.monotonic() + 5
+                        while consumer.poll() is None and time.monotonic() < deadline:
+                            root.update()
+                            time.sleep(.05)
+                        clipboard, errors = consumer.communicate(timeout=2)
+                        self.assertEqual(consumer.returncode, 0, errors)
+                        self.assertEqual(clipboard, b"Edited offline dictation.")
+                    finally:
+                        if consumer.poll() is None:
+                            consumer.kill()
+                            consumer.communicate()
+                    ui.command.set("x" * 2001)
+                    self.assertEqual(str(ui.copy_button.cget("state")), "disabled")
+                    ui.copy_draft()
+                    self.assertEqual(root.clipboard_get(), "Edited offline dictation.")
+                    ui.mode.set("command")
+                    self.assertEqual(ui.command.get(), "")
+                    ui.execute()
+                    self.assertEqual(calls, ["calc:open"])
                 finally:
                     root.destroy()
             finally:

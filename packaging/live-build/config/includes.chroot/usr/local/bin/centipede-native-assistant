@@ -7,6 +7,8 @@ import pathlib
 import queue
 import sys
 import threading
+import subprocess
+import time
 
 sys.dont_write_bytecode = True
 loader = importlib.machinery.SourceFileLoader(
@@ -35,37 +37,100 @@ def parse_command(text):
                 return app + ":" + operation
     return None
 
+MAX_DICTATION = 2000
+
+
+def valid_dictation(text):
+    return (isinstance(text, str) and 0 < len(text) <= MAX_DICTATION
+            and bool(text.strip()) and text.isprintable())
+
+
+MAX_PCM = 16000 * 2 * 5
+RECORD_ARGS = ["/usr/bin/arecord", "-q", "-t", "raw", "-f", "S16_LE",
+               "-r", "16000", "-c", "1", "-d", "5"]
+DECODER = str(pathlib.Path(__file__).resolve().with_name("centipede-native-speech"))
+
+
+def speech_draft(cancel):
+    """One user-requested five-second capture, memory only; no direct dispatch."""
+    if cancel.is_set():
+        return ""
+    with subprocess.Popen(RECORD_ARGS, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                          stderr=subprocess.DEVNULL) as recorder:
+        deadline = time.monotonic() + 8
+        try:
+            while True:
+                if cancel.is_set() or time.monotonic() >= deadline:
+                    recorder.kill()
+                    recorder.communicate()
+                    return ""
+                try:
+                    pcm, _ = recorder.communicate(timeout=.2)
+                    break
+                except subprocess.TimeoutExpired:
+                    pass
+        finally:
+            if recorder.poll() is None:
+                recorder.kill()
+                recorder.communicate()
+        if recorder.returncode != 0 or not 0 < len(pcm) <= MAX_PCM or len(pcm) % 2:
+            return ""
+    if cancel.is_set():
+        return ""
+    result = subprocess.run([DECODER], input=pcm, stdout=subprocess.PIPE,
+                            stderr=subprocess.DEVNULL, timeout=20, check=False)
+    if cancel.is_set() or result.returncode != 0 or len(result.stdout) > 121:
+        return ""
+    text = result.stdout.decode("ascii", "strict").strip()
+    return text if text and len(text) <= 120 and text.isprintable() else ""
+
 
 class Assistant:
-    def __init__(self, root, dispatch=None, notifier=None):
+    def __init__(self, root, dispatch=None, notifier=None, transcriber=None):
         import tkinter as tk
         self.root = root
         self.dispatch = dispatch if dispatch is not None else lambda command: quick.dispatch(command, quick.Desktop())
         self.notifier = notifier if notifier is not None else quick.notify
+        self.transcriber = transcriber if transcriber is not None else speech_draft
+        self.speech_results = queue.Queue(maxsize=1)
+        self.speech_cancel = threading.Event()
+        self.recording = False
         self.pending = None
         self.busy = False
         self.results = queue.Queue(maxsize=1)
         self.command = tk.StringVar(master=root)
+        self.mode = tk.StringVar(master=root, value="command")
         self.message = tk.StringVar(master=root, value="Enter a supported command, then review it.")
         self.topmost = tk.BooleanVar(master=root, value=True)
         root.title("Segmentor Native")
         root.configure(bg="#15191e")
-        root.minsize(420, 275)
-        root.geometry("480x320")
+        root.minsize(420, 435)
+        root.geometry("500x470")
         root.attributes("-topmost", True)
         root.protocol("WM_DELETE_WINDOW", self.close)
         panel = tk.Frame(root, bg="#15191e", padx=18, pady=16)
         panel.pack(fill="both", expand=True)
         tk.Label(panel, text="SEGMENTOR", fg="#e6e6e6", bg="#15191e",
                  font=("Sans", 17, "bold")).pack(anchor="w")
-        tk.Label(panel, text="Local desktop commands • no model or microphone",
+        tk.Label(panel, text="Local desktop commands • optional offline speech",
                  fg="#b9c0ca", bg="#15191e", wraplength=420, justify="left").pack(anchor="w", pady=(3, 10))
-        self.entry = tk.Entry(panel, textvariable=self.command, bg="#262b32", fg="#ffffff",
+        modes = tk.Frame(panel, bg="#15191e")
+        modes.pack(fill="x", pady=(0, 6))
+        self.mode_buttons = []
+        for label, value in (("Desktop command", "command"), ("Dictate text", "dictation")):
+            button = tk.Radiobutton(modes, text=label, value=value, variable=self.mode,
+                                    bg="#15191e", fg="#e6e6e6", selectcolor="#262b32",
+                                    activebackground="#15191e", activeforeground="#ffffff")
+            button.pack(side="left")
+            self.mode_buttons.append(button)
+        self.entry = tk.Entry(panel, textvariable=self.command, exportselection=False,
+                              bg="#262b32", fg="#ffffff",
                               insertbackground="#ffffff", relief="flat", font=("Sans", 12))
         self.entry.pack(fill="x", ipady=7)
         self.command.trace_add("write", self.changed)
         self.entry.bind("<Return>", self.review)
-        tk.Label(panel, text="Examples: open writer · maximize vlc · snap left calc",
+        self.hint = tk.StringVar(master=root, value="Examples: open writer · maximize vlc · snap left calc")
+        tk.Label(panel, textvariable=self.hint,
                  fg="#b9c0ca", bg="#15191e", wraplength=420, justify="left").pack(anchor="w", pady=7)
         controls = tk.Frame(panel, bg="#15191e")
         controls.pack(fill="x")
@@ -74,6 +139,18 @@ class Assistant:
         self.execute_button = tk.Button(controls, text="Run reviewed action", state="disabled",
                                         command=self.execute, bg="#325f92", fg="#ffffff")
         self.execute_button.pack(side="left", padx=6)
+        self.copy_button = tk.Button(panel, text="Copy dictated text to clipboard",
+                                     state="disabled", command=self.copy_draft)
+        self.copy_button.pack(anchor="w", pady=(5, 0))
+        self.mode.trace_add("write", self.change_mode)
+        speech_controls = tk.Frame(panel, bg="#15191e")
+        speech_controls.pack(fill="x", pady=(6, 0))
+        self.record_button = tk.Button(speech_controls, text="Record 5 seconds (offline)",
+                                       command=self.record)
+        self.record_button.pack(side="left")
+        self.cancel_button = tk.Button(speech_controls, text="Discard speech", state="disabled",
+                                       command=self.discard_speech)
+        self.cancel_button.pack(side="left", padx=6)
         tk.Checkbutton(panel, text="Keep above other windows", variable=self.topmost,
                        command=self.toggle_topmost, bg="#15191e", fg="#e6e6e6",
                        selectcolor="#262b32", activebackground="#15191e",
@@ -85,14 +162,117 @@ class Assistant:
     def toggle_topmost(self):
         self.root.attributes("-topmost", bool(self.topmost.get()))
 
+    def idle_controls(self):
+        is_command = self.mode.get() == "command"
+        self.review_button.configure(state="normal" if is_command else "disabled")
+        self.copy_button.configure(state="normal" if self.mode.get() == "dictation"
+                                   and valid_dictation(self.command.get()) else "disabled")
+        self.record_button.configure(state="normal")
+        for button in self.mode_buttons:
+            button.configure(state="normal")
+
+    def lock_mode(self):
+        self.copy_button.configure(state="disabled")
+        for button in self.mode_buttons:
+            button.configure(state="disabled")
+
+    def change_mode(self, *_):
+        self.pending = None
+        self.execute_button.configure(state="disabled")
+        self.command.set("")
+        if self.busy or self.recording:
+            return
+        if self.mode.get() == "dictation":
+            self.hint.set("Review text before copying. Paste it yourself in the destination app. "
+                          "Other desktop apps or clipboard managers may read or retain copied text.")
+            self.message.set("Dictation mode cannot run desktop commands.")
+        else:
+            self.hint.set("Examples: open writer · maximize vlc · snap left calc")
+            self.message.set("Enter a command and review it before running.")
+        self.idle_controls()
+
+    def copy_draft(self):
+        import tkinter as tk
+        if self.busy or self.recording or self.mode.get() != "dictation":
+            return
+        self.pending = None
+        self.execute_button.configure(state="disabled")
+        text = self.command.get()
+        if not valid_dictation(text):
+            self.message.set("Enter non-empty printable text of at most 2000 characters.")
+            return
+        try:
+            self.root.clipboard_clear()
+            self.root.clipboard_append(text)
+            if self.root.clipboard_get() == text:
+                self.message.set("Text copied. Switch to the destination and paste it yourself.")
+            else:
+                self.message.set("Clipboard content could not be confirmed. Check before pasting.")
+        except tk.TclError:
+            self.message.set("Clipboard unavailable or unconfirmed. Check before pasting.")
+
     def changed(self, *_):
         self.pending = None
         self.execute_button.configure(state="disabled")
-        if not self.busy:
-            self.message.set("Review the command before running it.")
+        if not self.busy and not self.recording:
+            self.idle_controls()
+            self.message.set("Review the text before copying." if self.mode.get() == "dictation"
+                             else "Review the command before running it.")
+
+    def record(self):
+        if self.busy or self.recording:
+            return
+        self.pending = None
+        self.recording = True
+        self.lock_mode()
+        self.speech_cancel.clear()
+        self.entry.configure(state="disabled")
+        self.review_button.configure(state="disabled")
+        self.execute_button.configure(state="disabled")
+        self.record_button.configure(state="disabled")
+        self.cancel_button.configure(state="normal")
+        self.message.set("Microphone capture requested for up to 5 seconds, then local transcription. Discard to cancel.")
+        def run():
+            try:
+                text = self.transcriber(self.speech_cancel)
+            except (OSError, ValueError, subprocess.SubprocessError):
+                text = ""
+            except Exception:
+                text = ""
+            self.speech_results.put(text)
+        threading.Thread(target=run, name="segmentor-local-speech").start()
+        self.root.after(100, self.poll_speech)
+
+    def discard_speech(self):
+        if self.recording:
+            self.speech_cancel.set()
+            self.message.set("Discarding speech; waiting for the capture or decoder to stop.")
+            self.cancel_button.configure(state="disabled")
+
+    def poll_speech(self):
+        try:
+            text = self.speech_results.get_nowait()
+        except queue.Empty:
+            self.root.after(100, self.poll_speech)
+            return
+        discarded = self.speech_cancel.is_set()
+        self.recording = False
+        self.entry.configure(state="normal")
+        self.idle_controls()
+        self.cancel_button.configure(state="disabled")
+        if discarded:
+            self.message.set("Speech discarded. Nothing was dispatched.")
+        elif text:
+            self.command.set(text)
+            self.message.set("Offline transcription is an editable text draft. Review it before copying."
+                             if self.mode.get() == "dictation" else
+                             "Offline transcription is an editable command draft. Review it before running.")
+        else:
+            self.message.set("No usable local transcription. Check the microphone and speech packages, or type.")
+        self.entry.focus_set()
 
     def review(self, event=None):
-        if self.busy:
+        if self.busy or self.recording or self.mode.get() != "command":
             return
         self.pending = parse_command(self.command.get())
         if self.pending is None:
@@ -104,14 +284,17 @@ class Assistant:
         self.execute_button.configure(state="normal")
 
     def execute(self):
-        if self.busy or self.pending is None or self.pending != parse_command(self.command.get()):
+        if (self.busy or self.recording or self.mode.get() != "command" or self.pending is None
+                or self.pending != parse_command(self.command.get())):
             return
         approved = self.pending
         self.pending = None
         self.busy = True
+        self.lock_mode()
         self.entry.configure(state="disabled")
         self.review_button.configure(state="disabled")
         self.execute_button.configure(state="disabled")
+        self.record_button.configure(state="disabled")
         self.message.set("Running reviewed action. Check the notification; restore Segmentor to see the receipt.")
         # Do not cover the target or reclaim its focus after activation.
         self.root.iconify()
@@ -136,12 +319,14 @@ class Assistant:
             return
         self.busy = False
         self.entry.configure(state="normal")
-        self.review_button.configure(state="normal")
+        self.idle_controls()
         self.message.set(status + ": " + detail)
         # Stay minimized; the user decides whether to reopen the assistant.
 
     def close(self):
-        if self.busy:
+        if self.recording:
+            self.discard_speech()
+        elif self.busy:
             self.message.set("An action is in progress. Wait for the receipt before closing.")
         else:
             self.root.destroy()

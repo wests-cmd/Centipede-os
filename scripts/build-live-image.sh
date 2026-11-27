@@ -42,6 +42,8 @@ chmod 0755 "$BUILD/config/includes.chroot/usr/local/bin/centipede-native-quick"
 test -x "$BUILD/config/includes.chroot/usr/local/bin/centipede-native-quick"
 chmod 0755 "$BUILD/config/includes.chroot/usr/local/bin/centipede-native-assistant"
 test -x "$BUILD/config/includes.chroot/usr/local/bin/centipede-native-assistant"
+chmod 0755 "$BUILD/config/includes.chroot/usr/local/bin/centipede-native-speech"
+test -x "$BUILD/config/includes.chroot/usr/local/bin/centipede-native-speech"
 
 cd "$BUILD"
 lb config \
