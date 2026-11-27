@@ -1,15 +1,11 @@
 import { generateSecureRandomHex } from '../security/cryptoUtils';
 import { WorkflowCheckpoint, WorkflowDefinition, WorkflowExecutionRun, WorkflowStep } from './types';
 import { toolExecutor, toolRegistry } from '../tools';
-import { capabilityGrantEngine } from '../agent/grants';
-import { workflowPersistenceStore } from './persistence';
+import { WorkflowPersistenceStore, workflowPersistenceStore } from './persistence';
 
 export class WorkflowEngine {
-  private workflows: Map<string, WorkflowDefinition> = new Map();
-  private runs: Map<string, WorkflowExecutionRun> = new Map();
-
-  constructor() {
-    this.initDefaultWorkflows();
+  constructor(private readonly store: WorkflowPersistenceStore = workflowPersistenceStore) {
+    if (!this.store.getWorkflow('wf_invoice_cleanup')) this.initDefaultWorkflows();
   }
 
   private initDefaultWorkflows(): void {
@@ -33,22 +29,20 @@ export class WorkflowEngine {
 
   public registerWorkflow(workflow: WorkflowDefinition): void {
     // Immutability Check: Active versions cannot be directly mutated
-    const existing = this.workflows.get(workflow.workflowId);
+    const existing = this.store.getWorkflow(workflow.workflowId);
     if (existing && existing.trustState === 'ACTIVE' && existing.version === workflow.version) {
       throw new Error(`WORKFLOW_IMMUTABLE: Active workflow "${workflow.workflowId}" v${workflow.version} is immutable. Create a new version.`);
     }
 
-    this.workflows.set(workflow.workflowId, { ...workflow });
-    workflowPersistenceStore.saveWorkflow(workflow);
+    this.store.saveWorkflow(workflow);
   }
 
   public getWorkflow(workflowId: string): WorkflowDefinition | undefined {
-    const wf = this.workflows.get(workflowId) || workflowPersistenceStore.getWorkflow(workflowId);
-    return wf ? structuredClone(wf) : undefined;
+    return this.store.getWorkflow(workflowId);
   }
 
   public listWorkflows(): WorkflowDefinition[] {
-    return Array.from(this.workflows.values()).map((w) => structuredClone(w));
+    return this.store.listWorkflows();
   }
 
   public proposeGeneratedWorkflow(
@@ -104,13 +98,15 @@ export class WorkflowEngine {
       startTime: Date.now(),
     };
 
+    // Record the run before any potentially side-effecting operation.
+    this.store.saveRun(run);
+
     // Cycle & Action Budget check
     if (wf.steps.length > wf.budget.maxActions) {
       run.status = 'BLOCKED';
       run.error = `Budget Exceeded: Workflow steps count (${wf.steps.length}) exceeds budget max actions (${wf.budget.maxActions}).`;
-      this.runs.set(runId, run);
-      workflowPersistenceStore.saveRun(run);
-      return run;
+      this.store.saveRun(run);
+      return structuredClone(run);
     }
 
     const completedStepIds = new Set<string>();
@@ -125,9 +121,8 @@ export class WorkflowEngine {
             run.status = 'BLOCKED';
             run.error = `DEPENDENCY_FAILED: Step "${step.stepId}" depends on prerequisite step "${depId}" which did not successfully complete.`;
             run.history.push({ stepId: step.stepId, capabilityId: step.capabilityId, status: 'BLOCKED', timestamp: Date.now() });
-            this.runs.set(runId, run);
-            workflowPersistenceStore.saveRun(run);
-            return run;
+            this.store.saveRun(run);
+            return structuredClone(run);
           }
         }
       }
@@ -137,18 +132,16 @@ export class WorkflowEngine {
       if (run.consumedBudget.runtimeMs > wf.budget.maxRuntimeMs) {
         run.status = 'BLOCKED';
         run.error = `BUDGET_EXCEEDED: Workflow execution time exceeded maximum runtime budget (${wf.budget.maxRuntimeMs}ms).`;
-        this.runs.set(runId, run);
-        workflowPersistenceStore.saveRun(run);
-        return run;
+        this.store.saveRun(run);
+        return structuredClone(run);
       }
 
       run.consumedBudget.toolCallsCount++;
       if (wf.budget.maxToolCalls && run.consumedBudget.toolCallsCount > wf.budget.maxToolCalls) {
         run.status = 'BLOCKED';
         run.error = `BUDGET_EXCEEDED: Tool calls count (${run.consumedBudget.toolCallsCount}) exceeded maximum tool call budget (${wf.budget.maxToolCalls}).`;
-        this.runs.set(runId, run);
-        workflowPersistenceStore.saveRun(run);
-        return run;
+        this.store.saveRun(run);
+        return structuredClone(run);
       }
 
       // Resolve tool for step capability
@@ -157,15 +150,18 @@ export class WorkflowEngine {
         run.status = 'FAILED';
         run.error = `UNKNOWN_CAPABILITY: No verified tool registered for capability "${step.capabilityId}".`;
         run.history.push({ stepId: step.stepId, capabilityId: step.capabilityId, status: 'FAILED', timestamp: Date.now() });
-        this.runs.set(runId, run);
-        workflowPersistenceStore.saveRun(run);
-        return run;
+        this.store.saveRun(run);
+        return structuredClone(run);
       }
 
       const grantId = grantIdsByStep?.[step.stepId] || step.grantId;
 
       // Mandatory Security Fix: Execute capability exclusively through ToolExecutor execution gate!
-      const toolRes = await toolExecutor.execute({
+      run.history.push({ stepId: step.stepId, capabilityId: step.capabilityId, status: 'DISPATCHING', timestamp: Date.now() });
+      this.store.saveRun(run);
+      let toolRes: Awaited<ReturnType<typeof toolExecutor.execute>>;
+      try {
+        toolRes = await toolExecutor.execute({
         id: `wf_${runId}_${step.stepId}`,
         toolId: tool.toolId,
         capability: step.capabilityId,
@@ -178,14 +174,19 @@ export class WorkflowEngine {
         workflowId: wf.workflowId,
         runId,
         stepId: step.stepId,
-      });
+        });
+      } catch {
+        run.status = 'REQUIRES_HUMAN_REVIEW';
+        run.error = 'Dispatch outcome unknown. Reconcile with Kingdom before retrying.';
+        this.store.saveRun(run);
+        return structuredClone(run);
+      }
 
       if (toolRes.status === 'PENDING') {
         run.status = 'WAITING_APPROVAL';
         run.history.push({ stepId: step.stepId, capabilityId: step.capabilityId, status: 'WAITING_APPROVAL', timestamp: Date.now() });
-        this.runs.set(runId, run);
-        workflowPersistenceStore.saveRun(run);
-        return run;
+        this.store.saveRun(run);
+        return structuredClone(run);
       }
 
       if (toolRes.status === 'BLOCKED' || toolRes.status === 'FAILED' || toolRes.status === 'TIMEOUT') {
@@ -193,7 +194,14 @@ export class WorkflowEngine {
         run.error = toolRes.error;
         run.history.push({ stepId: step.stepId, capabilityId: step.capabilityId, status: toolRes.status, timestamp: Date.now() });
 
-        // Trigger Compensating Action if defined — MUST NOT bypass authorization boundary or lower risk level!
+        // A timeout is an unknown outcome, not proof that compensation is safe.
+        if (toolRes.status === 'TIMEOUT') {
+          run.status = 'REQUIRES_HUMAN_REVIEW';
+          this.store.saveRun(run);
+          return structuredClone(run);
+        }
+
+        // Compensation only for a definite failure, subject to existing authorization.
         if (step.compensatingAction) {
           const compTool = toolRegistry.getToolByCapability(step.compensatingAction.capabilityId);
           if (compTool) {
@@ -214,9 +222,18 @@ export class WorkflowEngine {
           }
         }
 
-        this.runs.set(runId, run);
-        workflowPersistenceStore.saveRun(run);
-        return run;
+        this.store.saveRun(run);
+        return structuredClone(run);
+      }
+
+      // Never use simulated or unverified output as a dependency or completion receipt.
+      if (toolRes.status !== 'SUCCESS' || toolRes.verificationState !== 'VERIFIED') {
+        run.status = 'REQUIRES_HUMAN_REVIEW';
+        run.error = 'Step lacks verified evidence. No dependent steps will be dispatched.';
+        run.history.push({ stepId: step.stepId, capabilityId: step.capabilityId,
+          status: toolRes.verificationState === 'SIMULATED' ? 'SIMULATED' : 'EXECUTED_UNVERIFIED', timestamp: Date.now() });
+        this.store.saveRun(run);
+        return structuredClone(run);
       }
 
       // Mark step completed successfully
@@ -229,31 +246,24 @@ export class WorkflowEngine {
         stepIndex: idx,
         status: 'SUCCESS',
         timestamp: Date.now(),
-        stateSnapshot: { ...step.parameters, resultStatus: toolRes.status, verificationState: toolRes.verificationState },
+        stateSnapshot: { resultStatus: toolRes.status, verificationState: toolRes.verificationState },
       };
       run.checkpoints.push(checkpoint);
 
       run.executedStepsCount++;
 
-      // Honest workflow step verification classification (Prompt Item 17)
-      const honestStatus = toolRes.verificationState === 'SIMULATED'
-        ? 'SIMULATED'
-        : toolRes.verificationState === 'VERIFIED'
-        ? 'VERIFIED'
-        : 'EXECUTED_UNVERIFIED';
-
-      run.history.push({ stepId: step.stepId, capabilityId: step.capabilityId, status: honestStatus, timestamp: Date.now() });
+      run.history.push({ stepId: step.stepId, capabilityId: step.capabilityId, status: 'VERIFIED', timestamp: Date.now() });
+      this.store.saveRun(run);
     }
 
     run.status = 'COMPLETED';
     run.endTime = Date.now();
-    this.runs.set(runId, run);
-    workflowPersistenceStore.saveRun(run);
-    return run;
+    this.store.saveRun(run);
+    return structuredClone(run);
   }
 
   public getRun(runId: string): WorkflowExecutionRun | undefined {
-    return this.runs.get(runId) || workflowPersistenceStore.getRun(runId);
+    return this.store.getRun(runId);
   }
 }
 
