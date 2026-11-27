@@ -35,8 +35,8 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
         iosLike.locator('nav').evaluate((dock) => { dock.scrollLeft = dock.scrollWidth; }),
       ]);
       await Promise.all([
-        androidLike.getByRole('button', { name: 'Mobile', exact: true }).click(),
-        iosLike.getByRole('button', { name: 'Mobile', exact: true }).click(),
+        androidLike.getByRole('button', { name: 'Devices', exact: true }).click(),
+        iosLike.getByRole('button', { name: 'Devices', exact: true }).click(),
       ]);
 
       await expect(androidLike.getByText(/Connect a phone browser to this Centipede service/i)).toBeVisible();
@@ -76,7 +76,7 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
     await page.goto('/');
     await completeClientSetup(page);
 
-    await page.getByRole('button', { name: 'File Explorer' }).click();
+    await page.getByRole('navigation',{name:'Main navigation'}).getByRole('button', { name: 'Files', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Centipede Files — Local Workspace' })).toBeVisible();
     await expect(page.getByText(/Files are locked/)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Create file (no overwrite)' })).toBeDisabled();
@@ -87,26 +87,28 @@ test.describe('Centipede desktop client and Kingdom integration', () => {
     await page.goto('/');
     await completeClientSetup(page, kingdomTestUrl);
 
-    await page.getByRole('button', { name: 'Kingdom Engine', exact: true }).click();
+    await page.getByRole('navigation',{name:'Main navigation'}).getByRole('button', {name:'Apps',exact:true}).click();
+    await page.getByRole('region',{name:'Application directory'}).getByRole('button', { name: 'Kingdom Engine', exact: true }).click();
     await expect(page.getByText('Kingdom Runtime Status')).toBeVisible();
     await expect(page.locator('body')).toContainText('CONNECTED');
     await expect(page.locator('body')).toContainText('Kingdom Versionv1TAS');
     await page.screenshot({ path: 'test-results/02_status_panel.png' });
 
-    await page.getByRole('button', { name: 'Activity & Tasks' }).click();
+    await page.getByRole('navigation',{name:'Main navigation'}).getByRole('button', { name: 'Tasks', exact: true }).click();
     await expect(page.getByLabel(/Unlock real Kingdom task actions/)).toBeVisible();
     await page.getByPlaceholder('Enter prompt task for Kingdom processing...').fill('Contract verification task prompt');
     await expect(page.getByRole('button', { name: 'Submit Task' })).toBeDisabled();
     await expect(page.getByText(/Task changes require an explicitly unlocked owner session/)).toBeVisible();
     await page.screenshot({ path: 'test-results/03_task_owner_locked.png' });
 
-    await page.getByRole('complementary').getByRole('button', { name: 'Segmentor', exact: true }).click();
+    await page.getByRole('navigation',{name:'Main navigation'}).getByRole('button', { name: 'Segmentor', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Segmentor — Kingdom Tasks' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Submit real Kingdom task' })).toBeDisabled();
     await expect(page.getByText(/This screen does not simulate task completion/)).toBeVisible();
     await page.screenshot({ path: 'test-results/04_segmentor_owner_locked.png' });
 
-    await page.getByRole('button', { name: 'Security & Approvals' }).click();
+    await page.getByRole('navigation',{name:'Main navigation'}).getByRole('button', {name:'Apps',exact:true}).click();
+    await page.getByRole('region',{name:'Application directory'}).getByRole('button', { name: 'Security & Approvals', exact: true }).click();
     await expect(page.locator('body')).toContainText('Pending Security Approvals');
     await page.screenshot({ path: 'test-results/05_approval_read_only.png' });
   });

@@ -1,0 +1,21 @@
+import { test, expect } from '@playwright/test';
+test('seven primary destinations and searchable advanced apps preserve all features', async ({page})=>{
+  await page.addInitScript(()=>localStorage.setItem('centipede_first_run_completed','true'));
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('/');
+  const dock=page.getByRole('navigation',{name:'Main navigation'});
+  await expect(dock.getByRole('button')).toHaveCount(7);
+  for (const name of ['Home','Segmentor','Apps','Files','Tasks','Devices','Settings']) await expect(dock.getByRole('button',{name,exact:true})).toBeVisible();
+  await dock.getByRole('button',{name:'Apps',exact:true}).click();
+  const apps=page.getByRole('region',{name:'Application directory'});
+  await expect(apps.getByRole('button')).toHaveCount(18);
+  await apps.getByLabel('Find an application').fill('recovery not a real app');
+  await expect(apps.getByRole('status')).toHaveText('No matching applications.');
+  await apps.getByLabel('Find an application').fill('doctor');
+  await expect(apps.getByRole('button')).toHaveCount(1);
+  await apps.getByRole('button',{name:'Doctor & Repair'}).click();
+  await expect(page.getByRole('heading',{name:'Centipede Doctor'})).toBeVisible();
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await dock.getByRole('button',{name:'Home',exact:true}).click();
+  await expect(page.getByTestId('signature-desktop-wallpaper')).toBeVisible();
+});

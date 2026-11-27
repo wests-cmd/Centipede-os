@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Segmentor Native
+Comment=Review and run local desktop commands
+Exec=/usr/local/bin/centipede-native-assistant
+Icon=system-run
+Terminal=false
+Categories=Utility;Accessibility;
+StartupNotify=false

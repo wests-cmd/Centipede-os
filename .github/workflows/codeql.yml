@@ -15,7 +15,7 @@ on:
   push:
     branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "feat/segmentor-native-foundation-20261126" ]
   schedule:
     - cron: '19 2 * * 1'
 

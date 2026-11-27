@@ -1,0 +1,170 @@
+#!/usr/bin/python3
+"""User-invoked native Segmentor window. Local explicit commands only."""
+import importlib.machinery
+import importlib.util
+import os
+import pathlib
+import queue
+import sys
+import threading
+
+sys.dont_write_bytecode = True
+loader = importlib.machinery.SourceFileLoader(
+    "centipede_quick", str(pathlib.Path(__file__).resolve().with_name("centipede-native-quick")))
+spec = importlib.util.spec_from_loader(loader.name, loader)
+quick = importlib.util.module_from_spec(spec)
+loader.exec_module(quick)
+
+ALIASES = {"writer": "writer", "libreoffice writer": "writer", "calc": "calc",
+           "libreoffice calc": "calc", "thunderbird": "mail", "mail": "mail",
+           "vlc": "media", "media": "media"}
+VERBS = {"open": "open", "activate": "open", "maximize": "maximize", "restore": "restore",
+         "snap left": "left", "snap right": "right"}
+
+
+def parse_command(text):
+    if not isinstance(text, str) or len(text) > 120 or not text.isascii():
+        return None
+    if any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        return None
+    normalized = " ".join(text.lower().split())
+    for verb, operation in VERBS.items():
+        if normalized.startswith(verb + " "):
+            app = ALIASES.get(normalized[len(verb) + 1:])
+            if app is not None:
+                return app + ":" + operation
+    return None
+
+
+class Assistant:
+    def __init__(self, root, dispatch=None, notifier=None):
+        import tkinter as tk
+        self.root = root
+        self.dispatch = dispatch if dispatch is not None else lambda command: quick.dispatch(command, quick.Desktop())
+        self.notifier = notifier if notifier is not None else quick.notify
+        self.pending = None
+        self.busy = False
+        self.results = queue.Queue(maxsize=1)
+        self.command = tk.StringVar(master=root)
+        self.message = tk.StringVar(master=root, value="Enter a supported command, then review it.")
+        self.topmost = tk.BooleanVar(master=root, value=True)
+        root.title("Segmentor Native")
+        root.configure(bg="#15191e")
+        root.minsize(420, 275)
+        root.geometry("480x320")
+        root.attributes("-topmost", True)
+        root.protocol("WM_DELETE_WINDOW", self.close)
+        panel = tk.Frame(root, bg="#15191e", padx=18, pady=16)
+        panel.pack(fill="both", expand=True)
+        tk.Label(panel, text="SEGMENTOR", fg="#e6e6e6", bg="#15191e",
+                 font=("Sans", 17, "bold")).pack(anchor="w")
+        tk.Label(panel, text="Local desktop commands • no model or microphone",
+                 fg="#b9c0ca", bg="#15191e", wraplength=420, justify="left").pack(anchor="w", pady=(3, 10))
+        self.entry = tk.Entry(panel, textvariable=self.command, bg="#262b32", fg="#ffffff",
+                              insertbackground="#ffffff", relief="flat", font=("Sans", 12))
+        self.entry.pack(fill="x", ipady=7)
+        self.command.trace_add("write", self.changed)
+        self.entry.bind("<Return>", self.review)
+        tk.Label(panel, text="Examples: open writer · maximize vlc · snap left calc",
+                 fg="#b9c0ca", bg="#15191e", wraplength=420, justify="left").pack(anchor="w", pady=7)
+        controls = tk.Frame(panel, bg="#15191e")
+        controls.pack(fill="x")
+        self.review_button = tk.Button(controls, text="Review", command=self.review)
+        self.review_button.pack(side="left")
+        self.execute_button = tk.Button(controls, text="Run reviewed action", state="disabled",
+                                        command=self.execute, bg="#325f92", fg="#ffffff")
+        self.execute_button.pack(side="left", padx=6)
+        tk.Checkbutton(panel, text="Keep above other windows", variable=self.topmost,
+                       command=self.toggle_topmost, bg="#15191e", fg="#e6e6e6",
+                       selectcolor="#262b32", activebackground="#15191e",
+                       activeforeground="#ffffff").pack(anchor="w", pady=5)
+        tk.Label(panel, textvariable=self.message, fg="#e6e6e6", bg="#15191e",
+                 justify="left", wraplength=420).pack(anchor="w", fill="x", pady=4)
+        self.entry.focus_set()
+
+    def toggle_topmost(self):
+        self.root.attributes("-topmost", bool(self.topmost.get()))
+
+    def changed(self, *_):
+        self.pending = None
+        self.execute_button.configure(state="disabled")
+        if not self.busy:
+            self.message.set("Review the command before running it.")
+
+    def review(self, event=None):
+        if self.busy:
+            return
+        self.pending = parse_command(self.command.get())
+        if self.pending is None:
+            self.execute_button.configure(state="disabled")
+            self.message.set("Unsupported command. Nothing was dispatched.")
+            return
+        app, operation = self.pending.split(":")
+        self.message.set("Review: " + quick.OPERATIONS[operation] + " — " + quick.APPS[app][0])
+        self.execute_button.configure(state="normal")
+
+    def execute(self):
+        if self.busy or self.pending is None or self.pending != parse_command(self.command.get()):
+            return
+        approved = self.pending
+        self.pending = None
+        self.busy = True
+        self.entry.configure(state="disabled")
+        self.review_button.configure(state="disabled")
+        self.execute_button.configure(state="disabled")
+        self.message.set("Running reviewed action. Check the notification; restore Segmentor to see the receipt.")
+        # Do not cover the target or reclaim its focus after activation.
+        self.root.iconify()
+        def run():
+            try:
+                result = self.dispatch(approved)
+            except Exception:
+                result = ("UNVERIFIED", "Action outcome is uncertain. Check the desktop before trying again.")
+            self.results.put(result)
+            try:
+                self.notifier(*result)
+            except Exception:
+                pass
+        threading.Thread(target=run, name="segmentor-native-action").start()
+        self.root.after(100, self.poll)
+
+    def poll(self):
+        try:
+            status, detail = self.results.get_nowait()
+        except queue.Empty:
+            self.root.after(100, self.poll)
+            return
+        self.busy = False
+        self.entry.configure(state="normal")
+        self.review_button.configure(state="normal")
+        self.message.set(status + ": " + detail)
+        # Stay minimized; the user decides whether to reopen the assistant.
+
+    def close(self):
+        if self.busy:
+            self.message.set("An action is in progress. Wait for the receipt before closing.")
+        else:
+            self.root.destroy()
+
+
+def main():
+    if len(sys.argv) != 1 or not quick.local_session(os.environ, os.geteuid()):
+        print("A non-root local X11 session is required. No command-line execution is supported.", file=sys.stderr)
+        return 1
+    try:
+        import tkinter as tk
+    except ImportError:
+        quick.notify("UNAVAILABLE", "Native Segmentor requires Tk.")
+        return 1
+    try:
+        root = tk.Tk()
+    except tk.TclError:
+        quick.notify("UNAVAILABLE", "Native Segmentor requires a local graphical session.")
+        return 1
+    Assistant(root)
+    root.mainloop()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

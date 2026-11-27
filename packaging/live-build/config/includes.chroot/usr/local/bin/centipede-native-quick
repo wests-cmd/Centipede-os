@@ -1,0 +1,384 @@
+#!/usr/bin/python3
+"""Explicit native quick actions for a local XFCE/X11 user session.
+
+No network API, arbitrary commands, root access, typing, or agent authority.
+A successful receipt requires the requested application's window to become
+the active X11 window. Starting a process alone is not a verified result.
+"""
+import os
+import re
+import subprocess
+import sys
+import time
+
+APPS = {
+    "writer": ("LibreOffice Writer", ("/usr/bin/libreoffice", "--writer"), {"libreoffice-writer"}),
+    "calc": ("LibreOffice Calc", ("/usr/bin/libreoffice", "--calc"), {"libreoffice-calc"}),
+    "mail": ("Thunderbird", ("/usr/bin/thunderbird",), {"thunderbird"}),
+    "media": ("VLC", ("/usr/bin/vlc",), {"vlc"}),
+}
+ID = re.compile(r"0x[0-9a-fA-F]{1,8}\Z")
+DISPLAY = re.compile(r":[0-9]{1,5}(?:\.[0-9]{1,3})?\Z")
+
+
+def local_session(env, uid):
+    return uid != 0 and env.get("XDG_SESSION_TYPE", "x11") == "x11" and bool(
+        DISPLAY.fullmatch(env.get("DISPLAY", "")))
+
+
+def parse_windows(output):
+    result = []
+    for line in output.splitlines():
+        # wmctrl -lx: XID, desktop number, WM_CLASS, host, title.
+        parts = line.split(None, 4)
+        if len(parts) < 4 or not ID.fullmatch(parts[0]):
+            continue
+        result.append((int(parts[0], 16), set(parts[2].lower().split("."))))
+    return result
+
+
+def parse_active(output):
+    match = re.fullmatch(
+        r"_NET_ACTIVE_WINDOW\(WINDOW\): window id # (0x[0-9a-fA-F]{1,8})\s*",
+        output.strip(),
+    )
+    return int(match.group(1), 16) if match else None
+
+
+MAXIMIZED = {"_NET_WM_STATE_MAXIMIZED_VERT", "_NET_WM_STATE_MAXIMIZED_HORZ"}
+OPERATIONS = {"open": "Open or activate", "maximize": "Maximize", "restore": "Restore from maximized",
+              "left": "Snap left (single monitor)", "right": "Snap right (single monitor)"}
+SNAP_TOLERANCE = 24
+BLOCKED_SNAP_STATES = MAXIMIZED | {"_NET_WM_STATE_FULLSCREEN", "_NET_WM_STATE_HIDDEN",
+                                  "_NET_WM_STATE_SHADED"}
+
+
+def parse_state(output):
+    match = re.fullmatch(r"_NET_WM_STATE\(ATOM\)\s*=\s*(.*)", output.strip())
+    if not match:
+        return None
+    atoms = [atom.strip() for atom in match.group(1).split(",")] if match.group(1) else []
+    if any(not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", atom) for atom in atoms):
+        return None
+    return set(atoms)
+
+
+def cardinal_values(output, property_name):
+    match = re.fullmatch(re.escape(property_name) + r"\(CARDINAL\)\s*=\s*([0-9,\s]+)", output.strip())
+    if not match:
+        return None
+    try:
+        values = tuple(int(value.strip()) for value in match.group(1).split(","))
+    except ValueError:
+        return None
+    return values if all(0 <= value <= 65535 for value in values) else None
+
+
+def parse_geometry(output):
+    values = []
+    for label in ("Absolute upper-left X", "Absolute upper-left Y", "Width", "Height"):
+        match = re.search(r"^\s*" + re.escape(label) + r":\s*(-?\d+)\s*$", output, re.MULTILINE)
+        if not match:
+            return None
+        values.append(int(match.group(1)))
+    return tuple(values) if values[2] > 0 and values[3] > 0 else None
+
+
+def snap_rectangle(area, side):
+    x, y, width, height = area
+    if min(x, y) < 0 or width < 640 or height < 320 or side not in ("left", "right"):
+        return None
+    half = width // 2
+    return (x, y, half, height) if side == "left" else (x + half, y, width - half, height)
+
+
+def frame_geometry(client, extents):
+    if client is None or extents is None or len(extents) != 4:
+        return None
+    x, y, width, height = client
+    left, right, top, bottom = extents
+    return (x - left, y - top, width + left + right, height + top + bottom)
+
+
+def close_geometry(observed, expected):
+    # Some applications enforce resize increments. Verify bounded pixel error,
+    # not a successful wmctrl exit code or an exact pixel-placement claim.
+    return observed is not None and len(observed) == 4 and all(
+        abs(a - b) <= SNAP_TOLERANCE for a, b in zip(observed, expected))
+
+
+class Desktop:
+    def run(self, args):
+        return subprocess.run(args, check=True, capture_output=True, text=True, timeout=3)
+
+    def windows(self):
+        return parse_windows(self.run(["/usr/bin/wmctrl", "-lx"]).stdout)
+
+    def active(self):
+        return parse_active(self.run(["/usr/bin/xprop", "-root", "_NET_ACTIVE_WINDOW"]).stdout)
+
+    def focus(self, window_id):
+        if not isinstance(window_id, int) or not 0 < window_id <= 0xffffffff:
+            raise ValueError("Invalid X11 window identifier")
+        self.run(["/usr/bin/wmctrl", "-ia", hex(window_id)])
+
+    def state(self, window_id):
+        if not isinstance(window_id, int) or not 0 < window_id <= 0xffffffff:
+            raise ValueError("Invalid X11 window identifier")
+        return parse_state(self.run(["/usr/bin/xprop", "-id", hex(window_id), "_NET_WM_STATE"]).stdout)
+
+    def set_maximized(self, window_id, maximize):
+        if not isinstance(window_id, int) or not 0 < window_id <= 0xffffffff or type(maximize) is not bool:
+            raise ValueError("Invalid X11 window operation")
+        operation = "add" if maximize else "remove"
+        self.run(["/usr/bin/wmctrl", "-ir", hex(window_id), "-b",
+                  operation + ",maximized_vert,maximized_horz"])
+
+    def workarea(self):
+        monitors = self.run(["/usr/bin/xrandr", "--listactivemonitors"]).stdout
+        if not re.match(r"^Monitors:\s+1\s*$", monitors.splitlines()[0] if monitors else ""):
+            return None
+        current = cardinal_values(self.run(["/usr/bin/xprop", "-root", "_NET_CURRENT_DESKTOP"]).stdout,
+                                  "_NET_CURRENT_DESKTOP")
+        areas = cardinal_values(self.run(["/usr/bin/xprop", "-root", "_NET_WORKAREA"]).stdout, "_NET_WORKAREA")
+        if current is None or len(current) != 1 or areas is None or len(areas) % 4:
+            return None
+        offset = current[0] * 4
+        return areas[offset:offset + 4] if offset + 4 <= len(areas) else None
+
+    def window_workspace(self, window_id):
+        if type(window_id) is not int or not 0 < window_id <= 0xffffffff:
+            raise ValueError("Invalid X11 window identifier")
+        current = cardinal_values(self.run(["/usr/bin/xprop", "-root", "_NET_CURRENT_DESKTOP"]).stdout,
+                                  "_NET_CURRENT_DESKTOP")
+        target = cardinal_values(self.run(["/usr/bin/xprop", "-id", hex(window_id), "_NET_WM_DESKTOP"]).stdout,
+                                 "_NET_WM_DESKTOP")
+        return current is not None and len(current) == 1 and target == current
+
+    def frame_extents(self, window_id):
+        if type(window_id) is not int or not 0 < window_id <= 0xffffffff:
+            raise ValueError("Invalid X11 window identifier")
+        extents = cardinal_values(self.run(["/usr/bin/xprop", "-id", hex(window_id), "_NET_FRAME_EXTENTS"]).stdout,
+                                  "_NET_FRAME_EXTENTS")
+        return extents if extents is not None and len(extents) == 4 and max(extents) <= 128 else None
+
+    def geometry(self, window_id):
+        if type(window_id) is not int or not 0 < window_id <= 0xffffffff:
+            raise ValueError("Invalid X11 window identifier")
+        client = parse_geometry(self.run(["/usr/bin/xwininfo", "-id", hex(window_id)]).stdout)
+        return frame_geometry(client, self.frame_extents(window_id))
+
+    def move_resize(self, window_id, rectangle, extents):
+        if type(window_id) is not int or not 0 < window_id <= 0xffffffff:
+            raise ValueError("Invalid X11 window identifier")
+        x, y, width, height = rectangle
+        left, right, top, bottom = extents
+        client_width, client_height = width - left - right, height - top - bottom
+        if min(x, y) < 0 or min(client_width, client_height) < 100:
+            raise ValueError("Invalid snap rectangle")
+        geometry = ",".join(str(value) for value in (1, x, y, client_width, client_height))
+        self.run(["/usr/bin/wmctrl", "-ir", hex(window_id), "-e", geometry])
+
+    def launch(self, argv):
+        subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True)
+
+
+def matching(desktop, classes):
+    return sorted({wid for wid, wmclass in desktop.windows() if wid and classes & wmclass})
+
+
+def activate(app_id, desktop, clock=time.monotonic, sleep=time.sleep):
+    """Return a bounded receipt; do not silently retry a possibly launched app."""
+    if app_id not in APPS:
+        return "DENIED", "Unknown application. Nothing was dispatched."
+    label, argv, classes = APPS[app_id]
+    launched = False
+    dispatched = False
+    try:
+        candidates = matching(desktop, classes)
+        if not candidates:
+            # Mark possible dispatch before entering the side-effecting call.
+            dispatched = True
+            desktop.launch(argv)
+            launched = True
+            deadline = clock() + 12
+            while clock() < deadline:
+                candidates = matching(desktop, classes)
+                if candidates:
+                    break
+                sleep(0.2)
+        if not candidates:
+            return "UNVERIFIED", label + ": launch was requested, but no matching window was observed."
+        current = desktop.active()
+        if current in candidates:
+            return "VERIFIED", label + ": matching active X11 window observed."
+        if len(candidates) != 1:
+            return "UNVERIFIED", label + ": multiple matching windows; choose one manually."
+        window_id = candidates[0]
+        # Recheck the target identity before dispatch, then independently read back.
+        if window_id not in matching(desktop, classes):
+            return "UNVERIFIED", label + ": target changed before focus."
+        dispatched = True
+        desktop.focus(window_id)
+        deadline = clock() + 3
+        while clock() < deadline:
+            if desktop.active() == window_id and window_id in matching(desktop, classes):
+                return "VERIFIED", label + ": matching active X11 window observed."
+            sleep(0.1)
+        return "UNVERIFIED", label + ": focus requested, but active window could not be verified."
+    except (OSError, ValueError, subprocess.SubprocessError):
+        if launched or dispatched:
+            return "UNVERIFIED", label + ": an operation may have occurred; check before trying again."
+        return "UNAVAILABLE", label + ": native window inspection failed before dispatch."
+
+
+def position(app_id, operation, desktop, clock=time.monotonic, sleep=time.sleep):
+    """Explicit maximize/restore of an existing allowlisted window, never launch or toggle."""
+    if app_id not in APPS or operation not in ("maximize", "restore"):
+        return "DENIED", "Unknown window action. Nothing was dispatched."
+    label, _, classes = APPS[app_id]
+    dispatched = False
+    desired = operation == "maximize"
+
+    def satisfied(state):
+        return state is not None and (MAXIMIZED <= state if desired else not MAXIMIZED & state)
+
+    try:
+        candidates = matching(desktop, classes)
+        if not candidates:
+            return "UNAVAILABLE", label + ": open the application before changing its window."
+        current = desktop.active()
+        if len(candidates) != 1 and current not in candidates:
+            return "UNVERIFIED", label + ": multiple matching windows; select one manually."
+        wid = current if current in candidates else candidates[0]
+
+        def same_target():
+            observed = matching(desktop, classes)
+            return wid in observed and (len(observed) == 1 or desktop.active() == wid)
+        before = desktop.state(wid)
+        if before is None:
+            return "UNAVAILABLE", label + ": window state cannot be inspected."
+        if not same_target():
+            return "UNVERIFIED", label + ": target changed before dispatch."
+        if satisfied(before):
+            return "VERIFIED", label + ": requested window state already observed."
+        dispatched = True
+        desktop.set_maximized(wid, desired)
+        deadline = clock() + 3
+        while clock() < deadline:
+            if not same_target():
+                return "UNVERIFIED", label + ": target changed after dispatch; check manually."
+            if satisfied(desktop.state(wid)) and same_target():
+                return "VERIFIED", label + ": requested maximization state observed."
+            sleep(0.1)
+        return "UNVERIFIED", label + ": window manager did not confirm requested state."
+    except (OSError, ValueError, subprocess.SubprocessError):
+        if dispatched:
+            return "UNVERIFIED", label + ": an operation may have occurred; check before retrying."
+        return "UNAVAILABLE", label + ": window inspection failed before dispatch."
+
+
+def snap(app_id, side, desktop, clock=time.monotonic, sleep=time.sleep):
+    if app_id not in APPS or side not in ("left", "right"):
+        return "DENIED", "Unknown snap action. Nothing was dispatched."
+    label, _, classes = APPS[app_id]
+    dispatched = False
+    try:
+        candidates = matching(desktop, classes)
+        if len(candidates) != 1:
+            return "UNVERIFIED", label + ": exactly one matching window is required for snapping."
+        wid = candidates[0]
+        area = desktop.workarea()
+        expected = snap_rectangle(area, side) if area is not None else None
+        if expected is None or not desktop.window_workspace(wid):
+            return "UNAVAILABLE", label + ": snapping requires one monitor and the current workspace."
+        state = desktop.state(wid)
+        extents = desktop.frame_extents(wid)
+        if state is None or state & BLOCKED_SNAP_STATES or extents is None:
+            return "UNAVAILABLE", label + ": restore and show the window before snapping."
+
+        def same_target():
+            current_state = desktop.state(wid)
+            return (matching(desktop, classes) == [wid] and desktop.window_workspace(wid)
+                    and desktop.workarea() == area and current_state is not None
+                    and not current_state & BLOCKED_SNAP_STATES
+                    and desktop.frame_extents(wid) == extents)
+
+        before = desktop.geometry(wid)
+        if before is None:
+            return "UNAVAILABLE", label + ": geometry cannot be inspected."
+        if not same_target():
+            return "UNVERIFIED", label + ": target or workspace changed before dispatch."
+        if close_geometry(before, expected):
+            return "VERIFIED", label + ": requested half-screen geometry already observed."
+        dispatched = True
+        desktop.move_resize(wid, expected, extents)
+        deadline = clock() + 3
+        while clock() < deadline:
+            if not same_target():
+                return "UNVERIFIED", label + ": target or workspace changed; check manually."
+            if close_geometry(desktop.geometry(wid), expected) and same_target():
+                return "VERIFIED", label + ": requested half-screen geometry observed (within 24 pixels)."
+            sleep(0.1)
+        return "UNVERIFIED", label + ": requested geometry could not be confirmed."
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return ("UNVERIFIED", label + ": an operation may have occurred; check manually.") if dispatched else (
+            "UNAVAILABLE", label + ": geometry inspection failed before dispatch.")
+
+
+def dispatch(selection, desktop):
+    app_id, sep, operation = selection.partition(":")
+    if not sep or app_id not in APPS or operation not in OPERATIONS:
+        return "DENIED", "Unknown native action. Nothing was dispatched."
+    if operation == "open":
+        return activate(app_id, desktop)
+    if operation in ("left", "right"):
+        return snap(app_id, operation, desktop)
+    return position(app_id, operation, desktop)
+
+
+def notify(status, message):
+    # The receipt reports an observation; never claims an app's contents are verified.
+    # stdout is useful to an interactive terminal; no persistent telemetry is stored.
+    print(status + ": " + message)
+    try:
+        subprocess.run(["/usr/bin/notify-send", "Segmentor — " + status, message],
+                       check=False, timeout=3)
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
+def main():
+    if len(sys.argv) != 1:
+        print("Open Segmentor Native Quick Actions from the desktop Applications menu.", file=sys.stderr)
+        return 2
+    if not local_session(os.environ, os.geteuid()):
+        notify("UNAVAILABLE", "A non-root local X11 desktop session is required.")
+        return 1
+    try:
+        result = subprocess.run(
+            ["/usr/bin/zenity", "--list", "--title=Segmentor Native Quick Actions",
+             "--text=Choose an application and explicit window action.",
+             "--column=ID", "--column=Application", "--column=Action", "--hide-column=1", "--print-column=1",
+             "--width=520", "--height=430",
+             *[value for app, (label, _, _) in APPS.items()
+               for operation, action in OPERATIONS.items()
+               for value in (app + ":" + operation, label, action)]],
+            capture_output=True, text=True, timeout=300, check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        notify("UNAVAILABLE", "The native application picker is unavailable.")
+        return 1
+    if result.returncode == 1:
+        return 0
+    if result.returncode != 0:
+        notify("UNAVAILABLE", "The native application picker did not complete.")
+        return 1
+    status, message = dispatch(result.stdout.strip(), Desktop())
+    notify(status, message)
+    return 0 if status == "VERIFIED" else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

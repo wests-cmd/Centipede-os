@@ -36,7 +36,8 @@ test('opens every Centipede desktop app surface and records a screenshot', async
   ] as const;
 
   for (const [buttonName, windowTitle, screenshotName] of apps) {
-    await page.getByRole('complementary').getByRole('button', { name: buttonName, exact: true }).click();
+    await page.getByRole('navigation',{name:'Main navigation'}).getByRole('button',{name:'Apps',exact:true}).click();
+    await page.getByRole('region',{name:'Application directory'}).getByRole('button',{name:buttonName,exact:true}).click();
     await expect(page.getByRole('main').getByText(windowTitle, { exact: true }).first()).toBeVisible();
     await page.screenshot({ path: `test-results/full-use-${screenshotName}.png` });
   }

@@ -8,6 +8,7 @@ on:
   pull_request:
     branches:
       - main
+      - feat/segmentor-native-foundation-20261126
 
 jobs:
   local-inference-harness:

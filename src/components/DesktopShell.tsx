@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { KingdomAdapter } from '../api/kingdomAdapter';
 import type { HomeVisual } from './CentipedeWorldVisual';
 import { ART_BACKGROUND } from './LocalMediaBackground';
+import { PRIMARY_DESTINATIONS } from '../platform/appCatalog';
 import { ConnectionState, KingdomRuntimeInfo, RuntimeStatus, VersionCompatibility } from '../types';
 import {
   Activity,
@@ -100,37 +101,6 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
     }
   };
 
-  const sidebarPlaces = [
-    { id: 'launcher', name: 'Home / Desktop', icon: Home },
-    { id: 'files', name: 'Documents', icon: FileText },
-    { id: 'files', name: 'Downloads', icon: Download },
-    { id: 'files', name: 'Music', icon: Music },
-    { id: 'files', name: 'Pictures', icon: Image },
-    { id: 'files', name: 'Videos', icon: Video },
-  ];
-
-  const sidebarApps = [
-    { id: 'launcher', name: 'Home', icon: Home },
-    { id: 'command', name: 'Command Center', icon: BarChart3 },
-    { id: 'background', name: 'Background Work', icon: Cpu },
-    { id: 'ai', name: 'Segmentor', icon: Bot },
-    { id: 'perception', name: 'Camera, screen & mic', icon: Video },
-    { id: 'agent_control', name: 'Agent Control Plane', icon: ShieldAlert },
-    { id: 'workspace', name: 'Digital Workspace', icon: Grid },
-    { id: 'mobile', name: 'Mobile Companion', icon: Smartphone },
-    { id: 'status', name: 'Kingdom Engine', icon: Server },
-    { id: 'memory', name: 'Memory Explorer', icon: Brain },
-    { id: 'skills', name: 'Skill Manager', icon: Cpu },
-    { id: 'maps', name: 'Swarm Maps', icon: Map },
-    { id: 'tasks', name: 'Activity & Tasks', icon: Activity },
-    { id: 'security', name: 'Security & Approvals', icon: Shield, badge: pendingApprovalsCount },
-    { id: 'search', name: 'Universal Search', icon: Search },
-    { id: 'files', name: 'File Explorer', icon: Folder },
-    { id: 'terminal', name: 'Terminal CLI', icon: Terminal },
-    { id: 'settings', name: 'Settings', icon: Sliders },
-    { id: 'doctor', name: 'Doctor & Repair', icon: Stethoscope },
-  ];
-
   return (
     <div className="flex flex-col h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden select-none">
       {/* Top OS Menu Bar */}
@@ -197,78 +167,8 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         </div>
       )}
 
-      {/* Main Workspace with Left Sidebar */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Functional Desktop Sidebar */}
-        <aside className="w-56 bg-slate-900/80 border-r border-slate-800 p-3 flex flex-col justify-between hidden md:flex backdrop-blur-sm z-20">
-          <div className="space-y-4 overflow-y-auto pr-1">
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2 px-2">Places</div>
-              <div className="space-y-0.5">
-                {sidebarPlaces.map((p, idx) => {
-                  const Icon = p.icon;
-                  const isActive = activeAppId === p.id && idx === 0;
-                  return (
-                    <button
-                      key={p.name}
-                      onClick={() => setActiveAppId(p.id)}
-                      className={`w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
-                        isActive
-                          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                          : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      <span>{p.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2 px-2">Applications</div>
-              <div className="space-y-0.5">
-                {sidebarApps.filter((a) => a.id !== 'launcher').map((a) => {
-                  const Icon = a.icon;
-                  const isActive = activeAppId === a.id;
-                  return (
-                    <button
-                      key={a.name}
-                      onClick={() => setActiveAppId(a.id)}
-                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
-                        isActive
-                          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                          : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-2.5">
-                        <Icon className="w-4 h-4" />
-                        <span>{a.name}</span>
-                      </div>
-                      {a.badge && a.badge > 0 ? (
-                        <span className="bg-red-500 text-white font-bold text-[10px] px-1.5 py-0.2 rounded-full">
-                          {a.badge}
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-slate-800 pt-3">
-            <div className="bg-slate-950/60 border border-slate-800/80 rounded-xl p-2.5 text-[10px] text-slate-400 space-y-1">
-              <div className="font-bold text-slate-300">Kingdom Authorization</div>
-              <div>Protected actions require the external Kingdom service.</div>
-              <div className={`font-mono ${connectionState === 'CONNECTED' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                {connectionState === 'CONNECTED' ? 'Connected' : 'Not connected'}
-              </div>
-            </div>
-          </div>
-        </aside>
-
+      {/* Full-width workspace: navigation lives in the dock and app directory. */}
+      <div className="flex-1 min-h-0 flex overflow-hidden">
         {/* Main View Area */}
         <div className="relative isolate min-w-0 flex-1 overflow-hidden bg-slate-950">
           {activeAppId === 'launcher' && homeVisual === 'centipede-art' && (
@@ -282,33 +182,18 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({
         </div>
       </div>
 
-      {/* Bottom Desktop Dock */}
-      <nav aria-label="Main navigation" className="z-30 flex h-14 items-center justify-start gap-1 overflow-x-auto border-t border-slate-800 bg-slate-900 px-2 backdrop-blur-md sm:justify-center sm:gap-2 sm:px-4">
-        {sidebarApps.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeAppId === item.id;
-          const mobileApp = ['launcher', 'command', 'background', 'mobile', 'files', 'tasks', 'search', 'settings'].includes(item.id);
-          return (
-            <button
-              key={item.id}
-              onClick={() => setActiveAppId(item.id)}
-              title={item.name}
-              className={`${mobileApp ? 'flex' : 'hidden sm:flex'} group relative min-w-12 shrink-0 flex-col items-center justify-center rounded-lg px-2 py-1 transition-colors sm:min-w-0 sm:rounded-xl sm:px-3 ${
-                isActive
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-md shadow-cyan-500/10'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-              }`}
-            >
-              {item.badge && item.badge > 0 ? (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white font-bold text-[10px] px-1.5 py-0.2 rounded-full animate-bounce">
-                  {item.badge}
-                </span>
-              ) : null}
-              <Icon className={`w-4 h-4 mb-0.5 group-hover:scale-110 transition-transform ${isActive ? 'text-cyan-400' : ''}`} />
-              <span className="text-[10px] font-medium tracking-tight">{item.name.split(' ')[0]}</span>
-            </button>
-          );
+      {/* Seven primary destinations, all reachable on mobile. */}
+      <nav aria-label="Main navigation" className="z-30 flex h-14 shrink-0 items-center justify-start gap-1 overflow-x-auto border-t border-slate-800 bg-slate-950 px-2 sm:justify-center sm:gap-2">
+        {PRIMARY_DESTINATIONS.map(item => {
+          const Icon=item.icon;
+          const selected=activeAppId===item.id;
+          return <button key={item.id} type="button" onClick={()=>setActiveAppId(item.id)}
+            aria-current={selected?'page':undefined}
+            className={`relative flex min-w-12 shrink-0 flex-col items-center justify-center rounded-lg px-2 py-1 text-xs sm:min-w-16 ${selected?'bg-blue-950 text-blue-200 border border-blue-500':'text-slate-300 hover:bg-slate-800'}`}>
+            <Icon aria-hidden="true" className="h-5 w-5"/><span>{item.name}</span>
+          </button>;
         })}
+        {pendingApprovalsCount>0 && <button type="button" onClick={()=>setActiveAppId('security')} aria-label="Review pending approvals" className="shrink-0 rounded-lg bg-red-950 px-2 py-2 text-xs text-red-200">{pendingApprovalsCount} approvals</button>}
       </nav>
     </div>
   );

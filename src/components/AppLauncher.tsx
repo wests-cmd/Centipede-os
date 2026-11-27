@@ -74,7 +74,7 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
   const apps = [
     { id: 'command', name: 'System Command Center', icon: BarChart3, description: 'Understand system health, performance, Kingdom work, alerts, updates, and what is not verified.' },
     { id: 'background', name: 'Background Work', icon: Cpu, description: 'Configure owner-approved recurring browser tasks in an isolated worker, never on the active desktop.' },
-    { id: 'files', name: 'Example files', icon: Folder, description: 'Browse the sample files included with this demo.' /* REALITY-LINT-ALLOW: reason = "Truthful disclosure that the Files panel only shows bundled examples" */ },
+    { id: 'files', name: 'Local files', icon: Folder, description: 'Open the owner-protected local workspace.' },
     { id: 'search', name: 'Search', icon: Search, description: 'Look across Centipede tasks and saved information.' },
     { id: 'tasks', name: 'Tasks', icon: Activity, description: 'See work sent to the connected Kingdom service.' },
     { id: 'workspace', name: 'Workspace', icon: Grid, description: 'View connected services and saved routines.' },
@@ -99,21 +99,22 @@ export const AppLauncher: React.FC<AppLauncherProps> = ({
         </>}
         <div className={`relative z-10 flex max-w-xl flex-col items-start justify-center ${homeVisual === 'centipede-art' ? 'm-2 max-w-sm rounded-xl border border-slate-700 bg-slate-950/90 p-5 sm:m-4 sm:max-w-md sm:p-6' : 'h-full px-6 py-8 sm:px-10'}`}>
           <p className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200">
-            <span className="h-px w-7 bg-cyan-300/80" /> A more capable everyday desktop
+            <span className="h-px w-7 bg-cyan-300/80" /> CENTIPEDE OS
           </p>
           <h1 id="desktop-heading" className="max-w-lg text-3xl font-semibold leading-tight tracking-tight text-white sm:text-5xl">
-            Your day, with a little more orbit.
+            Home
           </h1>
           <p className="mt-4 max-w-md text-sm leading-6 text-slate-300 sm:text-base">
-            Everyday apps are close at hand. Centipede tools are here when you need a helping hand.
+            Open your apps or ask Segmentor for help.
           </p>
           <button
             type="button"
             onClick={() => onOpenApp('ai')}
             className="pointer-events-auto mt-6 rounded-lg border border-cyan-300/40 bg-cyan-400/10 px-4 py-2.5 text-sm font-medium text-cyan-100 shadow-lg shadow-cyan-950/30 transition hover:border-cyan-200/70 hover:bg-cyan-300/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200"
           >
-            Open Centipede assistant
+            Open Segmentor
           </button>
+          <button type="button" onClick={() => onOpenApp('apps')} className="mt-2 rounded-lg border border-slate-600 bg-slate-950 px-4 py-2 text-sm text-white">Browse apps</button>
         </div>
         <div className="absolute bottom-4 right-4 z-10 hidden rounded-full border border-white/10 bg-slate-950/55 px-3 py-1.5 text-[11px] text-slate-300 backdrop-blur sm:block">
           {homeVisual === 'centipede-art' ? 'Centipede Earth · signature wallpaper' : homeVisual === 'centipede-world' ? 'Centipede + World' : homeVisual.replace('-', ' ')}

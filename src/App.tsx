@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { kingdomAdapter } from './api/kingdomAdapter';
 import { DesktopShell } from './components/DesktopShell';
+import { SegmentorOverlay } from './components/SegmentorOverlay';
+import { AppDirectory } from './components/AppDirectory';
 import { AppLauncher } from './components/AppLauncher';
 import { Window } from './components/Window';
 import { applyAccessibilitySettings, DEFAULT_ACCESSIBILITY_SETTINGS, loadAccessibilitySettings } from './platform/accessibility';
@@ -34,6 +36,7 @@ const BackgroundHarnessApp = React.lazy(() => import('./components/BackgroundHar
 
 export const App: React.FC = () => {
   const [activeAppId, setActiveAppId] = useState<string>('launcher');
+  const [segmentorDraft, setSegmentorDraft] = useState<{ text: string } | null>(null);
   const [status, setStatus] = useState<RuntimeStatus | null>(null);
   const [connectionState, setConnectionState] = useState<ConnectionState>('DISCONNECTED');
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
@@ -99,6 +102,8 @@ export const App: React.FC = () => {
 
   const renderActiveView = () => {
     switch (activeAppId) {
+      case 'apps':
+        return <AppDirectory onNavigate={setActiveAppId} pendingApprovalsCount={pendingApprovalsCount} />;
       case 'launcher':
         return (
           <AppLauncher
@@ -147,7 +152,7 @@ export const App: React.FC = () => {
       case 'ai':
         return (
           <Window id="win_ai" title="Segmentor — Kingdom Tasks" icon={Bot} isOpen={true} onClose={() => setActiveAppId('launcher')}>
-            <CentipedeAI adapter={kingdomAdapter} onNavigateSecurity={() => setActiveAppId('security')} />
+            <CentipedeAI adapter={kingdomAdapter} onNavigateSecurity={() => setActiveAppId('security')} draft={segmentorDraft} onDraftConsumed={() => setSegmentorDraft(null)} />
           </Window>
         );
       case 'memory':
@@ -239,7 +244,7 @@ export const App: React.FC = () => {
     );
   }
 
-  return (
+  return (<>
     <DesktopShell
       adapter={kingdomAdapter}
       activeAppId={activeAppId}
@@ -248,11 +253,12 @@ export const App: React.FC = () => {
       homeVisual={homeVisual}
     >
       <AppUpdateManager currentVersion={CENTIPEDE_VERSION} />
-      <React.Suspense fallback={<div role="status" className="p-6 text-sm text-slate-300">Opening app…</div>}>
+      <React.Suspense key={activeAppId} fallback={<div role="status" className="p-6 text-sm text-slate-300">Opening app…</div>}>
         {renderActiveView()}
       </React.Suspense>
     </DesktopShell>
-  );
+    <SegmentorOverlay onNavigate={setActiveAppId} onDraft={text => { setSegmentorDraft({ text }); setActiveAppId('ai'); }} />
+  </>);
 };
 
 export default App;
