@@ -1,0 +1,28 @@
+name: Native desktop acceptance
+on:
+  pull_request:
+    branches: [main, feat/segmentor-native-foundation-20261126]
+    paths:
+      - 'packaging/live-build/**'
+      - 'scripts/test_native_desktop*.py'
+      - '.github/workflows/native-desktop.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-x11:
+    name: Native quick action policy and real X11 readback
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - name: Policy tests
+        run: python3 -m unittest discover -s scripts -p test_native_desktop.py -v
+      - name: Install disposable X11 fixture
+        run: |
+          test -s /etc/apt/sources.list.d/ubuntu.sources
+          apt_options=(-o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o Acquire::Retries=3)
+          sudo apt-get "${apt_options[@]}" update
+          sudo apt-get "${apt_options[@]}" install -y --no-install-recommends xvfb xauth openbox xterm wmctrl x11-utils x11-xserver-utils python3-tk
+      - name: Verify X11 geometry and native assistant confirmation
+        run: CENTIPEDE_TEST_X11=1 xvfb-run -a python3 -m unittest discover -s scripts -p test_native_desktop_x11.py -v
